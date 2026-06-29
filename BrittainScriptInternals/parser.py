@@ -6,6 +6,17 @@ import math
 # variable storage
 names = {}
 
+precedence = (
+    ('left', 'OR'),
+    ('left', 'AND'),
+    ('right', 'NOT'),
+    ('left', 'EQUALTO', 'NOTEQUALTO'),
+    ('left', 'LESSTHAN', 'GREATERTHAN', 'LESSTHANEQUALTO', 'GREATERTHANEQUALTO'),
+    ('left', 'PLUS', 'MINUS'),
+    ('left', 'MULTIPLY', 'DIVIDE'),
+    ('right', 'POWER'),
+)
+
 def p_expression_number(p):
     'expression : NUMBER'
     p[0] = p[1]
@@ -83,6 +94,50 @@ def p_expression_name(p):
     except KeyError:
         print(f'Undefined variable: {p[1]}')
         p[0] = 0
+
+def p_expression_and(p):
+    'expression : expression AND expression'
+    p[0] = bool(p[1]) and bool(p[3])
+
+def p_expression_or(p):
+    'expression : expression OR expression'
+    p[0] = bool(p[1]) or bool(p[3])
+
+def p_expression_not(p):
+    'expression : NOT expression'
+    p[0] = not bool(p[2])
+
+def p_expression_equalto(p):
+    'expression : expression EQUALTO expression'
+    p[0] = p[1] == p[3]
+
+def p_expression_notequalto(p):
+    'expression : expression NOTEQUALTO expression'
+    p[0] = p[1] != p[3]
+
+def p_expression_greaterthan(p):
+    'expression : expression GREATERTHAN expression'
+    p[0] = p[1] > p[3]
+
+def p_expression_lessthan(p):
+    'expression : expression LESSTHAN expression'
+    p[0] = p[1] < p[3]
+
+def p_expression_greaterthanequalto(p):
+    'expression : expression GREATERTHANEQUALTO expression'
+    p[0] = p[1] >= p[3]
+
+def p_expression_lessthanequalto(p):
+    'expression : expression LESSTHANEQUALTO expression'
+    p[0] = p[1] <= p[3]
+
+def p_expression_true(p):
+    'expression : TRUE'
+    p[0] = True
+
+def p_expression_false(p):
+    'expression : FALSE'
+    p[0] = False
 
 def p_error(p):
     if p:
