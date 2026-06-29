@@ -31,10 +31,12 @@ Rule 25    expression -> expression GREATERTHANEQUALTO expression
 Rule 26    expression -> expression LESSTHANEQUALTO expression
 Rule 27    expression -> TRUE
 Rule 28    expression -> FALSE
+Rule 29    expression -> COND LPAREN expression RPAREN
 
 Terminals, with rules where they appear
 
 AND                  : 18
+COND                 : 29
 COSINE               : 10
 DIVIDE               : 5
 EQ                   : 16
@@ -44,7 +46,7 @@ GREATERTHAN          : 23
 GREATERTHANEQUALTO   : 25
 LESSTHAN             : 24
 LESSTHANEQUALTO      : 26
-LPAREN               : 2 8 9 10 11 13 15
+LPAREN               : 2 8 9 10 11 13 15 29
 MINUS                : 4
 MULTIPLY             : 6
 NAME                 : 16 17
@@ -56,7 +58,7 @@ PI                   : 12
 PLUS                 : 3
 POWER                : 7
 PRINT                : 13 15
-RPAREN               : 2 8 9 10 11 13 15
+RPAREN               : 2 8 9 10 11 13 15 29
 SINE                 : 9
 SQUAREROOT           : 8
 STRING               : 14 15
@@ -66,7 +68,7 @@ error                :
 
 Nonterminals, with rules where they appear
 
-expression           : 2 3 3 4 4 5 5 6 6 7 7 8 9 10 11 13 16 18 18 19 19 20 21 21 22 22 23 23 24 24 25 25 26 26 0
+expression           : 2 3 3 4 4 5 5 6 6 7 7 8 9 10 11 13 16 18 18 19 19 20 21 21 22 22 23 23 24 24 25 25 26 26 29 0
 
 Parsing method: LALR
 
@@ -101,6 +103,7 @@ state 0
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -115,6 +118,7 @@ state 0
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
     expression                     shift and go to state 1
 
@@ -135,19 +139,19 @@ state 1
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
 state 2
@@ -202,6 +206,7 @@ state 3
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -216,35 +221,36 @@ state 3
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 28
+    expression                     shift and go to state 29
 
 state 4
 
     (8) expression -> SQUAREROOT . LPAREN expression RPAREN
 
-    LPAREN          shift and go to state 29
+    LPAREN          shift and go to state 30
 
 
 state 5
 
     (9) expression -> SINE . LPAREN expression RPAREN
 
-    LPAREN          shift and go to state 30
+    LPAREN          shift and go to state 31
 
 
 state 6
 
     (10) expression -> COSINE . LPAREN expression RPAREN
 
-    LPAREN          shift and go to state 31
+    LPAREN          shift and go to state 32
 
 
 state 7
 
     (11) expression -> TANGENT . LPAREN expression RPAREN
 
-    LPAREN          shift and go to state 32
+    LPAREN          shift and go to state 33
 
 
 state 8
@@ -273,7 +279,7 @@ state 9
     (13) expression -> PRINT . LPAREN expression RPAREN
     (15) expression -> PRINT . LPAREN STRING RPAREN
 
-    LPAREN          shift and go to state 33
+    LPAREN          shift and go to state 34
 
 
 state 10
@@ -302,7 +308,7 @@ state 11
     (16) expression -> NAME . EQ expression
     (17) expression -> NAME .
 
-    EQ              shift and go to state 34
+    EQ              shift and go to state 35
     PLUS            reduce using rule 17 (expression -> NAME .)
     MINUS           reduce using rule 17 (expression -> NAME .)
     DIVIDE          reduce using rule 17 (expression -> NAME .)
@@ -351,6 +357,7 @@ state 12
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -365,8 +372,9 @@ state 12
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 35
+    expression                     shift and go to state 36
 
 state 13
 
@@ -412,6 +420,13 @@ state 14
 
 state 15
 
+    (29) expression -> COND . LPAREN expression RPAREN
+
+    LPAREN          shift and go to state 37
+
+
+state 16
+
     (3) expression -> expression PLUS . expression
     (1) expression -> . NUMBER
     (2) expression -> . LPAREN expression RPAREN
@@ -441,6 +456,7 @@ state 15
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -455,10 +471,11 @@ state 15
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 36
+    expression                     shift and go to state 38
 
-state 16
+state 17
 
     (4) expression -> expression MINUS . expression
     (1) expression -> . NUMBER
@@ -489,6 +506,7 @@ state 16
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -503,10 +521,11 @@ state 16
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 37
+    expression                     shift and go to state 39
 
-state 17
+state 18
 
     (5) expression -> expression DIVIDE . expression
     (1) expression -> . NUMBER
@@ -537,6 +556,7 @@ state 17
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -551,10 +571,11 @@ state 17
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 38
+    expression                     shift and go to state 40
 
-state 18
+state 19
 
     (6) expression -> expression MULTIPLY . expression
     (1) expression -> . NUMBER
@@ -585,6 +606,7 @@ state 18
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -599,10 +621,11 @@ state 18
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 39
+    expression                     shift and go to state 41
 
-state 19
+state 20
 
     (7) expression -> expression POWER . expression
     (1) expression -> . NUMBER
@@ -633,6 +656,7 @@ state 19
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -647,10 +671,11 @@ state 19
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 40
+    expression                     shift and go to state 42
 
-state 20
+state 21
 
     (18) expression -> expression AND . expression
     (1) expression -> . NUMBER
@@ -681,6 +706,7 @@ state 20
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -695,10 +721,11 @@ state 20
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 41
+    expression                     shift and go to state 43
 
-state 21
+state 22
 
     (19) expression -> expression OR . expression
     (1) expression -> . NUMBER
@@ -729,6 +756,7 @@ state 21
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -743,10 +771,11 @@ state 21
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 42
+    expression                     shift and go to state 44
 
-state 22
+state 23
 
     (21) expression -> expression EQUALTO . expression
     (1) expression -> . NUMBER
@@ -777,6 +806,7 @@ state 22
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -791,10 +821,11 @@ state 22
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 43
+    expression                     shift and go to state 45
 
-state 23
+state 24
 
     (22) expression -> expression NOTEQUALTO . expression
     (1) expression -> . NUMBER
@@ -825,6 +856,7 @@ state 23
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -839,10 +871,11 @@ state 23
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 44
+    expression                     shift and go to state 46
 
-state 24
+state 25
 
     (23) expression -> expression GREATERTHAN . expression
     (1) expression -> . NUMBER
@@ -873,6 +906,7 @@ state 24
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -887,10 +921,11 @@ state 24
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 45
+    expression                     shift and go to state 47
 
-state 25
+state 26
 
     (24) expression -> expression LESSTHAN . expression
     (1) expression -> . NUMBER
@@ -921,6 +956,7 @@ state 25
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -935,10 +971,11 @@ state 25
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 46
+    expression                     shift and go to state 48
 
-state 26
+state 27
 
     (25) expression -> expression GREATERTHANEQUALTO . expression
     (1) expression -> . NUMBER
@@ -969,6 +1006,7 @@ state 26
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -983,10 +1021,11 @@ state 26
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 47
+    expression                     shift and go to state 49
 
-state 27
+state 28
 
     (26) expression -> expression LESSTHANEQUALTO . expression
     (1) expression -> . NUMBER
@@ -1017,6 +1056,7 @@ state 27
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -1031,10 +1071,11 @@ state 27
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 48
+    expression                     shift and go to state 50
 
-state 28
+state 29
 
     (2) expression -> LPAREN expression . RPAREN
     (3) expression -> expression . PLUS expression
@@ -1051,23 +1092,23 @@ state 28
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    RPAREN          shift and go to state 49
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    RPAREN          shift and go to state 51
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
-state 29
+state 30
 
     (8) expression -> SQUAREROOT LPAREN . expression RPAREN
     (1) expression -> . NUMBER
@@ -1098,6 +1139,7 @@ state 29
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -1112,10 +1154,11 @@ state 29
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 50
+    expression                     shift and go to state 52
 
-state 30
+state 31
 
     (9) expression -> SINE LPAREN . expression RPAREN
     (1) expression -> . NUMBER
@@ -1146,6 +1189,7 @@ state 30
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -1160,10 +1204,11 @@ state 30
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 51
+    expression                     shift and go to state 53
 
-state 31
+state 32
 
     (10) expression -> COSINE LPAREN . expression RPAREN
     (1) expression -> . NUMBER
@@ -1194,6 +1239,7 @@ state 31
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -1208,10 +1254,11 @@ state 31
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 52
+    expression                     shift and go to state 54
 
-state 32
+state 33
 
     (11) expression -> TANGENT LPAREN . expression RPAREN
     (1) expression -> . NUMBER
@@ -1242,6 +1289,7 @@ state 32
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -1256,10 +1304,11 @@ state 32
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 53
+    expression                     shift and go to state 55
 
-state 33
+state 34
 
     (13) expression -> PRINT LPAREN . expression RPAREN
     (15) expression -> PRINT LPAREN . STRING RPAREN
@@ -1291,8 +1340,9 @@ state 33
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
-    STRING          shift and go to state 55
+    STRING          shift and go to state 57
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
     SQUAREROOT      shift and go to state 4
@@ -1305,10 +1355,11 @@ state 33
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 54
+    expression                     shift and go to state 56
 
-state 34
+state 35
 
     (16) expression -> NAME EQ . expression
     (1) expression -> . NUMBER
@@ -1339,6 +1390,7 @@ state 34
     (26) expression -> . expression LESSTHANEQUALTO expression
     (27) expression -> . TRUE
     (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
 
     NUMBER          shift and go to state 2
     LPAREN          shift and go to state 3
@@ -1353,10 +1405,11 @@ state 34
     NOT             shift and go to state 12
     TRUE            shift and go to state 13
     FALSE           shift and go to state 14
+    COND            shift and go to state 15
 
-    expression                     shift and go to state 56
+    expression                     shift and go to state 58
 
-state 35
+state 36
 
     (20) expression -> NOT expression .
     (3) expression -> expression . PLUS expression
@@ -1377,17 +1430,17 @@ state 35
     OR              reduce using rule 20 (expression -> NOT expression .)
     $end            reduce using rule 20 (expression -> NOT expression .)
     RPAREN          reduce using rule 20 (expression -> NOT expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
   ! PLUS            [ reduce using rule 20 (expression -> NOT expression .) ]
   ! MINUS           [ reduce using rule 20 (expression -> NOT expression .) ]
@@ -1400,11 +1453,61 @@ state 35
   ! LESSTHAN        [ reduce using rule 20 (expression -> NOT expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 20 (expression -> NOT expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 20 (expression -> NOT expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
 
 
-state 36
+state 37
+
+    (29) expression -> COND LPAREN . expression RPAREN
+    (1) expression -> . NUMBER
+    (2) expression -> . LPAREN expression RPAREN
+    (3) expression -> . expression PLUS expression
+    (4) expression -> . expression MINUS expression
+    (5) expression -> . expression DIVIDE expression
+    (6) expression -> . expression MULTIPLY expression
+    (7) expression -> . expression POWER expression
+    (8) expression -> . SQUAREROOT LPAREN expression RPAREN
+    (9) expression -> . SINE LPAREN expression RPAREN
+    (10) expression -> . COSINE LPAREN expression RPAREN
+    (11) expression -> . TANGENT LPAREN expression RPAREN
+    (12) expression -> . PI
+    (13) expression -> . PRINT LPAREN expression RPAREN
+    (14) expression -> . STRING
+    (15) expression -> . PRINT LPAREN STRING RPAREN
+    (16) expression -> . NAME EQ expression
+    (17) expression -> . NAME
+    (18) expression -> . expression AND expression
+    (19) expression -> . expression OR expression
+    (20) expression -> . NOT expression
+    (21) expression -> . expression EQUALTO expression
+    (22) expression -> . expression NOTEQUALTO expression
+    (23) expression -> . expression GREATERTHAN expression
+    (24) expression -> . expression LESSTHAN expression
+    (25) expression -> . expression GREATERTHANEQUALTO expression
+    (26) expression -> . expression LESSTHANEQUALTO expression
+    (27) expression -> . TRUE
+    (28) expression -> . FALSE
+    (29) expression -> . COND LPAREN expression RPAREN
+
+    NUMBER          shift and go to state 2
+    LPAREN          shift and go to state 3
+    SQUAREROOT      shift and go to state 4
+    SINE            shift and go to state 5
+    COSINE          shift and go to state 6
+    TANGENT         shift and go to state 7
+    PI              shift and go to state 8
+    PRINT           shift and go to state 9
+    STRING          shift and go to state 10
+    NAME            shift and go to state 11
+    NOT             shift and go to state 12
+    TRUE            shift and go to state 13
+    FALSE           shift and go to state 14
+    COND            shift and go to state 15
+
+    expression                     shift and go to state 59
+
+state 38
 
     (3) expression -> expression PLUS expression .
     (3) expression -> expression . PLUS expression
@@ -1433,26 +1536,26 @@ state 36
     LESSTHANEQUALTO reduce using rule 3 (expression -> expression PLUS expression .)
     $end            reduce using rule 3 (expression -> expression PLUS expression .)
     RPAREN          reduce using rule 3 (expression -> expression PLUS expression .)
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
 
   ! DIVIDE          [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! MULTIPLY        [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! POWER           [ reduce using rule 3 (expression -> expression PLUS expression .) ]
-  ! PLUS            [ shift and go to state 15 ]
-  ! MINUS           [ shift and go to state 16 ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! PLUS            [ shift and go to state 16 ]
+  ! MINUS           [ shift and go to state 17 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 37
+state 39
 
     (4) expression -> expression MINUS expression .
     (3) expression -> expression . PLUS expression
@@ -1481,26 +1584,26 @@ state 37
     LESSTHANEQUALTO reduce using rule 4 (expression -> expression MINUS expression .)
     $end            reduce using rule 4 (expression -> expression MINUS expression .)
     RPAREN          reduce using rule 4 (expression -> expression MINUS expression .)
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
 
   ! DIVIDE          [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! MULTIPLY        [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! POWER           [ reduce using rule 4 (expression -> expression MINUS expression .) ]
-  ! PLUS            [ shift and go to state 15 ]
-  ! MINUS           [ shift and go to state 16 ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! PLUS            [ shift and go to state 16 ]
+  ! MINUS           [ shift and go to state 17 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 38
+state 40
 
     (5) expression -> expression DIVIDE expression .
     (3) expression -> expression . PLUS expression
@@ -1531,24 +1634,24 @@ state 38
     LESSTHANEQUALTO reduce using rule 5 (expression -> expression DIVIDE expression .)
     $end            reduce using rule 5 (expression -> expression DIVIDE expression .)
     RPAREN          reduce using rule 5 (expression -> expression DIVIDE expression .)
-    POWER           shift and go to state 19
+    POWER           shift and go to state 20
 
   ! POWER           [ reduce using rule 5 (expression -> expression DIVIDE expression .) ]
-  ! PLUS            [ shift and go to state 15 ]
-  ! MINUS           [ shift and go to state 16 ]
-  ! DIVIDE          [ shift and go to state 17 ]
-  ! MULTIPLY        [ shift and go to state 18 ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! PLUS            [ shift and go to state 16 ]
+  ! MINUS           [ shift and go to state 17 ]
+  ! DIVIDE          [ shift and go to state 18 ]
+  ! MULTIPLY        [ shift and go to state 19 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 39
+state 41
 
     (6) expression -> expression MULTIPLY expression .
     (3) expression -> expression . PLUS expression
@@ -1579,24 +1682,24 @@ state 39
     LESSTHANEQUALTO reduce using rule 6 (expression -> expression MULTIPLY expression .)
     $end            reduce using rule 6 (expression -> expression MULTIPLY expression .)
     RPAREN          reduce using rule 6 (expression -> expression MULTIPLY expression .)
-    POWER           shift and go to state 19
+    POWER           shift and go to state 20
 
   ! POWER           [ reduce using rule 6 (expression -> expression MULTIPLY expression .) ]
-  ! PLUS            [ shift and go to state 15 ]
-  ! MINUS           [ shift and go to state 16 ]
-  ! DIVIDE          [ shift and go to state 17 ]
-  ! MULTIPLY        [ shift and go to state 18 ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! PLUS            [ shift and go to state 16 ]
+  ! MINUS           [ shift and go to state 17 ]
+  ! DIVIDE          [ shift and go to state 18 ]
+  ! MULTIPLY        [ shift and go to state 19 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 40
+state 42
 
     (7) expression -> expression POWER expression .
     (3) expression -> expression . PLUS expression
@@ -1627,24 +1730,24 @@ state 40
     LESSTHANEQUALTO reduce using rule 7 (expression -> expression POWER expression .)
     $end            reduce using rule 7 (expression -> expression POWER expression .)
     RPAREN          reduce using rule 7 (expression -> expression POWER expression .)
-    POWER           shift and go to state 19
+    POWER           shift and go to state 20
 
   ! POWER           [ reduce using rule 7 (expression -> expression POWER expression .) ]
-  ! PLUS            [ shift and go to state 15 ]
-  ! MINUS           [ shift and go to state 16 ]
-  ! DIVIDE          [ shift and go to state 17 ]
-  ! MULTIPLY        [ shift and go to state 18 ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! PLUS            [ shift and go to state 16 ]
+  ! MINUS           [ shift and go to state 17 ]
+  ! DIVIDE          [ shift and go to state 18 ]
+  ! MULTIPLY        [ shift and go to state 19 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 41
+state 43
 
     (18) expression -> expression AND expression .
     (3) expression -> expression . PLUS expression
@@ -1665,17 +1768,17 @@ state 41
     OR              reduce using rule 18 (expression -> expression AND expression .)
     $end            reduce using rule 18 (expression -> expression AND expression .)
     RPAREN          reduce using rule 18 (expression -> expression AND expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
   ! PLUS            [ reduce using rule 18 (expression -> expression AND expression .) ]
   ! MINUS           [ reduce using rule 18 (expression -> expression AND expression .) ]
@@ -1688,11 +1791,11 @@ state 41
   ! LESSTHAN        [ reduce using rule 18 (expression -> expression AND expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 18 (expression -> expression AND expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 18 (expression -> expression AND expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
 
 
-state 42
+state 44
 
     (19) expression -> expression OR expression .
     (3) expression -> expression . PLUS expression
@@ -1712,18 +1815,18 @@ state 42
     OR              reduce using rule 19 (expression -> expression OR expression .)
     $end            reduce using rule 19 (expression -> expression OR expression .)
     RPAREN          reduce using rule 19 (expression -> expression OR expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
   ! PLUS            [ reduce using rule 19 (expression -> expression OR expression .) ]
   ! MINUS           [ reduce using rule 19 (expression -> expression OR expression .) ]
@@ -1737,10 +1840,10 @@ state 42
   ! LESSTHAN        [ reduce using rule 19 (expression -> expression OR expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 19 (expression -> expression OR expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 19 (expression -> expression OR expression .) ]
-  ! OR              [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
 
 
-state 43
+state 45
 
     (21) expression -> expression EQUALTO expression .
     (3) expression -> expression . PLUS expression
@@ -1763,15 +1866,15 @@ state 43
     NOTEQUALTO      reduce using rule 21 (expression -> expression EQUALTO expression .)
     $end            reduce using rule 21 (expression -> expression EQUALTO expression .)
     RPAREN          reduce using rule 21 (expression -> expression EQUALTO expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
   ! PLUS            [ reduce using rule 21 (expression -> expression EQUALTO expression .) ]
   ! MINUS           [ reduce using rule 21 (expression -> expression EQUALTO expression .) ]
@@ -1782,13 +1885,13 @@ state 43
   ! LESSTHAN        [ reduce using rule 21 (expression -> expression EQUALTO expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 21 (expression -> expression EQUALTO expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 21 (expression -> expression EQUALTO expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
 
 
-state 44
+state 46
 
     (22) expression -> expression NOTEQUALTO expression .
     (3) expression -> expression . PLUS expression
@@ -1811,15 +1914,15 @@ state 44
     NOTEQUALTO      reduce using rule 22 (expression -> expression NOTEQUALTO expression .)
     $end            reduce using rule 22 (expression -> expression NOTEQUALTO expression .)
     RPAREN          reduce using rule 22 (expression -> expression NOTEQUALTO expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
   ! PLUS            [ reduce using rule 22 (expression -> expression NOTEQUALTO expression .) ]
   ! MINUS           [ reduce using rule 22 (expression -> expression NOTEQUALTO expression .) ]
@@ -1830,13 +1933,13 @@ state 44
   ! LESSTHAN        [ reduce using rule 22 (expression -> expression NOTEQUALTO expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 22 (expression -> expression NOTEQUALTO expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 22 (expression -> expression NOTEQUALTO expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
 
 
-state 45
+state 47
 
     (23) expression -> expression GREATERTHAN expression .
     (3) expression -> expression . PLUS expression
@@ -1863,28 +1966,28 @@ state 45
     LESSTHANEQUALTO reduce using rule 23 (expression -> expression GREATERTHAN expression .)
     $end            reduce using rule 23 (expression -> expression GREATERTHAN expression .)
     RPAREN          reduce using rule 23 (expression -> expression GREATERTHAN expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
 
   ! PLUS            [ reduce using rule 23 (expression -> expression GREATERTHAN expression .) ]
   ! MINUS           [ reduce using rule 23 (expression -> expression GREATERTHAN expression .) ]
   ! DIVIDE          [ reduce using rule 23 (expression -> expression GREATERTHAN expression .) ]
   ! MULTIPLY        [ reduce using rule 23 (expression -> expression GREATERTHAN expression .) ]
   ! POWER           [ reduce using rule 23 (expression -> expression GREATERTHAN expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 46
+state 48
 
     (24) expression -> expression LESSTHAN expression .
     (3) expression -> expression . PLUS expression
@@ -1911,28 +2014,28 @@ state 46
     LESSTHANEQUALTO reduce using rule 24 (expression -> expression LESSTHAN expression .)
     $end            reduce using rule 24 (expression -> expression LESSTHAN expression .)
     RPAREN          reduce using rule 24 (expression -> expression LESSTHAN expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
 
   ! PLUS            [ reduce using rule 24 (expression -> expression LESSTHAN expression .) ]
   ! MINUS           [ reduce using rule 24 (expression -> expression LESSTHAN expression .) ]
   ! DIVIDE          [ reduce using rule 24 (expression -> expression LESSTHAN expression .) ]
   ! MULTIPLY        [ reduce using rule 24 (expression -> expression LESSTHAN expression .) ]
   ! POWER           [ reduce using rule 24 (expression -> expression LESSTHAN expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 47
+state 49
 
     (25) expression -> expression GREATERTHANEQUALTO expression .
     (3) expression -> expression . PLUS expression
@@ -1959,28 +2062,28 @@ state 47
     LESSTHANEQUALTO reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .)
     $end            reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .)
     RPAREN          reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
 
   ! PLUS            [ reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! MINUS           [ reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! DIVIDE          [ reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! MULTIPLY        [ reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! POWER           [ reduce using rule 25 (expression -> expression GREATERTHANEQUALTO expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 48
+state 50
 
     (26) expression -> expression LESSTHANEQUALTO expression .
     (3) expression -> expression . PLUS expression
@@ -2007,28 +2110,28 @@ state 48
     LESSTHANEQUALTO reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .)
     $end            reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .)
     RPAREN          reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
 
   ! PLUS            [ reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! MINUS           [ reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! DIVIDE          [ reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! MULTIPLY        [ reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! POWER           [ reduce using rule 26 (expression -> expression LESSTHANEQUALTO expression .) ]
-  ! AND             [ shift and go to state 20 ]
-  ! OR              [ shift and go to state 21 ]
-  ! EQUALTO         [ shift and go to state 22 ]
-  ! NOTEQUALTO      [ shift and go to state 23 ]
-  ! GREATERTHAN     [ shift and go to state 24 ]
-  ! LESSTHAN        [ shift and go to state 25 ]
-  ! GREATERTHANEQUALTO [ shift and go to state 26 ]
-  ! LESSTHANEQUALTO [ shift and go to state 27 ]
+  ! AND             [ shift and go to state 21 ]
+  ! OR              [ shift and go to state 22 ]
+  ! EQUALTO         [ shift and go to state 23 ]
+  ! NOTEQUALTO      [ shift and go to state 24 ]
+  ! GREATERTHAN     [ shift and go to state 25 ]
+  ! LESSTHAN        [ shift and go to state 26 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 27 ]
+  ! LESSTHANEQUALTO [ shift and go to state 28 ]
 
 
-state 49
+state 51
 
     (2) expression -> LPAREN expression RPAREN .
 
@@ -2049,7 +2152,7 @@ state 49
     RPAREN          reduce using rule 2 (expression -> LPAREN expression RPAREN .)
 
 
-state 50
+state 52
 
     (8) expression -> SQUAREROOT LPAREN expression . RPAREN
     (3) expression -> expression . PLUS expression
@@ -2066,23 +2169,23 @@ state 50
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    RPAREN          shift and go to state 57
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    RPAREN          shift and go to state 60
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
-state 51
+state 53
 
     (9) expression -> SINE LPAREN expression . RPAREN
     (3) expression -> expression . PLUS expression
@@ -2099,23 +2202,23 @@ state 51
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    RPAREN          shift and go to state 58
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    RPAREN          shift and go to state 61
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
-state 52
+state 54
 
     (10) expression -> COSINE LPAREN expression . RPAREN
     (3) expression -> expression . PLUS expression
@@ -2132,23 +2235,23 @@ state 52
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    RPAREN          shift and go to state 59
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    RPAREN          shift and go to state 62
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
-state 53
+state 55
 
     (11) expression -> TANGENT LPAREN expression . RPAREN
     (3) expression -> expression . PLUS expression
@@ -2165,23 +2268,23 @@ state 53
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    RPAREN          shift and go to state 60
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    RPAREN          shift and go to state 63
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
-state 54
+state 56
 
     (13) expression -> PRINT LPAREN expression . RPAREN
     (3) expression -> expression . PLUS expression
@@ -2198,29 +2301,29 @@ state 54
     (25) expression -> expression . GREATERTHANEQUALTO expression
     (26) expression -> expression . LESSTHANEQUALTO expression
 
-    RPAREN          shift and go to state 61
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    RPAREN          shift and go to state 64
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
 
-state 55
+state 57
 
     (15) expression -> PRINT LPAREN STRING . RPAREN
     (14) expression -> STRING .
 
   ! shift/reduce conflict for RPAREN resolved as shift
-    RPAREN          shift and go to state 62
+    RPAREN          shift and go to state 65
     PLUS            reduce using rule 14 (expression -> STRING .)
     MINUS           reduce using rule 14 (expression -> STRING .)
     DIVIDE          reduce using rule 14 (expression -> STRING .)
@@ -2238,7 +2341,7 @@ state 55
   ! RPAREN          [ reduce using rule 14 (expression -> STRING .) ]
 
 
-state 56
+state 58
 
     (16) expression -> NAME EQ expression .
     (3) expression -> expression . PLUS expression
@@ -2270,19 +2373,19 @@ state 56
   ! shift/reduce conflict for LESSTHANEQUALTO resolved as shift
     $end            reduce using rule 16 (expression -> NAME EQ expression .)
     RPAREN          reduce using rule 16 (expression -> NAME EQ expression .)
-    PLUS            shift and go to state 15
-    MINUS           shift and go to state 16
-    DIVIDE          shift and go to state 17
-    MULTIPLY        shift and go to state 18
-    POWER           shift and go to state 19
-    AND             shift and go to state 20
-    OR              shift and go to state 21
-    EQUALTO         shift and go to state 22
-    NOTEQUALTO      shift and go to state 23
-    GREATERTHAN     shift and go to state 24
-    LESSTHAN        shift and go to state 25
-    GREATERTHANEQUALTO shift and go to state 26
-    LESSTHANEQUALTO shift and go to state 27
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
 
   ! PLUS            [ reduce using rule 16 (expression -> NAME EQ expression .) ]
   ! MINUS           [ reduce using rule 16 (expression -> NAME EQ expression .) ]
@@ -2299,7 +2402,40 @@ state 56
   ! LESSTHANEQUALTO [ reduce using rule 16 (expression -> NAME EQ expression .) ]
 
 
-state 57
+state 59
+
+    (29) expression -> COND LPAREN expression . RPAREN
+    (3) expression -> expression . PLUS expression
+    (4) expression -> expression . MINUS expression
+    (5) expression -> expression . DIVIDE expression
+    (6) expression -> expression . MULTIPLY expression
+    (7) expression -> expression . POWER expression
+    (18) expression -> expression . AND expression
+    (19) expression -> expression . OR expression
+    (21) expression -> expression . EQUALTO expression
+    (22) expression -> expression . NOTEQUALTO expression
+    (23) expression -> expression . GREATERTHAN expression
+    (24) expression -> expression . LESSTHAN expression
+    (25) expression -> expression . GREATERTHANEQUALTO expression
+    (26) expression -> expression . LESSTHANEQUALTO expression
+
+    RPAREN          shift and go to state 66
+    PLUS            shift and go to state 16
+    MINUS           shift and go to state 17
+    DIVIDE          shift and go to state 18
+    MULTIPLY        shift and go to state 19
+    POWER           shift and go to state 20
+    AND             shift and go to state 21
+    OR              shift and go to state 22
+    EQUALTO         shift and go to state 23
+    NOTEQUALTO      shift and go to state 24
+    GREATERTHAN     shift and go to state 25
+    LESSTHAN        shift and go to state 26
+    GREATERTHANEQUALTO shift and go to state 27
+    LESSTHANEQUALTO shift and go to state 28
+
+
+state 60
 
     (8) expression -> SQUAREROOT LPAREN expression RPAREN .
 
@@ -2320,7 +2456,7 @@ state 57
     RPAREN          reduce using rule 8 (expression -> SQUAREROOT LPAREN expression RPAREN .)
 
 
-state 58
+state 61
 
     (9) expression -> SINE LPAREN expression RPAREN .
 
@@ -2341,7 +2477,7 @@ state 58
     RPAREN          reduce using rule 9 (expression -> SINE LPAREN expression RPAREN .)
 
 
-state 59
+state 62
 
     (10) expression -> COSINE LPAREN expression RPAREN .
 
@@ -2362,7 +2498,7 @@ state 59
     RPAREN          reduce using rule 10 (expression -> COSINE LPAREN expression RPAREN .)
 
 
-state 60
+state 63
 
     (11) expression -> TANGENT LPAREN expression RPAREN .
 
@@ -2383,7 +2519,7 @@ state 60
     RPAREN          reduce using rule 11 (expression -> TANGENT LPAREN expression RPAREN .)
 
 
-state 61
+state 64
 
     (13) expression -> PRINT LPAREN expression RPAREN .
 
@@ -2404,7 +2540,7 @@ state 61
     RPAREN          reduce using rule 13 (expression -> PRINT LPAREN expression RPAREN .)
 
 
-state 62
+state 65
 
     (15) expression -> PRINT LPAREN STRING RPAREN .
 
@@ -2424,20 +2560,41 @@ state 62
     $end            reduce using rule 15 (expression -> PRINT LPAREN STRING RPAREN .)
     RPAREN          reduce using rule 15 (expression -> PRINT LPAREN STRING RPAREN .)
 
+
+state 66
+
+    (29) expression -> COND LPAREN expression RPAREN .
+
+    PLUS            reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    MINUS           reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    DIVIDE          reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    MULTIPLY        reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    POWER           reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    AND             reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    OR              reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    EQUALTO         reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    NOTEQUALTO      reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    GREATERTHAN     reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    LESSTHAN        reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    GREATERTHANEQUALTO reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    LESSTHANEQUALTO reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    $end            reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+    RPAREN          reduce using rule 29 (expression -> COND LPAREN expression RPAREN .)
+
 WARNING: 
 WARNING: Conflicts:
 WARNING: 
-WARNING: shift/reduce conflict for RPAREN in state 55 resolved as shift
-WARNING: shift/reduce conflict for PLUS in state 56 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 56 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 56 resolved as shift
-WARNING: shift/reduce conflict for MULTIPLY in state 56 resolved as shift
-WARNING: shift/reduce conflict for POWER in state 56 resolved as shift
-WARNING: shift/reduce conflict for AND in state 56 resolved as shift
-WARNING: shift/reduce conflict for OR in state 56 resolved as shift
-WARNING: shift/reduce conflict for EQUALTO in state 56 resolved as shift
-WARNING: shift/reduce conflict for NOTEQUALTO in state 56 resolved as shift
-WARNING: shift/reduce conflict for GREATERTHAN in state 56 resolved as shift
-WARNING: shift/reduce conflict for LESSTHAN in state 56 resolved as shift
-WARNING: shift/reduce conflict for GREATERTHANEQUALTO in state 56 resolved as shift
-WARNING: shift/reduce conflict for LESSTHANEQUALTO in state 56 resolved as shift
+WARNING: shift/reduce conflict for RPAREN in state 57 resolved as shift
+WARNING: shift/reduce conflict for PLUS in state 58 resolved as shift
+WARNING: shift/reduce conflict for MINUS in state 58 resolved as shift
+WARNING: shift/reduce conflict for DIVIDE in state 58 resolved as shift
+WARNING: shift/reduce conflict for MULTIPLY in state 58 resolved as shift
+WARNING: shift/reduce conflict for POWER in state 58 resolved as shift
+WARNING: shift/reduce conflict for AND in state 58 resolved as shift
+WARNING: shift/reduce conflict for OR in state 58 resolved as shift
+WARNING: shift/reduce conflict for EQUALTO in state 58 resolved as shift
+WARNING: shift/reduce conflict for NOTEQUALTO in state 58 resolved as shift
+WARNING: shift/reduce conflict for GREATERTHAN in state 58 resolved as shift
+WARNING: shift/reduce conflict for LESSTHAN in state 58 resolved as shift
+WARNING: shift/reduce conflict for GREATERTHANEQUALTO in state 58 resolved as shift
+WARNING: shift/reduce conflict for LESSTHANEQUALTO in state 58 resolved as shift

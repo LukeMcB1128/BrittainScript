@@ -1,1 +1,7 @@
-4 == 2
+b = 5
+cond (b > 3)
+    push("b is greater than 3")
+end
+cond (b > 10)
+    push("this should not print")
+end

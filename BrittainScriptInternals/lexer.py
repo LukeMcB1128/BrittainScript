@@ -32,7 +32,9 @@ tokens = (
     'GREATERTHANEQUALTO',
     'LESSTHANEQUALTO',
     'TRUE',
-    'FALSE'
+    'FALSE',
+    # control flow
+    'COND',
 )
 
 reserved = {
@@ -47,6 +49,7 @@ reserved = {
     'not':     'NOT',
     'true':    'TRUE',
     'false':   'FALSE',
+    'cond':    'COND',
 }
 
 t_PLUS     = r'\+'

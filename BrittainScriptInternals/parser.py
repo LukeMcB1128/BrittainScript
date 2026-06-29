@@ -139,6 +139,10 @@ def p_expression_false(p):
     'expression : FALSE'
     p[0] = False
 
+def p_expression_cond(p):
+    'expression : COND LPAREN expression RPAREN'
+    p[0] = bool(p[3])
+
 def p_error(p):
     if p:
         print("Syntax error at '%s'" % p.value)
