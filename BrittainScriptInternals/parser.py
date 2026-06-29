@@ -1,22 +1,15 @@
 import ply.yacc as yacc
-import lexer as lexer
+import lexer as lexer_module
 from lexer import tokens
-import math as math
-
-variables = {}
-
-# basic function for everything thats complex
-#arg = p[3]
-    #if isinstance(arg, str):
-        #try: arg = float(arg)
-        #except ValueError:
-            #print("Error: Invalid arguement '{}' for function".format(arg))
-            #p[0] = None
-            #return
+import math
 
 def p_expression_number(p):
     'expression : NUMBER'
     p[0] = p[1]
+
+def p_expression_group(p):
+    'expression : LPAREN expression RPAREN'
+    p[0] = p[2]
 
 def p_expression_plus(p):
     'expression : expression PLUS expression'
@@ -28,122 +21,70 @@ def p_expression_minus(p):
 
 def p_expression_divide(p):
     'expression : expression DIVIDE expression'
+    if p[3] == 0:
+        print("Error: division by zero")
+        p[0] = None
+        return
     p[0] = p[1] / p[3]
 
 def p_expression_times(p):
     'expression : expression MULTIPLY expression'
-    if p[1] is None or p[3] is None:
-        p[0] = None  # Set the result to None if any operand is None
-    else:
-        p[0] = p[1] * p[3]
-
-def p_expression_squareroot(p):
-    'expression : SQUAREROOT LPAREN expression RPAREN'
-    arg = p[3]
-    if isinstance(arg, str):
-        try: arg = float(arg)
-        except ValueError:
-            print("Error: Invalid argument '{}' for squareroot".format)
-            p[0] = None
-            return
-    p[0] = math.sqrt(arg)
+    p[0] = p[1] * p[3]
 
 def p_expression_power(p):
     'expression : expression POWER expression'
-    arg = p[3]
-    if isinstance(arg,str):
-        try: arg = float(arg)
-        except ValueError:
-            print("Error: Invalid argument '{}' for square".format(arg))
-            p[0] = None
-            return
-    p[0] = math.pow(p[1], arg)
+    p[0] = math.pow(p[1], p[3])
+
+def p_expression_squareroot(p):
+    'expression : SQUAREROOT LPAREN expression RPAREN'
+    p[0] = math.sqrt(p[3])
 
 def p_expression_sine(p):
     'expression : SINE LPAREN expression RPAREN'
-    arg = p[3]  # Get the argument passed to the sine function
-    if isinstance(arg, str):  # Check if the argument is a string
-        try:
-            arg = float(arg)  # Convert the string to a numerical value
-        except ValueError:
-            print("Error: Invalid argument '{}' for sine function".format(arg))
-            p[0] = None
-            return
-    # Now arg should be a numerical value
-    p[0] = math.degrees(math.sin(arg))
-    
+    p[0] = math.sin(math.radians(p[3]))
+
 def p_expression_cosine(p):
     'expression : COSINE LPAREN expression RPAREN'
-    arg = p[3]
-    if isinstance(arg, str):
-        try: arg = float(arg)
-        except ValueError:
-            print("Error: Invalid argument '{}' for cosine".format(arg))
-            p[0] = None
-            return
-    p[0] = math.degrees(math.cos(arg))
+    p[0] = math.cos(math.radians(p[3]))
 
 def p_expression_tangent(p):
     'expression : TANGENT LPAREN expression RPAREN'
-    arg = p[3]
-    if isinstance(arg, str):
-        try: arg = float(arg)
-        except ValueError:
-            print("Error: Invalid argument '{}' for tangent".format(arg))
-            p[0] = None
-            return
-    p[0] = math.degrees(math.tan(arg))
+    p[0] = math.tan(math.radians(p[3]))
 
 def p_expression_pi(p):
     'expression : PI'
     p[0] = math.pi
 
-def p_expression_func_call(p):
-    '''expression : FUNC_CALL'''
-
-# all text stuff from here on
-
 def p_expression_print(p):
     'expression : PRINT LPAREN expression RPAREN'
+    print(p[3])
     p[0] = p[3]
 
-#def p_statement_assignment(p):
-    #'statement : assignment'
-    #pass
+def p_expression_string(p):
+    'expression : STRING'
+    p[0] = p[1]
 
-#def p_statement_expression(p):
-    #'statement : expression'
-    #p[0] = evaluate_expression(p[1])
-    #p[0] = p[3]
-
-#def p_expression_name(p):
-    #'expression : NAME'
-    #p[0] = variables[p[1]]
-
-#def p_assignment(p):
-    #'expression : NAME EQUALS expression'
-    #print("Assigned variable ", p[1], "to ", p[3])
-    #variables[p[1]] = p[3]
-
-# Define a function to evaluate expressions, replacing variable names with their values
-#def evaluate_expression(expr):
-    #if isinstance(expr, str) and expr in variables:
-        #return variables[expr]  # If the expression is a variable, return its value
-    #else:
-        #return expr  # Otherwise, return the expression unchanged
+def p_expression_print_string(p):
+    'expression : PRINT LPAREN STRING RPAREN'
+    print(p[3])
+    p[0] = p[3]
 
 def p_error(p):
-    print("Error in input")
+    if p:
+        print("Syntax error at '%s'" % p.value)
+    else:
+        print("Syntax error at end of input")
 
 parser = yacc.yacc()
 
-input_text = input("Test: ")
-lexer.lexer.input(input_text)
-while True:
-    tok = lexer.lexer.token()
-    if not tok:
-        break
-    print(tok)
-result = parser.parse(input_text)
-print(result)
-#print(variables)
+if __name__ == '__main__':
+    while True:
+        try:
+            text = input('bs> ')
+        except (EOFError, KeyboardInterrupt):
+            break
+        if not text.strip():
+            continue
+        result = parser.parse(text, lexer=lexer_module.lexer.clone())
+        if result is not None:
+            print(result)
