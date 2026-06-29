@@ -89,6 +89,89 @@ push(3 + 4)        => prints 7
 push("hello")      => prints hello
 ```
 
+`push()` only prints. It does not return the printed value.
+
+### Variables
+
+```
+name = "BrittainScript"
+count = 3
+```
+
+### Comments
+
+```
+# Full-line comment
+push("hello") # Inline comment
+```
+
+### Conditionals
+
+```
+cond (count > 1)
+    push("count is greater than one")
+end
+```
+
+### Loops
+
+```
+x = 0
+while x < 3:
+    x = x + 1
+    push(x)
+end
+
+for i in space(1, 4):
+    push(i)
+end
+```
+
+Use `break` to exit a loop and `continue` to skip to the next iteration.
+
+### Functions
+
+```
+func double(x):
+    return x * 2
+end
+
+push(double(5))
+```
+
+Functions return values with `return`.
+
+### Input
+
+```
+name = input("Enter your name: ")
+push(name)
+```
+
+### Strings
+
+```
+push("hello" + " world")
+push(len("hello"))
+
+name = " BrittainScript "
+push(name[1])
+push(name[1:5])
+push(name.trim().upper())
+
+push(tonum("42") + 8)
+push(tostr(42) + "!")
+```
+
+### Lists
+
+```
+nums = [1, 2, 3, 4]
+push(nums[0])
+nums.add(5)
+push(len(nums))
+```
+
 ### Grouping
 
 ```

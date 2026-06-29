@@ -10,6 +10,11 @@ tokens = (
     'POWER',
     'LPAREN',
     'RPAREN',
+    'LBRACKET',
+    'RBRACKET',
+    'COMMA',
+    'COLON',
+    'DOT',
     'STRING',
     # keywords — resolved from ID
     'SQUAREROOT',
@@ -35,6 +40,7 @@ tokens = (
     'FALSE',
     # control flow
     'COND',
+    'RANGE',
 )
 
 reserved = {
@@ -50,6 +56,7 @@ reserved = {
     'true':    'TRUE',
     'false':   'FALSE',
     'cond':    'COND',
+    'space':   'RANGE',
 }
 
 t_PLUS     = r'\+'
@@ -59,6 +66,11 @@ t_MULTIPLY = r'\*'
 t_POWER    = r'\^'
 t_LPAREN   = r'\('
 t_RPAREN   = r'\)'
+t_LBRACKET = r'\['
+t_RBRACKET = r'\]'
+t_COMMA    = r','
+t_COLON    = r':'
+t_DOT      = r'\.'
 t_EQ       = r'='
 
 def t_EQUALTO(t):
@@ -96,9 +108,13 @@ def t_NAME(t):
     return t
 
 def t_STRING(t):
-    r'"[^"]*"'
-    t.value = t.value[1:-1]
+    r'"([^"\\]|\\.)*"'
+    t.value = bytes(t.value[1:-1], "utf-8").decode("unicode_escape")
     return t
+
+def t_COMMENT(t):
+    r'\#.*'
+    pass
 
 def t_newline(t):
     r'\n+'

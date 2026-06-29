@@ -1,7 +1,12 @@
-b = 5
-cond (b > 3)
-    push("b is greater than 3")
+for i in space(1,4):
+    push(i)
 end
-cond (b > 10)
-    push("this should not print")
+
+b = range(1,4)
+push(b)
+
+func helloWorld(x):
+    push(x)
 end
+
+helloWorld("print")
