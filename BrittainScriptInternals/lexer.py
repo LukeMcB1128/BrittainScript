@@ -18,6 +18,10 @@ tokens = (
     'TANGENT',
     'PI',
     'PRINT',
+    # variables
+    'NAME',
+    'EQ',
+    # booleans
 )
 
 reserved = {
@@ -36,18 +40,16 @@ t_MULTIPLY = r'\*'
 t_POWER    = r'\^'
 t_LPAREN   = r'\('
 t_RPAREN   = r'\)'
+t_EQ       = r'\='
 
 def t_NUMBER(t):
     r'\d+(\.\d+)?'
     t.value = float(t.value) if '.' in t.value else int(t.value)
     return t
 
-def t_ID(t):
+def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
-    t.type = reserved.get(t.value, None)
-    if t.type is None:
-        print("Unknown identifier: '%s'" % t.value)
-        return None
+    t.type = reserved.get(t.value, 'NAME')
     return t
 
 def t_STRING(t):

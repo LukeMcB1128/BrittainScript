@@ -3,6 +3,9 @@ import lexer as lexer_module
 from lexer import tokens
 import math
 
+# variable storage
+names = {}
+
 def p_expression_number(p):
     'expression : NUMBER'
     p[0] = p[1]
@@ -58,7 +61,7 @@ def p_expression_pi(p):
 def p_expression_print(p):
     'expression : PRINT LPAREN expression RPAREN'
     print(p[3])
-    p[0] = p[3]
+    p[0] = None
 
 def p_expression_string(p):
     'expression : STRING'
@@ -67,7 +70,19 @@ def p_expression_string(p):
 def p_expression_print_string(p):
     'expression : PRINT LPAREN STRING RPAREN'
     print(p[3])
-    p[0] = p[3]
+    p[0] = None
+
+def p_statement_assign(p):
+    'expression : NAME EQ expression'
+    names[p[1]] = p[3]
+
+def p_expression_name(p):
+    'expression : NAME'
+    try:
+        p[0] = names[p[1]]
+    except KeyError:
+        print(f'Undefined variable: {p[1]}')
+        p[0] = 0
 
 def p_error(p):
     if p:
