@@ -37,34 +37,84 @@ def strip_inline_comment(line):
         result.append(char)
     return ''.join(result).strip()
 
+def indentation(line):
+    return len(line) - len(line.lstrip(' \t'))
+
+def split_assignment(line):
+    in_string = False
+    escaped = False
+    depth = 0
+    for index, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == '\\' and in_string:
+            escaped = True
+            continue
+        if char == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if char in '([':
+            depth += 1
+            continue
+        if char in ')]':
+            depth -= 1
+            continue
+        if char == '=' and depth == 0:
+            previous_char = line[index - 1] if index > 0 else ''
+            next_char = line[index + 1] if index + 1 < len(line) else ''
+            if previous_char in ('=', '!', '<', '>') or next_char == '=':
+                continue
+            return line[:index].strip(), line[index + 1:].strip()
+    return None
+
 def parse_expression(text):
     return parser_module.parser.parse(text, lexer=lexer_module.lexer.clone())
 
 def execute_line(line):
+    assignment = split_assignment(line)
+    if assignment:
+        target, expression = assignment
+        parser_module.assign_target(target, parse_expression(expression))
+        return
     result = parse_expression(line)
     if result is not None:
         print(result)
 
-def is_block_start(line):
-    first_word = line.split()[0] if line.split() else ''
-    return first_word in ('cond', 'while', 'for', 'func')
+def block_keyword(line):
+    for keyword in ('cond', 'while', 'for', 'func'):
+        if line == keyword or line.startswith(keyword + ' ') or line.startswith(keyword + '('):
+            return keyword
+    return None
 
-def collect_block(lines, start_index):
+def is_block_start(line):
+    return block_keyword(line) is not None
+
+def collect_block(lines, start_index, parent_indent=0):
     body = []
     i = start_index
-    depth = 1
+    block_indents = [parent_indent]
     while i < len(lines):
         line = strip_inline_comment(lines[i])
         if not line:
             body.append(lines[i])
             i += 1
             continue
+
+        current_indent = indentation(lines[i])
+        while len(block_indents) > 1 and current_indent <= block_indents[-1] and line != 'end':
+            block_indents.pop()
+        if len(block_indents) == 1 and current_indent <= parent_indent and line != 'end':
+            return body, i
+
         if is_block_start(line):
-            depth += 1
+            block_indents.append(current_indent)
         elif line == 'end':
-            depth -= 1
-            if depth == 0:
+            if len(block_indents) == 1:
                 return body, i + 1
+            block_indents.pop()
         body.append(lines[i])
         i += 1
     print("Syntax error: missing end")
@@ -74,6 +124,8 @@ def parse_colon_expression(line, keyword):
     expression = line[len(keyword):].strip()
     if expression.endswith(':'):
         expression = expression[:-1].strip()
+    if expression.startswith('(') and expression.endswith(')'):
+        expression = expression[1:-1].strip()
     return expression
 
 def execute_cond(line, body):
@@ -162,18 +214,18 @@ def execute_lines(lines):
             i += 1
             continue
 
-        first_word = line.split()[0]
+        first_word = block_keyword(line) or line.split()[0]
         if first_word == 'cond':
-            body, i = collect_block(lines, i + 1)
+            body, i = collect_block(lines, i + 1, indentation(lines[i]))
             execute_cond(line, body)
         elif first_word == 'while':
-            body, i = collect_block(lines, i + 1)
+            body, i = collect_block(lines, i + 1, indentation(lines[i]))
             execute_while(line, body)
         elif first_word == 'for':
-            body, i = collect_block(lines, i + 1)
+            body, i = collect_block(lines, i + 1, indentation(lines[i]))
             execute_for(line, body)
         elif first_word == 'func':
-            body, i = collect_block(lines, i + 1)
+            body, i = collect_block(lines, i + 1, indentation(lines[i]))
             execute_func_definition(line, body)
         elif first_word == 'break':
             raise BreakSignal()

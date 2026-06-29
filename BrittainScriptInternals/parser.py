@@ -36,6 +36,29 @@ def get_name(name):
 def set_name(name, value):
     scopes[-1][name] = value
 
+def assign_target(target, value):
+    target = target.strip()
+    indexed = re_match_index(target)
+    if indexed:
+        name, index_text = indexed
+        try:
+            container = get_name(name)
+            index = parser.parse(index_text, lexer=lexer_module.lexer.clone())
+            container[index] = value
+        except KeyError:
+            print(f'Undefined variable: {name}')
+        except (TypeError, IndexError):
+            print("Error: invalid assignment target")
+        return
+    set_name(target, value)
+
+def re_match_index(target):
+    import re
+    match = re.fullmatch(r'([A-Za-z_][A-Za-z0-9_]*)\s*\[(.+)\]', target)
+    if not match:
+        return None
+    return match.group(1), match.group(2)
+
 def set_function_caller(caller):
     global function_caller
     function_caller = caller
