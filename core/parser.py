@@ -244,6 +244,31 @@ def call_function(name, args):
     if name == 'clear':
         os.system('cls' if os.name == 'nt' else 'clear')
         return None
+    if name == 'absolute':
+        if len(args) > 1:
+            print("Error: absolute expects one argument")
+            return None
+        return abs(args)
+    if name == 'round':
+        if len(args) > 1:
+            print("Error: round expects one argument")
+            return None
+        return round(args)
+    if name == 'floor':
+        if len(args) > 1:
+            print("Error: floor expects one argument")
+            return None
+        return math.floor(args)
+    if name == 'ceiling':
+        if len(args) > 1:
+            print("Error: ceiling expects one argument")
+            return None
+        return math.ceil(args)
+    if name == 'type':
+        if len(args) > 1:
+            print("Error: type expects one argument")
+            return None
+        return type(args)
     if function_caller:
         return function_caller(name, args)
     print(f"Undefined function: {name}")
@@ -259,6 +284,24 @@ def call_method(receiver, name, args):
     if name == 'add' and isinstance(receiver, list) and len(args) == 1:
         receiver.append(args[0])
         return None
+    if name == 'contains' and isinstance(receiver, str):
+        if args[0] in receiver:
+            return True
+        else:
+            return False
+    if name == 'locate' and isinstance(receiver, str) and len(args == 1):
+        return receiver.find(args[0])
+    if name == 'remove' and isinstance(receiver, list) and len(args == 1):
+        receiver.remove(args[0])
+        return None
+    if name == 'pop' and isinstance(receiver, list) and len(args == 1):
+        receiver.pop()
+        return None
+    if name == 'has' and isinstance(receiver, list) and len(args == 1):
+        if args[0] in receiver:
+            return True
+        else:
+            return False
     print(f"Error: unsupported method {name}()")
     return None
 
