@@ -41,6 +41,8 @@ tokens = (
     # control flow
     'COND',
     'RANGE',
+    # import
+    'ADD'
 )
 
 reserved = {

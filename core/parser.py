@@ -8,6 +8,7 @@ import os
 names = {}
 scopes = [names]
 function_caller = None
+module_caller = None
 
 precedence = (
     ('left', 'OR'),
@@ -67,6 +68,10 @@ def re_match_index(target):
 def set_function_caller(caller):
     global function_caller
     function_caller = caller
+
+def set_module_caller(caller):
+    global module_caller
+    module_caller = caller
 
 def p_expression_number(p):
     'expression : NUMBER'
@@ -275,6 +280,11 @@ def call_function(name, args):
     return None
 
 def call_method(receiver, name, args):
+    if isinstance(receiver, dict) and receiver.get('__bs_module__'):
+        if module_caller:
+            return module_caller(receiver, name, args)
+        print(f"Error: no module caller set")
+        return None
     if name == 'upper' and isinstance(receiver, str) and not args:
         return receiver.upper()
     if name == 'lower' and isinstance(receiver, str) and not args:

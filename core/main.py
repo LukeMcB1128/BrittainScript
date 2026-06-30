@@ -205,7 +205,54 @@ def call_user_function(name, args):
         parser_module.pop_scope()
     return None
 
+def call_module_function(module, func_name, args):
+    funcs = module['funcs']
+    if func_name not in funcs:
+        print(f"Error: '{module['name']}' has no function '{func_name}'")
+        return None
+    params, body = funcs[func_name]
+    if len(args) != len(params):
+        print(f"Error: {func_name}() expects {len(params)} arguments")
+        return None
+    # Register module functions globally so they can call each other recursively
+    for name, defn in funcs.items():
+        functions[name] = defn
+    parser_module.push_scope(dict(zip(params, args)))
+    try:
+        execute_lines(body)
+    except ReturnSignal as s:
+        return s.value
+    except BreakSignal:
+        print("Error: break used outside a loop")
+        return None
+    except ContinueSignal:
+        print("Error: continue used outside a loop")
+        return None
+    finally:
+        parser_module.pop_scope()
+        for name in funcs:
+            functions.pop(name, None)
+    return None
+
+def import_module(lib_name):
+    libs_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
+    lib_path = os.path.join(libs_dir, lib_name + '.bs')
+    if not os.path.exists(lib_path):
+        print(f"Error: library '{lib_name}' not found")
+        return None
+    before = set(functions.keys())
+    with open(lib_path, 'r') as f:
+        lines = f.readlines()
+    try:
+        execute_lines(lines)
+    except (BreakSignal, ContinueSignal, ReturnSignal):
+        pass
+    new_names = set(functions.keys()) - before
+    module_funcs = {name: functions.pop(name) for name in new_names}
+    return {'__bs_module__': True, 'name': lib_name, 'funcs': module_funcs}
+
 parser_module.set_function_caller(call_user_function)
+parser_module.set_module_caller(call_module_function)
 
 def execute_lines(lines):
     i = 0
@@ -235,6 +282,16 @@ def execute_lines(lines):
         elif first_word == 'return':
             return_text = line[len('return'):].strip()
             raise ReturnSignal(parse_expression(return_text) if return_text else None)
+        elif first_word == 'add':
+            parts = line.split(None, 1)
+            if len(parts) < 2:
+                print("Syntax error: expected import name")
+            else:
+                lib_name = parts[1].strip()
+                module = import_module(lib_name)
+                if module:
+                    parser_module.set_name(lib_name, module)
+            i += 1
         elif first_word == 'end':
             print("Syntax error: unexpected end")
             i += 1
