@@ -7,6 +7,7 @@ tokens = (
     'DIVIDE',
     'MULTIPLY',
     'POWER',
+    'MODULO',
     'LPAREN',
     'RPAREN',
     'LBRACKET',
@@ -63,6 +64,7 @@ t_MINUS    = r'\-'
 t_DIVIDE   = r'\/'
 t_MULTIPLY = r'\*'
 t_POWER    = r'\^'
+t_MODULO   = r'\%'
 t_LPAREN   = r'\('
 t_RPAREN   = r'\)'
 t_LBRACKET = r'\['

@@ -104,6 +104,10 @@ def p_expression_times(p):
         print(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}")
         p[0] = None
 
+def p_expression_modulo(p):
+    'expression : expression MODULO expression'
+    p[0] = p[1] % p[3]
+
 def p_expression_power(p):
     'expression : expression POWER expression'
     p[0] = math.pow(p[1], p[3])
