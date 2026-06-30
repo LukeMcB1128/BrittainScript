@@ -2,6 +2,7 @@ import ply.yacc as yacc
 import lexer as lexer_module
 from lexer import tokens
 import math
+import os
 
 # variable storage
 names = {}
@@ -236,6 +237,9 @@ def call_function(name, args):
             print("Error: range() expects 1 to 3 arguments")
             return []
         return list(range(*args))
+    if name == 'clear':
+        os.system('cls' if os.name == 'nt' else 'clear')
+        return None
     if function_caller:
         return function_caller(name, args)
     print(f"Undefined function: {name}")
