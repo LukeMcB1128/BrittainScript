@@ -1,4 +1,5 @@
-import sys
+import sys, os
+sys.path.insert(0, os.path.dirname(__file__))
 import re
 import lexer as lexer_module
 import parser as parser_module
