@@ -34,6 +34,10 @@ def get_name(name):
     raise KeyError(name)
 
 def set_name(name, value):
+    for scope in reversed(scopes):
+        if name in scope:
+            scope[name] = value
+            return
     scopes[-1][name] = value
 
 def assign_target(target, value):
@@ -93,7 +97,11 @@ def p_expression_divide(p):
 
 def p_expression_times(p):
     'expression : expression MULTIPLY expression'
-    p[0] = p[1] * p[3]
+    try:
+        p[0] = p[1] * p[3]
+    except TypeError:
+        print(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}")
+        p[0] = None
 
 def p_expression_power(p):
     'expression : expression POWER expression'
