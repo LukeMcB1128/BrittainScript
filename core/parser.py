@@ -250,30 +250,30 @@ def call_function(name, args):
         os.system('cls' if os.name == 'nt' else 'clear')
         return None
     if name == 'absolute':
-        if len(args) > 1:
-            print("Error: absolute expects one argument")
+        if len(args) != 1:
+            print("Error: absolute() expects 1 argument")
             return None
-        return abs(args)
+        return abs(args[0])
     if name == 'round':
-        if len(args) > 1:
-            print("Error: round expects one argument")
+        if len(args) != 1:
+            print("Error: round() expects 1 argument")
             return None
-        return round(args)
+        return round(args[0])
     if name == 'floor':
-        if len(args) > 1:
-            print("Error: floor expects one argument")
+        if len(args) != 1:
+            print("Error: floor() expects 1 argument")
             return None
-        return math.floor(args)
+        return math.floor(args[0])
     if name == 'ceiling':
-        if len(args) > 1:
-            print("Error: ceiling expects one argument")
+        if len(args) != 1:
+            print("Error: ceiling() expects 1 argument")
             return None
-        return math.ceil(args)
+        return math.ceil(args[0])
     if name == 'type':
-        if len(args) > 1:
-            print("Error: type expects one argument")
+        if len(args) != 1:
+            print("Error: type() expects 1 argument")
             return None
-        return type(args)
+        return type(args[0])
     if name == 'readfile':
         if len(args) != 1:
             print("Error: readfile() expects 1 argument")
@@ -373,9 +373,15 @@ def call_method(receiver, name, args):
     if name == 'locate' and isinstance(receiver, str) and len(args) == 1:
         return receiver.find(args[0])
     if name == 'remove' and isinstance(receiver, list) and len(args) == 1:
-        receiver.remove(args[0])
+        try:
+            receiver.remove(args[0])
+        except ValueError:
+            print("Error: list does not contain value")
         return None
     if name == 'pop' and isinstance(receiver, list) and len(args) == 0:
+        if not receiver:
+            print("Error: cannot pop from an empty list")
+            return None
         receiver.pop()
         return None
     if name == 'has' and isinstance(receiver, list) and len(args) == 1:

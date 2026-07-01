@@ -1,0 +1,49 @@
+# terminal.bs -- tiny text-mode graphics helpers for BrittainScript
+
+func repeat(text, count):
+    result = ""
+    i = 0
+    while i < count:
+        result = result + text
+        i = i + 1
+    end
+    return result
+end
+
+func padRight(text, width):
+    result = text
+    while len(result) < width:
+        result = result + " "
+    end
+    return result
+end
+
+func wholeDivide(value, divisor):
+    result = 0
+    remaining = value
+    while remaining >= divisor:
+        remaining = remaining - divisor
+        result = result + 1
+    end
+    return result
+end
+
+func meter(value, maximum, width):
+    filled = wholeDivide(value * width, maximum)
+    cond filled < 0:
+        filled = 0
+    end
+    cond filled > width:
+        filled = width
+    end
+    return "[" + repeat("#", filled) + repeat(".", width - filled) + "]"
+end
+
+func rule(width):
+    return "+" + repeat("-", width) + "+"
+end
+
+func panel(text, width):
+    inside = padRight(text, width)
+    return "|" + inside[0:width] + "|"
+end
