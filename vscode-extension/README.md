@@ -1,47 +1,48 @@
 # BrittainScript
 
-A custom scripting language built in Python using PLY (Python Lex-Yacc), created as a genius hour project.
+## Installation
 
-## Requirements
+1. Install the BrittainScript extension from the VS Code Marketplace
+2. Use pip(or pip3) to install brittainscript
+3. Open any `.bs` file to get syntax highlighting and language support
+4. Use the integrated terminal to run your scripts
 
-Python 3 and PLY must be installed:
+Use:
 
+```bash
+pip3 install brittainscript
+# or
+pip install brittainscript
 ```
-pip install ply
-```
-
----
 
 ## Running BrittainScript
 
-All commands below are run from the `BrittainScriptInternals/` directory.
+### Run a Script File
 
-### Run a .bs file
+Open a `.bs` file, press the run button, and press **Ctrl+Shift+B** (or Cmd+Shift+B on Mac) to run:
 
-Pass the path to any `.bs` file as an argument:
-
+```brittainscript
+// example.bs
+push("Hello, BrittainScript!")
 ```
+
+Or use the terminal:
+
+```bash
 python3 main.py path/to/yourfile.bs
 ```
 
-For example, to run the included test file:
-
-```
-python3 main.py ../TestFiles/test.bs
-```
-
-Each non-blank line in the file is parsed and executed top to bottom. Lines starting with `#` are treated as comments and skipped.
-
 ### Interactive REPL
 
-Run without any arguments to get a live prompt where you can type expressions one at a time:
+Open the integrated terminal and run:
 
-```
+```bash
 python3 main.py
 ```
 
+Then type expressions one at a time:
+
 ```
-BrittainScript — type 'exit' to quit
 bs> 3 + 4
 7
 bs> push("hello")
@@ -53,186 +54,348 @@ bs> exit
 
 ## Language Syntax
 
-### Basic Math
-
-```
-3 + 4
-10 - 3 * 2
-8 / 2
-```
-
-### Power and Square Root
-
-```
-4^2          => 16
-sqrroot(16)  => 4.0
-```
-
-### Pi
-
-```
-5 * pi       => 15.707...
-```
-
-### Trigonometry (input in degrees)
-
-```
-sin(90)      => 1.0
-cos(0)       => 1.0
-tan(45)      => 1.0
-```
-
-### Print (`push`)
-
-```
-push(3 + 4)        => prints 7
-push("hello")      => prints hello
-```
-
-`push()` only prints. It does not return the printed value.
-
 ### Variables
 
-```
+```brittainscript
 name = "BrittainScript"
-count = 3
+count = 42
 ```
 
-### Comments
+### Math Operations
 
+```brittainscript
+result = 3 + 4           # 7
+result = 10 - 3          # 7
+result = 3 * 2           # 6
+result = 8 / 2           # 4
+result = 10 % 3          # 1
+result = 2 ^ 3           # 8
+result = sqrroot(16)     # 4.0
 ```
-# Full-line comment
-push("hello") # Inline comment
+
+### Trigonometry (degrees)
+
+```brittainscript
+result = sin(90)         # 1.0
+result = cos(0)          # 1.0
+result = tan(45)         # 1.0
+result = pi              # 3.14159...
+```
+
+### Strings
+
+```brittainscript
+text = "hello" + " world"
+length = len(text)
+char = text[0]           # "h"
+slice = text[0:5]        # "hello"
+
+upper = text.upper()     # "HELLO WORLD"
+lower = text.lower()     # "hello world"
+trimmed = "  text  ".trim()  # "text"
+
+has_substring = text.contains("world")    # true
+index = text.locate("world")              # 6
+```
+
+### Type Conversion
+
+```brittainscript
+num = tonum("42")        # 42
+str = tostr(42)          # "42"
+t = type(42)             # <class 'int'>
+```
+
+### Lists
+
+```brittainscript
+nums = [1, 2, 3, 4]
+first = nums[0]          # 1
+length = len(nums)       # 4
+
+nums.add(5)              # [1, 2, 3, 4, 5]
+nums.remove(3)           # [1, 2, 4, 5]
+nums.pop()               # [1, 2, 4]
+has_element = nums.has(2)  # true
+
+slice = nums[0:2]        # [1, 2]
+```
+
+### Boolean Logic
+
+```brittainscript
+result = true and false       # false
+result = true or false        # true
+result = not true             # false
+```
+
+### Comparisons
+
+```brittainscript
+result = 5 == 5          # true
+result = 5 != 3          # true
+result = 5 > 3           # true
+result = 3 < 5           # true
+result = 5 >= 5          # true
+result = 3 <= 5          # true
 ```
 
 ### Conditionals
 
-```
-cond (count > 1)
+```brittainscript
+cond (count > 1):
     push("count is greater than one")
 end
 ```
 
 ### Loops
 
-```
+```brittainscript
+# While loop
 x = 0
 while x < 3:
     x = x + 1
     push(x)
 end
 
+# For loop with range
 for i in space(1, 4):
     push(i)
 end
-```
 
-Use `break` to exit a loop and `continue` to skip to the next iteration.
+# Range with step
+for i in space(0, 10, 2):
+    push(i)  # 0, 2, 4, 6, 8
+end
+
+# Break and continue
+while true:
+    x = x + 1
+    cond (x == 5):
+        break
+    end
+    cond (x == 2):
+        continue
+    end
+    push(x)
+end
+```
 
 ### Functions
 
-```
+```brittainscript
 func double(x):
     return x * 2
 end
 
-push(double(5))
+func greet(name):
+    push("Hello, " + name)
+    return "Greeted"
+end
+
+result = double(5)       # 10
+msg = greet("Luke")      # prints "Hello, Luke"
 ```
 
-Functions return values with `return`.
+### Input/Output
 
-### Input
-
-```
+```brittainscript
+push("Hello, World!")
 name = input("Enter your name: ")
 push(name)
 ```
 
-### Strings
+### Comments
 
-```
-push("hello" + " world")
-push(len("hello"))
-
-name = " BrittainScript "
-push(name[1])
-push(name[1:5])
-push(name.trim().upper())
-
-push(tonum("42") + 8)
-push(tostr(42) + "!")
-```
-
-### Lists
-
-```
-nums = [1, 2, 3, 4]
-push(nums[0])
-nums.add(5)
-push(len(nums))
+```brittainscript
+# This is a full-line comment
+push(5)  # This is an inline comment
 ```
 
 ### Grouping
 
-```
-(2 + 3) * 4   => 20
-```
-
----
-
-## Test Files
-
-There are two standalone test suites in `TestFiles/`. These are self-contained and independent from the main interpreter — they were used to prototype the lexer and parser separately.
-
-### Math test (`TestFiles/TestMath/`)
-
-Tests a basic arithmetic lexer and parser (addition, subtraction, multiplication, division). Run from inside the `TestMath` folder:
-
-```
-cd TestFiles/TestMath
-python3 testcalc.py
-```
-
-You'll see a `Test:` prompt. Type a math expression and it prints the tokens it found, then the parsed result:
-
-```
-Test: 3 + 4
-LexToken(NUMBER,3,1,0)
-LexToken(PLUS,'+',1,2)
-LexToken(NUMBER,4,1,4)
-Yacc parsed:  7
-```
-
-### Text test (`TestFiles/TestText/`)
-
-Tests a minimal text lexer and parser. Run from inside the `TestText` folder:
-
-```
-cd TestFiles/TestText
-python3 testtext.py
-```
-
-You'll see an `Enter some text:` prompt. Type anything and it prints the token and the parsed result:
-
-```
-Enter some text: hello world
-LexToken(TEXT,'hello world',1,0)
-Parsed: hello world
+```brittainscript
+result = (2 + 3) * 4    # 20
 ```
 
 ---
 
-## Project Structure
+## Modules
 
+### Math Module
+
+```brittainscript
+add math
+
+a = math.max(10, 50)     # 50
+b = math.min(10, 50)     # 10
+c = math.abs(-5)         # 5
+d = math.clamp(15, 0, 10)  # 10
+e = math.factorial(5)    # 120
+f = math.pow(2, 8)       # 256
 ```
-BrittainScript/
-├── BrittainScriptInternals/
-│   ├── main.py       — entry point (REPL + file runner)
-│   ├── lexer.py      — tokenizer
-│   └── parser.py     — grammar and evaluator
-├── TestFiles/
-│   ├── TestMath/     — standalone arithmetic test
-│   └── TestText/     — standalone text test
-└── Documentation/
-    └── mathdocs.txt  — language reference for math features
+
+### Convert Module
+
+```brittainscript
+add convert
+
+fahrenheit = convert.celToFahrenheit(0)       # 32
+celsius = convert.fahrenheitToCel(32)         # 0.0
 ```
+
+### Importing Multiple Modules
+
+```brittainscript
+add math
+add convert
+
+value = math.max(10, 20)
+temp = convert.celToFahrenheit(value)
+push(temp)
+```
+
+---
+
+## Built-in Functions
+
+| Function | Example | Returns |
+|----------|---------|---------|
+| `len()` | `len("hello")` | `5` |
+| `tonum()` | `tonum("42")` | `42` |
+| `tostr()` | `tostr(42)` | `"42"` |
+| `input()` | `input("Prompt: ")` | user input |
+| `space()` | `space(1, 5)` | `[1, 2, 3, 4]` |
+| `push()` | `push("text")` | prints to console |
+| `type()` | `type(42)` | `<class 'int'>` |
+| `round()` | `round(3.7)` | `4` |
+| `floor()` | `floor(3.7)` | `3` |
+| `ceiling()` | `ceiling(3.2)` | `4` |
+| `absolute()` | `absolute(-5)` | `5` |
+| `sqrroot()` | `sqrroot(16)` | `4.0` |
+| `sin()` | `sin(90)` | `1.0` |
+| `cos()` | `cos(0)` | `1.0` |
+| `tan()` | `tan(45)` | `1.0` |
+| `clear()` | `clear()` | clears terminal |
+
+---
+
+## Operator Precedence
+
+From highest to lowest:
+
+1. `[]` — Brackets (indexing/slicing)
+2. `^` — Power
+3. `*`, `/`, `%` — Multiply, Divide, Modulo
+4. `+`, `-` — Plus, Minus
+5. `<`, `>`, `<=`, `>=`, `==`, `!=` — Comparisons
+6. `not` — Logical NOT
+7. `and` — Logical AND
+8. `or` — Logical OR
+
+---
+
+## Tips & Tricks
+
+- **Escape sequences**: Use `\n` for newline, `\t` for tab, `\\` for backslash
+- **Negative indexing**: `list[-1]` gets the last element
+- **Open slices**: `list[:3]` and `list[2:]` work as expected
+- **Mixed-type lists**: `[1, "hello", true, 3.14]` is valid
+- **Recursion**: Functions can call themselves
+- **Variable scope**: Function parameters are local; outer variables are global
+
+---
+
+## Troubleshooting
+
+### Syntax Error: missing end
+
+Make sure all `cond`, `while`, `for`, and `func` blocks end with `end`:
+
+```brittainscript
+# Wrong
+cond (x > 5):
+    push("yes")
+
+# Correct
+cond (x > 5):
+    push("yes")
+end
+```
+
+### Undefined function error
+
+Check that the function is defined before calling it:
+
+```brittainscript
+result = double(5)  # Error: not defined yet
+
+func double(x):
+    return x * 2
+end
+
+result = double(5)  # OK
+```
+
+### Module not found
+
+Make sure to import the module with `add`:
+
+```brittainscript
+add math
+result = math.max(1, 2)  # OK
+```
+
+---
+
+## Example Programs
+
+### Factorial Calculator
+
+```brittainscript
+add math
+
+n = input("Enter a number: ")
+num = tonum(n)
+result = math.factorial(num)
+push("Factorial: " + tostr(result))
+```
+
+### Temperature Converter
+
+```brittainscript
+add convert
+
+celsius = input("Enter temperature in Celsius: ")
+c = tonum(celsius)
+f = convert.celToFahrenheit(c)
+push(tostr(c) + "°C = " + tostr(f) + "°F")
+```
+
+### List Operations
+
+```brittainscript
+nums = [5, 2, 8, 1, 9]
+push("Original: " + tostr(nums))
+
+nums.add(3)
+push("After add: " + tostr(nums))
+
+max_val = 0
+for i in nums:
+    cond (i > max_val):
+        max_val = i
+    end
+end
+push("Max: " + tostr(max_val))
+```
+
+---
+
+## Resources
+
+- **Official Repository**: [GitHub BrittainScript](https://github.com/LukeMcB1128/BrittainScript)
+- **Issue Tracker**: Report bugs and request features
+- **Documentation**: See README.md in the repository
+
+---
