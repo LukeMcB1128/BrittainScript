@@ -1,0 +1,48 @@
+{
+  "name": "brittainscript",
+  "displayName": "BrittainScript",
+  "description": "Language support for BrittainScript (.bs files)",
+  "version": "0.1.0",
+  "publisher": "LukeBrittain",
+  "engines": { "vscode": "^1.75.0" },
+  "categories": ["Programming Languages"],
+  "keywords": ["brittainscript", "bs", "scripting"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LukeMcB1128/BrittainScript"
+  },
+  "license": "MIT",
+  "main": "./extension.js",
+"contributes": {
+    "commands": [
+      {
+        "command": "brittainscript.run",
+        "title": "Run BrittainScript File",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "editor/title/run": [
+        {
+          "command": "brittainscript.run",
+          "when": "resourceLangId == brittainscript"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "brittainscript",
+        "aliases": ["BrittainScript", "brittainscript"],
+        "extensions": [".bs"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "brittainscript",
+        "scopeName": "source.bs",
+        "path": "./syntaxes/brittainscript.tmLanguage.json"
+      }
+    ]
+  }
+}

@@ -354,8 +354,11 @@ def run_repl():
             except ReturnSignal:
                 print("Error: return used outside a function")
 
-if __name__ == '__main__':
+def cli_entry():
     if len(sys.argv) > 1:
         run_file(sys.argv[1])
     else:
         run_repl()
+
+if __name__ == '__main__':
+    cli_entry()

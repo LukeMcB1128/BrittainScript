@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brittainscript"
+version = "0.1.0"
+description = "The BrittainScript programming language interpreter"
+readme = "Documentation/README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Luke Brittain", email = "luke.brittain@gmail.com" }]
+requires-python = ">=3.9"
+dependencies = ["ply>=3.11"]
+keywords = ["programming-language", "interpreter", "scripting"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Interpreters",
+]
+
+[project.scripts]
+bs = "core.main:cli_entry"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "libs*"]
+
+[tool.setuptools.package-data]
+"libs" = ["*.bs"]

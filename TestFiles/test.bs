@@ -1,12 +1,8 @@
-for i in space(1,4):
-    push(i)
-end
+add math
+add convert
 
-b = range(1,4)
+a = math.max(10, 50)
+
+b = convert.celToFahrenheit(a)
+
 push(b)
-
-func helloWorld(x):
-    push(x)
-end
-
-helloWorld("print")
