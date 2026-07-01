@@ -274,6 +274,77 @@ def call_function(name, args):
             print("Error: type expects one argument")
             return None
         return type(args)
+    if name == 'readfile':
+        if len(args) != 1:
+            print("Error: readfile() expects 1 argument")
+            return None
+        try:
+            with open(args[0], 'r') as f:
+                return f.read()
+        except OSError as error:
+            print(f"Error: could not read file '{args[0]}': {error}")
+            return None
+    if name == 'readlines':
+        if len(args) != 1:
+            print("Error: readlines() expects 1 argument")
+            return None
+        try:
+            with open(args[0], 'r') as f:
+                return [line.rstrip('\n') for line in f.readlines()]
+        except OSError as error:
+            print(f"Error: could not read file '{args[0]}': {error}")
+            return None
+    if name == 'createfile':
+        if len(args) != 1:
+            print("Error: createfile() expects 1 argument")
+            return None
+        try:
+            with open(args[0], 'x'):
+                pass
+            return True
+        except FileExistsError:
+            print(f"Error: file '{args[0]}' already exists")
+            return False
+        except OSError as error:
+            print(f"Error: could not create file '{args[0]}': {error}")
+            return False
+    if name == 'writefile':
+        if len(args) != 2:
+            print("Error: writefile() expects 2 arguments")
+            return None
+        try:
+            with open(args[0], 'w') as f:
+                f.write(str(args[1]))
+            return True
+        except OSError as error:
+            print(f"Error: could not write file '{args[0]}': {error}")
+            return False
+    if name == 'appendfile':
+        if len(args) != 2:
+            print("Error: appendfile() expects 2 arguments")
+            return None
+        try:
+            with open(args[0], 'a') as f:
+                f.write(str(args[1]))
+            return True
+        except OSError as error:
+            print(f"Error: could not append to file '{args[0]}': {error}")
+            return False
+    if name == 'fileexists':
+        if len(args) != 1:
+            print("Error: fileexists() expects 1 argument")
+            return None
+        return os.path.exists(args[0])
+    if name == 'deletefile':
+        if len(args) != 1:
+            print("Error: deletefile() expects 1 argument")
+            return None
+        try:
+            os.remove(args[0])
+            return True
+        except OSError as error:
+            print(f"Error: could not delete file '{args[0]}': {error}")
+            return False
     if function_caller:
         return function_caller(name, args)
     print(f"Undefined function: {name}")
@@ -299,15 +370,15 @@ def call_method(receiver, name, args):
             return True
         else:
             return False
-    if name == 'locate' and isinstance(receiver, str) and len(args == 1):
+    if name == 'locate' and isinstance(receiver, str) and len(args) == 1:
         return receiver.find(args[0])
-    if name == 'remove' and isinstance(receiver, list) and len(args == 1):
+    if name == 'remove' and isinstance(receiver, list) and len(args) == 1:
         receiver.remove(args[0])
         return None
-    if name == 'pop' and isinstance(receiver, list) and len(args == 1):
+    if name == 'pop' and isinstance(receiver, list) and len(args) == 0:
         receiver.pop()
         return None
-    if name == 'has' and isinstance(receiver, list) and len(args == 1):
+    if name == 'has' and isinstance(receiver, list) and len(args) == 1:
         if args[0] in receiver:
             return True
         else:

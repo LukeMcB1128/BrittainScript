@@ -244,6 +244,22 @@ fahrenheit = convert.celToFahrenheit(0)       # 32
 celsius = convert.fahrenheitToCel(32)         # 0.0
 ```
 
+### IO Module
+
+```brittainscript
+add io
+
+io.write("notes.txt", "hello")            # overwrites the file, returns true
+io.append("notes.txt", " world")          # appends to the file, returns true
+text = io.read("notes.txt")               # "hello world"
+lines = io.readLines("notes.txt")         # each line as a list entry, no "\n"
+exists = io.exists("notes.txt")           # true
+io.delete("notes.txt")                    # deletes the file, returns true
+
+io.print("Hello!")                        # same as push()
+name = io.read_input("Name: ")            # same as input()
+```
+
 ### Importing Multiple Modules
 
 ```brittainscript
@@ -277,6 +293,12 @@ push(temp)
 | `cos()` | `cos(0)` | `1.0` |
 | `tan()` | `tan(45)` | `1.0` |
 | `clear()` | `clear()` | clears terminal |
+| `readfile()` | `readfile("a.txt")` | file contents as a string |
+| `readlines()` | `readlines("a.txt")` | file contents as a list of lines |
+| `writefile()` | `writefile("a.txt", "hi")` | overwrites file, returns `true`/`false` |
+| `appendfile()` | `appendfile("a.txt", "hi")` | appends to file, returns `true`/`false` |
+| `fileexists()` | `fileexists("a.txt")` | `true`/`false` |
+| `deletefile()` | `deletefile("a.txt")` | deletes file, returns `true`/`false` |
 
 ---
 
