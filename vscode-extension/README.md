@@ -260,6 +260,97 @@ io.print("Hello!")                        # same as push()
 name = io.read_input("Name: ")            # same as input()
 ```
 
+### GUI Module
+
+Build desktop windows, widgets, and canvas graphics (backed by tkinter). Widgets are plain number ids, and callbacks are function names passed as strings.
+
+```brittainscript
+add gui
+
+count = 0
+
+win = gui.window("My App", 400, 300)     # returns a window id
+
+label = gui.label(win, "Clicks: 0")
+gui.pack(label)
+
+func on_click():
+    count = count + 1
+    gui.setText(label, "Clicks: " + tostr(count))
+end
+
+button = gui.button(win, "Click me", "on_click")
+gui.pack(button)
+
+gui.run()                                # starts the event loop (blocks)
+```
+
+**Windows & app**
+
+| Function | Description |
+|----------|-------------|
+| `gui.window(title, width, height)` | create a window, returns its id |
+| `gui.title(win, text)` | change a window's title |
+| `gui.close(win)` | close a window |
+| `gui.run()` | start the event loop (call last) |
+
+**Widgets** (all return a widget id)
+
+| Function | Description |
+|----------|-------------|
+| `gui.label(win, text)` | text label |
+| `gui.button(win, text, callback)` | button; `callback` is a function name string |
+| `gui.entry(win)` | single-line text input |
+| `gui.textbox(win, width, height)` | multi-line text input (chars × lines) |
+| `gui.checkbox(win, text)` | checkbox |
+| `gui.slider(win, low, high)` | horizontal slider |
+| `gui.canvas(win, width, height)` | drawing canvas (pixels) |
+| `gui.frame(win)` | container for grouping widgets |
+
+**Layout** — every widget needs one of these to appear
+
+| Function | Description |
+|----------|-------------|
+| `gui.pack(widget)` | stack top-to-bottom |
+| `gui.place(widget, x, y)` | exact pixel position |
+| `gui.grid(widget, row, col)` | row/column grid |
+
+**Widget state**
+
+| Function | Description |
+|----------|-------------|
+| `gui.getText(widget)` / `gui.setText(widget, text)` | read/write label, entry, textbox, or button text |
+| `gui.setColor(widget, background, foreground)` | color names (`"red"`) or hex (`"#ff0000"`) |
+| `gui.setFont(widget, name, size)` | e.g. `gui.setFont(label, "Helvetica", 20)` |
+| `gui.isChecked(checkbox)` | `true`/`false` |
+| `gui.getValue(slider)` / `gui.setValue(slider, value)` | read/write slider position |
+
+**Canvas drawing** — shapes return an id for `move`/`erase`
+
+| Function | Description |
+|----------|-------------|
+| `gui.line(cnv, x1, y1, x2, y2, color)` | line segment |
+| `gui.rect(cnv, x1, y1, x2, y2, color)` | filled rectangle |
+| `gui.oval(cnv, x1, y1, x2, y2, color)` | filled oval in a bounding box |
+| `gui.circle(cnv, x, y, radius, color)` | filled circle around a center point |
+| `gui.text(cnv, x, y, message, color)` | draw text |
+| `gui.move(cnv, shape, dx, dy)` | shift a shape |
+| `gui.erase(cnv, shape)` | remove one shape |
+| `gui.clearCanvas(cnv)` | remove everything |
+
+**Events, timers, dialogs**
+
+| Function | Description |
+|----------|-------------|
+| `gui.onClick(widget, callback)` | callback receives `(x, y)` |
+| `gui.onKey(win, callback)` | callback receives `(key)`, e.g. `"a"`, `"Left"`, `"space"` |
+| `gui.after(ms, callback)` | run a zero-arg function once after a delay; re-schedule inside the callback for animation |
+| `gui.alert(title, message)` | info popup |
+| `gui.confirm(title, message)` | yes/no popup, returns `true`/`false` |
+| `gui.prompt(title, message)` | text input popup, returns the string |
+
+See `examples/gui_demo.bs` for a full program with a click counter, greeter, and paintable canvas.
+
 ### Importing Multiple Modules
 
 ```brittainscript

@@ -3,6 +3,7 @@ import lexer as lexer_module
 from lexer import tokens
 import math
 import os
+import gui_backend
 
 # variable storage
 names = {}
@@ -20,6 +21,7 @@ precedence = (
     ('left', 'MULTIPLY', 'DIVIDE'),
     ('right', 'POWER'),
     ('left', 'LBRACKET'),
+    ('left', 'DOT'),
 )
 
 def push_scope(scope=None):
@@ -345,10 +347,14 @@ def call_function(name, args):
         except OSError as error:
             print(f"Error: could not delete file '{args[0]}': {error}")
             return False
+    if gui_backend.is_gui_builtin(name):
+        return gui_backend.call_builtin(name, args)
     if function_caller:
         return function_caller(name, args)
     print(f"Undefined function: {name}")
     return None
+
+gui_backend.set_callback_invoker(lambda name, args: call_function(name, args))
 
 def call_method(receiver, name, args):
     if isinstance(receiver, dict) and receiver.get('__bs_module__'):
