@@ -260,6 +260,33 @@ io.print("Hello!")                        # same as push()
 name = io.read_input("Name: ")            # same as input()
 ```
 
+### Datetime Module
+
+Work with dates and times. `now()` and `parse()` return a date value you pass to the other functions.
+
+```brittainscript
+add datetime
+
+t = datetime.now()
+push(datetime.format(t, "%Y-%m-%d %H:%M:%S"))   # "2026-07-06 14:30:00"
+
+push(datetime.year(t))                # 2026
+push(datetime.month(t))               # 1-12
+push(datetime.day(t))                 # 1-31
+push(datetime.hour(t))                # 0-23
+push(datetime.minute(t))              # 0-59
+push(datetime.second(t))              # 0-59
+push(datetime.weekday(t))             # 0 = Monday ... 6 = Sunday
+
+birthday = datetime.parse("2024-02-29", "%Y-%m-%d")
+push(datetime.year(birthday))         # 2024
+
+push(datetime.isLeapYear(2024))       # true
+push(datetime.daysInMonth(2024, 2))   # 29
+```
+
+Format patterns use the standard codes: `%Y` year, `%m` month, `%d` day, `%H` hour (24h), `%M` minute, `%S` second. Invalid input (a bad format, month 13, etc.) prints an error and returns nothing instead of stopping the program.
+
 ### GUI Module
 
 Build desktop windows, widgets, and canvas graphics (backed by tkinter). Widgets are plain number ids, and callbacks are function names passed as strings.

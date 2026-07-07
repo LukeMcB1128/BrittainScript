@@ -6,3 +6,17 @@ a = math.max(10, 50)
 b = convert.celToFahrenheit(a)
 
 push(b)
+
+c = convert.fahrenheitToCel(b)
+
+push(c)
+
+d = math.pow(10, 30)
+
+push(d)
+
+array = [a, b, c, d]
+
+push(array[1])
+
+push(array)

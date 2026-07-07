@@ -4,6 +4,8 @@ from lexer import tokens
 import math
 import os
 import gui_backend
+import calendar
+import datetime
 
 # variable storage
 names = {}
@@ -347,6 +349,8 @@ def call_function(name, args):
         except OSError as error:
             print(f"Error: could not delete file '{args[0]}': {error}")
             return False
+    if name == "datetime":
+        return call_datetime(args)
     if gui_backend.is_gui_builtin(name):
         return gui_backend.call_builtin(name, args)
     if function_caller:
@@ -355,6 +359,42 @@ def call_function(name, args):
     return None
 
 gui_backend.set_callback_invoker(lambda name, args: call_function(name, args))
+
+# command -> (argument count after the command, handler)
+DATETIME_COMMANDS = {
+    'now':         (0, lambda a: datetime.datetime.now()),
+    'format':      (2, lambda a: a[0].strftime(a[1])),
+    'parse':       (2, lambda a: datetime.datetime.strptime(a[0], a[1])),
+    'year':        (1, lambda a: a[0].year),
+    'month':       (1, lambda a: a[0].month),
+    'day':         (1, lambda a: a[0].day),
+    'hour':        (1, lambda a: a[0].hour),
+    'minute':      (1, lambda a: a[0].minute),
+    'second':      (1, lambda a: a[0].second),
+    'weekday':     (1, lambda a: a[0].weekday()),
+    'isLeapYear':  (1, lambda a: calendar.isleap(a[0])),
+    'daysInMonth': (2, lambda a: calendar.monthrange(a[0], a[1])[1]),
+}
+
+def call_datetime(args):
+    if not args:
+        print("Error: datetime() expects a command argument")
+        return None
+    command = args[0]
+    entry = DATETIME_COMMANDS.get(command)
+    if entry is None:
+        print(f"Error: unknown datetime command '{command}'")
+        return None
+    arity, handler = entry
+    rest = args[1:]
+    if len(rest) != arity:
+        print(f"Error: datetime {command}() expects {arity} argument{'s' if arity != 1 else ''}")
+        return None
+    try:
+        return handler(rest)
+    except (AttributeError, TypeError, ValueError) as error:
+        print(f"Error: datetime {command}() failed: {error}")
+        return None
 
 def call_method(receiver, name, args):
     if isinstance(receiver, dict) and receiver.get('__bs_module__'):
