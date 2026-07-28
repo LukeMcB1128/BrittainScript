@@ -1,0 +1,75 @@
+# torch_demo.bs -- training a tiny linear model in BrittainScript, using PyTorch
+# through the Python bridge.
+#
+# run with: python3 run.py examples/torch_demo.bs
+#
+# Requires PyTorch in the same Python environment (pip install torch). The demo
+# prints a message and stops if torch is not installed.
+
+func train(torch):
+    push("--- tensors ---")
+
+    x = torch.ones(2, 2)
+    push(x.shape)
+    push(x * 3)
+
+    # '@' is matrix multiplication, straight through to Python's operator
+    a = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    push(a @ a)
+
+    push("--- autograd ---")
+
+    # y = (3x).sum(), so dy/dx is 3 for every element
+    # in-place torch methods return the tensor, so park it in 'ignored' to keep
+    # the statement from echoing its result
+    w = torch.ones(2, 2)
+    ignored = w.requires_grad_()
+    y = w * 3
+    total = y.sum()
+    push(total.item())
+    total.backward()
+    push(w.grad)
+
+    push("--- training a line: y = 2x + 1 ---")
+
+    inputs = torch.tensor([[0.0], [1.0], [2.0], [3.0]])
+    targets = torch.tensor([[1.0], [3.0], [5.0], [7.0]])
+
+    weight = torch.zeros(1, 1)
+    ignored = weight.requires_grad_()
+    bias = torch.zeros(1)
+    ignored = bias.requires_grad_()
+
+    rate = 0.05
+    for step in space(200):
+        predictions = inputs @ weight + bias
+        errors = predictions - targets
+        loss = (errors * errors).mean()
+
+        loss.backward()
+
+        # a hand-written SGD step -- updating .data keeps it off the graph
+        ignored = weight.data.sub_(weight.grad * rate)
+        ignored = bias.data.sub_(bias.grad * rate)
+        ignored = weight.grad.zero_()
+        ignored = bias.grad.zero_()
+
+        cond (step % 50) == 0:
+            push("step " + tostr(step) + "  loss " + tostr(round(loss.item() * 1000) / 1000))
+        end
+    end
+
+    push("learned weight: " + tostr(weight.item()))
+    push("learned bias:   " + tostr(bias.item()))
+    push("predict x=10:   " + tostr(weight.item() * 10 + bias.item()))
+end
+
+torch = pyimport("torch")
+
+cond not torch:
+    push("PyTorch is not installed -- skipping this demo.")
+end
+
+cond torch:
+    train(torch)
+end
