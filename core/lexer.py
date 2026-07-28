@@ -6,6 +6,7 @@ tokens = (
     'MINUS',
     'DIVIDE',
     'MULTIPLY',
+    'AT',
     'POWER',
     'MODULO',
     'LPAREN',
@@ -65,6 +66,7 @@ t_PLUS     = r'\+'
 t_MINUS    = r'\-'
 t_DIVIDE   = r'\/'
 t_MULTIPLY = r'\*'
+t_AT       = r'@'
 t_POWER    = r'\^'
 t_MODULO   = r'\%'
 t_LPAREN   = r'\('
@@ -105,8 +107,17 @@ def t_NUMBER(t):
     t.value = float(t.value) if '.' in t.value else int(t.value)
     return t
 
+def follows_dot(t):
+    # after a '.', a word is always a member name -- 'pi', 'sin', 'cos' and the
+    # other reserved words are ordinary attributes on Python objects
+    preceding = t.lexer.lexdata[:t.lexpos].rstrip(' \t')
+    return preceding.endswith('.')
+
 def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
+    if follows_dot(t):
+        t.type = 'NAME'
+        return t
     t.type = reserved.get(t.value, 'NAME')
     return t
 

@@ -51,7 +51,7 @@
     },
     "builtins": {
       "name": "support.function.builtin.bs",
-      "match": "\\b(push|input|len|tonum|tostr|type|clear|absolute|round|floor|ceiling|space|sqrroot|sin|cos|tan)\\b"
+      "match": "\\b(push|input|len|tonum|tostr|type|clear|absolute|round|floor|ceiling|space|sqrroot|sin|cos|tan|pyimport)\\b"
     },
     "constants": {
       "patterns": [
@@ -81,7 +81,7 @@
         },
         {
           "name": "keyword.operator.arithmetic.bs",
-          "match": "[+\\-*/%^]"
+          "match": "[+\\-*/%^@]"
         }
       ]
     },
