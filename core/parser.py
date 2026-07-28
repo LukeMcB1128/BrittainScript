@@ -20,7 +20,7 @@ precedence = (
     ('left', 'EQUALTO', 'NOTEQUALTO'),
     ('left', 'LESSTHAN', 'GREATERTHAN', 'LESSTHANEQUALTO', 'GREATERTHANEQUALTO'),
     ('left', 'PLUS', 'MINUS'),
-    ('left', 'MULTIPLY', 'DIVIDE'),
+    ('left', 'MULTIPLY', 'DIVIDE', 'AT'),
     ('right', 'POWER'),
     ('left', 'LBRACKET'),
     ('left', 'DOT'),
@@ -111,6 +111,14 @@ def p_expression_times(p):
         p[0] = p[1] * p[3]
     except TypeError:
         print(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}")
+        p[0] = None
+
+def p_expression_matmul(p):
+    'expression : expression AT expression'
+    try:
+        p[0] = p[1] @ p[3]
+    except TypeError as exc:
+        print(f"Error: cannot matrix-multiply: {exc}")
         p[0] = None
 
 def p_expression_modulo(p):
@@ -219,7 +227,30 @@ def p_expression_method_call(p):
     'expression : expression DOT NAME LPAREN optional_arguments RPAREN'
     p[0] = call_method(p[1], p[3], p[5])
 
+def p_expression_attribute(p):
+    'expression : expression DOT NAME'
+    receiver, attr = p[1], p[3]
+    if isinstance(receiver, dict) and receiver.get('__bs_module__'):
+        print(f"Error: '{receiver['name']}' members must be called")
+        p[0] = None
+        return
+    try:
+        p[0] = getattr(receiver, attr)
+    except AttributeError:
+        print(f"Error: no attribute '{attr}' on {type(receiver).__name__}")
+        p[0] = None
+
 def call_function(name, args):
+    if name == 'pyimport':
+        if len(args) != 1 or not isinstance(args[0], str):
+            print("Error: pyimport() expects one string argument")
+            return None
+        import importlib
+        try:
+            return importlib.import_module(args[0])
+        except ImportError as exc:
+            print(f"Error: cannot import '{args[0]}': {exc}")
+            return None
     if name == 'len':
         if len(args) != 1:
             print("Error: len() expects 1 argument")
@@ -435,8 +466,18 @@ def call_method(receiver, name, args):
             return True
         else:
             return False
-    print(f"Error: unsupported method {name}()")
-    return None
+    try:
+        attribute = getattr(receiver, name)
+    except AttributeError:
+        print(f"Error: no method '{name}' on {type(receiver).__name__}")
+        return None
+    if callable(attribute):
+        try:
+            return attribute(*args)
+        except Exception as exc:
+            print(f"Error calling '{name}': {exc}")
+            return None
+    return attribute
 
 def p_expression_and(p):
     'expression : expression AND expression'
