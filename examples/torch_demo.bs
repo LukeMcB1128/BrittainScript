@@ -54,7 +54,7 @@ func train(torch):
         ignored = weight.grad.zero_()
         ignored = bias.grad.zero_()
 
-        cond (step % 50) == 0:
+        cond step % 50 == 0:
             push("step " + tostr(step) + "  loss " + tostr(round(loss.item() * 1000) / 1000))
         end
     end

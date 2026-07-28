@@ -20,7 +20,7 @@ precedence = (
     ('left', 'EQUALTO', 'NOTEQUALTO'),
     ('left', 'LESSTHAN', 'GREATERTHAN', 'LESSTHANEQUALTO', 'GREATERTHANEQUALTO'),
     ('left', 'PLUS', 'MINUS'),
-    ('left', 'MULTIPLY', 'DIVIDE', 'AT'),
+    ('left', 'MULTIPLY', 'DIVIDE', 'MODULO', 'AT'),
     ('right', 'POWER'),
     ('left', 'LBRACKET'),
     ('left', 'DOT'),
@@ -123,6 +123,10 @@ def p_expression_matmul(p):
 
 def p_expression_modulo(p):
     'expression : expression MODULO expression'
+    if p[3] == 0:
+        print("Error: modulo by zero")
+        p[0] = None
+        return
     p[0] = p[1] % p[3]
 
 def p_expression_power(p):

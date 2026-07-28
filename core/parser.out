@@ -2207,7 +2207,6 @@ state 47
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 34 (expression -> NOT expression .)
     AND             reduce using rule 34 (expression -> NOT expression .)
     OR              reduce using rule 34 (expression -> NOT expression .)
     $end            reduce using rule 34 (expression -> NOT expression .)
@@ -2220,6 +2219,7 @@ state 47
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -2235,6 +2235,7 @@ state 47
   ! DIVIDE          [ reduce using rule 34 (expression -> NOT expression .) ]
   ! MULTIPLY        [ reduce using rule 34 (expression -> NOT expression .) ]
   ! AT              [ reduce using rule 34 (expression -> NOT expression .) ]
+  ! MODULO          [ reduce using rule 34 (expression -> NOT expression .) ]
   ! POWER           [ reduce using rule 34 (expression -> NOT expression .) ]
   ! LBRACKET        [ reduce using rule 34 (expression -> NOT expression .) ]
   ! DOT             [ reduce using rule 34 (expression -> NOT expression .) ]
@@ -2244,7 +2245,6 @@ state 47
   ! LESSTHAN        [ reduce using rule 34 (expression -> NOT expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 34 (expression -> NOT expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 34 (expression -> NOT expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
 
@@ -2334,7 +2334,6 @@ state 49
 
     PLUS            reduce using rule 3 (expression -> expression PLUS expression .)
     MINUS           reduce using rule 3 (expression -> expression PLUS expression .)
-    MODULO          reduce using rule 3 (expression -> expression PLUS expression .)
     AND             reduce using rule 3 (expression -> expression PLUS expression .)
     OR              reduce using rule 3 (expression -> expression PLUS expression .)
     EQUALTO         reduce using rule 3 (expression -> expression PLUS expression .)
@@ -2351,6 +2350,7 @@ state 49
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -2358,12 +2358,12 @@ state 49
   ! DIVIDE          [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! MULTIPLY        [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! AT              [ reduce using rule 3 (expression -> expression PLUS expression .) ]
+  ! MODULO          [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! POWER           [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! LBRACKET        [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! DOT             [ reduce using rule 3 (expression -> expression PLUS expression .) ]
   ! PLUS            [ shift and go to state 18 ]
   ! MINUS           [ shift and go to state 19 ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -2399,7 +2399,6 @@ state 50
 
     PLUS            reduce using rule 4 (expression -> expression MINUS expression .)
     MINUS           reduce using rule 4 (expression -> expression MINUS expression .)
-    MODULO          reduce using rule 4 (expression -> expression MINUS expression .)
     AND             reduce using rule 4 (expression -> expression MINUS expression .)
     OR              reduce using rule 4 (expression -> expression MINUS expression .)
     EQUALTO         reduce using rule 4 (expression -> expression MINUS expression .)
@@ -2416,6 +2415,7 @@ state 50
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -2423,12 +2423,12 @@ state 50
   ! DIVIDE          [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! MULTIPLY        [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! AT              [ reduce using rule 4 (expression -> expression MINUS expression .) ]
+  ! MODULO          [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! POWER           [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! LBRACKET        [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! DOT             [ reduce using rule 4 (expression -> expression MINUS expression .) ]
   ! PLUS            [ shift and go to state 18 ]
   ! MINUS           [ shift and go to state 19 ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -2657,63 +2657,46 @@ state 54
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-  ! shift/reduce conflict for PLUS resolved as shift
-  ! shift/reduce conflict for MINUS resolved as shift
-  ! shift/reduce conflict for DIVIDE resolved as shift
-  ! shift/reduce conflict for MULTIPLY resolved as shift
-  ! shift/reduce conflict for AT resolved as shift
-  ! shift/reduce conflict for MODULO resolved as shift
-  ! shift/reduce conflict for POWER resolved as shift
-  ! shift/reduce conflict for LBRACKET resolved as shift
-  ! shift/reduce conflict for DOT resolved as shift
-  ! shift/reduce conflict for AND resolved as shift
-  ! shift/reduce conflict for OR resolved as shift
-  ! shift/reduce conflict for EQUALTO resolved as shift
-  ! shift/reduce conflict for NOTEQUALTO resolved as shift
-  ! shift/reduce conflict for GREATERTHAN resolved as shift
-  ! shift/reduce conflict for LESSTHAN resolved as shift
-  ! shift/reduce conflict for GREATERTHANEQUALTO resolved as shift
-  ! shift/reduce conflict for LESSTHANEQUALTO resolved as shift
+    PLUS            reduce using rule 8 (expression -> expression MODULO expression .)
+    MINUS           reduce using rule 8 (expression -> expression MODULO expression .)
+    DIVIDE          reduce using rule 8 (expression -> expression MODULO expression .)
+    MULTIPLY        reduce using rule 8 (expression -> expression MODULO expression .)
+    AT              reduce using rule 8 (expression -> expression MODULO expression .)
+    MODULO          reduce using rule 8 (expression -> expression MODULO expression .)
+    AND             reduce using rule 8 (expression -> expression MODULO expression .)
+    OR              reduce using rule 8 (expression -> expression MODULO expression .)
+    EQUALTO         reduce using rule 8 (expression -> expression MODULO expression .)
+    NOTEQUALTO      reduce using rule 8 (expression -> expression MODULO expression .)
+    GREATERTHAN     reduce using rule 8 (expression -> expression MODULO expression .)
+    LESSTHAN        reduce using rule 8 (expression -> expression MODULO expression .)
+    GREATERTHANEQUALTO reduce using rule 8 (expression -> expression MODULO expression .)
+    LESSTHANEQUALTO reduce using rule 8 (expression -> expression MODULO expression .)
     $end            reduce using rule 8 (expression -> expression MODULO expression .)
     RPAREN          reduce using rule 8 (expression -> expression MODULO expression .)
     COMMA           reduce using rule 8 (expression -> expression MODULO expression .)
     RBRACKET        reduce using rule 8 (expression -> expression MODULO expression .)
     COLON           reduce using rule 8 (expression -> expression MODULO expression .)
-    PLUS            shift and go to state 18
-    MINUS           shift and go to state 19
-    DIVIDE          shift and go to state 20
-    MULTIPLY        shift and go to state 21
-    AT              shift and go to state 22
-    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
-    AND             shift and go to state 27
-    OR              shift and go to state 28
-    EQUALTO         shift and go to state 29
-    NOTEQUALTO      shift and go to state 30
-    GREATERTHAN     shift and go to state 31
-    LESSTHAN        shift and go to state 32
-    GREATERTHANEQUALTO shift and go to state 33
-    LESSTHANEQUALTO shift and go to state 34
 
-  ! PLUS            [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! MINUS           [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! DIVIDE          [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! MULTIPLY        [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! AT              [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! MODULO          [ reduce using rule 8 (expression -> expression MODULO expression .) ]
   ! POWER           [ reduce using rule 8 (expression -> expression MODULO expression .) ]
   ! LBRACKET        [ reduce using rule 8 (expression -> expression MODULO expression .) ]
   ! DOT             [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! AND             [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! OR              [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! EQUALTO         [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! NOTEQUALTO      [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! GREATERTHAN     [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! LESSTHAN        [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! GREATERTHANEQUALTO [ reduce using rule 8 (expression -> expression MODULO expression .) ]
-  ! LESSTHANEQUALTO [ reduce using rule 8 (expression -> expression MODULO expression .) ]
+  ! PLUS            [ shift and go to state 18 ]
+  ! MINUS           [ shift and go to state 19 ]
+  ! DIVIDE          [ shift and go to state 20 ]
+  ! MULTIPLY        [ shift and go to state 21 ]
+  ! AT              [ shift and go to state 22 ]
+  ! MODULO          [ shift and go to state 23 ]
+  ! AND             [ shift and go to state 27 ]
+  ! OR              [ shift and go to state 28 ]
+  ! EQUALTO         [ shift and go to state 29 ]
+  ! NOTEQUALTO      [ shift and go to state 30 ]
+  ! GREATERTHAN     [ shift and go to state 31 ]
+  ! LESSTHAN        [ shift and go to state 32 ]
+  ! GREATERTHANEQUALTO [ shift and go to state 33 ]
+  ! LESSTHANEQUALTO [ shift and go to state 34 ]
 
 
 state 55
@@ -2886,7 +2869,6 @@ state 59
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 32 (expression -> expression AND expression .)
     AND             reduce using rule 32 (expression -> expression AND expression .)
     OR              reduce using rule 32 (expression -> expression AND expression .)
     $end            reduce using rule 32 (expression -> expression AND expression .)
@@ -2899,6 +2881,7 @@ state 59
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -2914,6 +2897,7 @@ state 59
   ! DIVIDE          [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! MULTIPLY        [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! AT              [ reduce using rule 32 (expression -> expression AND expression .) ]
+  ! MODULO          [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! POWER           [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! LBRACKET        [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! DOT             [ reduce using rule 32 (expression -> expression AND expression .) ]
@@ -2923,7 +2907,6 @@ state 59
   ! LESSTHAN        [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 32 (expression -> expression AND expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 32 (expression -> expression AND expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
 
@@ -2951,7 +2934,6 @@ state 60
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 33 (expression -> expression OR expression .)
     OR              reduce using rule 33 (expression -> expression OR expression .)
     $end            reduce using rule 33 (expression -> expression OR expression .)
     RPAREN          reduce using rule 33 (expression -> expression OR expression .)
@@ -2963,6 +2945,7 @@ state 60
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -2979,6 +2962,7 @@ state 60
   ! DIVIDE          [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! MULTIPLY        [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! AT              [ reduce using rule 33 (expression -> expression OR expression .) ]
+  ! MODULO          [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! POWER           [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! LBRACKET        [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! DOT             [ reduce using rule 33 (expression -> expression OR expression .) ]
@@ -2989,7 +2973,6 @@ state 60
   ! LESSTHAN        [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 33 (expression -> expression OR expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 33 (expression -> expression OR expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! OR              [ shift and go to state 28 ]
 
 
@@ -3016,7 +2999,6 @@ state 61
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 35 (expression -> expression EQUALTO expression .)
     AND             reduce using rule 35 (expression -> expression EQUALTO expression .)
     OR              reduce using rule 35 (expression -> expression EQUALTO expression .)
     EQUALTO         reduce using rule 35 (expression -> expression EQUALTO expression .)
@@ -3031,6 +3013,7 @@ state 61
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -3044,6 +3027,7 @@ state 61
   ! DIVIDE          [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! MULTIPLY        [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! AT              [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
+  ! MODULO          [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! POWER           [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! LBRACKET        [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! DOT             [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
@@ -3051,7 +3035,6 @@ state 61
   ! LESSTHAN        [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 35 (expression -> expression EQUALTO expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -3081,7 +3064,6 @@ state 62
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 36 (expression -> expression NOTEQUALTO expression .)
     AND             reduce using rule 36 (expression -> expression NOTEQUALTO expression .)
     OR              reduce using rule 36 (expression -> expression NOTEQUALTO expression .)
     EQUALTO         reduce using rule 36 (expression -> expression NOTEQUALTO expression .)
@@ -3096,6 +3078,7 @@ state 62
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -3109,6 +3092,7 @@ state 62
   ! DIVIDE          [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! MULTIPLY        [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! AT              [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
+  ! MODULO          [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! POWER           [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! LBRACKET        [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! DOT             [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
@@ -3116,7 +3100,6 @@ state 62
   ! LESSTHAN        [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! GREATERTHANEQUALTO [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
   ! LESSTHANEQUALTO [ reduce using rule 36 (expression -> expression NOTEQUALTO expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -3146,7 +3129,6 @@ state 63
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 37 (expression -> expression GREATERTHAN expression .)
     AND             reduce using rule 37 (expression -> expression GREATERTHAN expression .)
     OR              reduce using rule 37 (expression -> expression GREATERTHAN expression .)
     EQUALTO         reduce using rule 37 (expression -> expression GREATERTHAN expression .)
@@ -3165,6 +3147,7 @@ state 63
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -3174,10 +3157,10 @@ state 63
   ! DIVIDE          [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
   ! MULTIPLY        [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
   ! AT              [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
+  ! MODULO          [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
   ! POWER           [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
   ! LBRACKET        [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
   ! DOT             [ reduce using rule 37 (expression -> expression GREATERTHAN expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -3211,7 +3194,6 @@ state 64
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 38 (expression -> expression LESSTHAN expression .)
     AND             reduce using rule 38 (expression -> expression LESSTHAN expression .)
     OR              reduce using rule 38 (expression -> expression LESSTHAN expression .)
     EQUALTO         reduce using rule 38 (expression -> expression LESSTHAN expression .)
@@ -3230,6 +3212,7 @@ state 64
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -3239,10 +3222,10 @@ state 64
   ! DIVIDE          [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
   ! MULTIPLY        [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
   ! AT              [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
+  ! MODULO          [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
   ! POWER           [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
   ! LBRACKET        [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
   ! DOT             [ reduce using rule 38 (expression -> expression LESSTHAN expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -3276,7 +3259,6 @@ state 65
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .)
     AND             reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .)
     OR              reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .)
     EQUALTO         reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .)
@@ -3295,6 +3277,7 @@ state 65
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -3304,10 +3287,10 @@ state 65
   ! DIVIDE          [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! MULTIPLY        [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! AT              [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
+  ! MODULO          [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! POWER           [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! LBRACKET        [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
   ! DOT             [ reduce using rule 39 (expression -> expression GREATERTHANEQUALTO expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -3341,7 +3324,6 @@ state 66
     (39) expression -> expression . GREATERTHANEQUALTO expression
     (40) expression -> expression . LESSTHANEQUALTO expression
 
-    MODULO          reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .)
     AND             reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .)
     OR              reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .)
     EQUALTO         reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .)
@@ -3360,6 +3342,7 @@ state 66
     DIVIDE          shift and go to state 20
     MULTIPLY        shift and go to state 21
     AT              shift and go to state 22
+    MODULO          shift and go to state 23
     POWER           shift and go to state 24
     LBRACKET        shift and go to state 25
     DOT             shift and go to state 26
@@ -3369,10 +3352,10 @@ state 66
   ! DIVIDE          [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! MULTIPLY        [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! AT              [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
+  ! MODULO          [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! POWER           [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! LBRACKET        [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
   ! DOT             [ reduce using rule 40 (expression -> expression LESSTHANEQUALTO expression .) ]
-  ! MODULO          [ shift and go to state 23 ]
   ! AND             [ shift and go to state 27 ]
   ! OR              [ shift and go to state 28 ]
   ! EQUALTO         [ shift and go to state 29 ]
@@ -4396,23 +4379,6 @@ state 95
 WARNING: 
 WARNING: Conflicts:
 WARNING: 
-WARNING: shift/reduce conflict for PLUS in state 54 resolved as shift
-WARNING: shift/reduce conflict for MINUS in state 54 resolved as shift
-WARNING: shift/reduce conflict for DIVIDE in state 54 resolved as shift
-WARNING: shift/reduce conflict for MULTIPLY in state 54 resolved as shift
-WARNING: shift/reduce conflict for AT in state 54 resolved as shift
-WARNING: shift/reduce conflict for MODULO in state 54 resolved as shift
-WARNING: shift/reduce conflict for POWER in state 54 resolved as shift
-WARNING: shift/reduce conflict for LBRACKET in state 54 resolved as shift
-WARNING: shift/reduce conflict for DOT in state 54 resolved as shift
-WARNING: shift/reduce conflict for AND in state 54 resolved as shift
-WARNING: shift/reduce conflict for OR in state 54 resolved as shift
-WARNING: shift/reduce conflict for EQUALTO in state 54 resolved as shift
-WARNING: shift/reduce conflict for NOTEQUALTO in state 54 resolved as shift
-WARNING: shift/reduce conflict for GREATERTHAN in state 54 resolved as shift
-WARNING: shift/reduce conflict for LESSTHAN in state 54 resolved as shift
-WARNING: shift/reduce conflict for GREATERTHANEQUALTO in state 54 resolved as shift
-WARNING: shift/reduce conflict for LESSTHANEQUALTO in state 54 resolved as shift
 WARNING: shift/reduce conflict for PLUS in state 73 resolved as shift
 WARNING: shift/reduce conflict for MINUS in state 73 resolved as shift
 WARNING: shift/reduce conflict for DIVIDE in state 73 resolved as shift

@@ -518,7 +518,7 @@ From highest to lowest:
 
 1. `[]` — Brackets (indexing/slicing)
 2. `^` — Power
-3. `*`, `/`, `@` — Multiply, Divide, Matrix multiply
+3. `*`, `/`, `%`, `@` — Multiply, Divide, Modulo, Matrix multiply
 4. `+`, `-` — Plus, Minus
 5. `<`, `>`, `<=`, `>=`, `==`, `!=` — Comparisons
 6. `not` — Logical NOT
