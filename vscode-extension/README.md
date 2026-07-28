@@ -391,6 +391,97 @@ push(temp)
 
 ---
 
+## Python Interop
+
+BrittainScript can call into any Python library installed in the same Python
+environment — `numpy`, `requests`, `torch`, anything. Nothing to install beyond
+the library itself; the interpreter's only dependency is `ply`.
+
+### `pyimport(name)`
+
+```brittainscript
+np = pyimport("numpy")
+json = pyimport("json")
+
+missing = pyimport("not_a_real_module")
+# Error: cannot import 'not_a_real_module': No module named 'not_a_real_module'
+```
+
+### Calling Python methods
+
+Method calls fall through to Python whenever the name is not one of
+BrittainScript's own methods (`upper`, `lower`, `trim`, `contains`, `locate`,
+`add`, `remove`, `pop`, `has`). Those built-ins always take priority, so
+existing scripts behave exactly as before.
+
+```brittainscript
+np = pyimport("numpy")
+matrix = np.array([[1, 2], [3, 4]])
+
+push(matrix.sum())                  # 10
+push("a,b,c".split(","))            # ['a', 'b', 'c']
+push("hello".replace("l", "L"))     # heLLo
+```
+
+Arguments are positional only — there is no keyword argument syntax. Where a
+Python API needs a keyword, look for a method form of it
+(`tensor.requires_grad_()` rather than `requires_grad=true`).
+
+### Attribute access
+
+A dotted name with no call reads the attribute directly.
+
+```brittainscript
+np = pyimport("numpy")
+matrix = np.array([[1, 2], [3, 4]])
+
+push(matrix.shape)                  # (2, 2)
+push(matrix.T)
+push(pyimport("math").pi)           # 3.141592653589793
+```
+
+Reserved words like `pi`, `sin`, `cos` and `tan` count as ordinary names after
+a `.`, so `math.pi` and `np.sin(x)` both work.
+
+### The `@` operator
+
+`@` is matrix multiplication, passed straight through to Python. It binds at
+the same level as `*`, so `x @ w + b` multiplies before it adds.
+
+```brittainscript
+np = pyimport("numpy")
+a = np.array([[1, 2], [3, 4]])
+push(a @ a)                         # [[ 7 10]
+                                    #  [15 22]]
+```
+
+### Everything else already works
+
+BrittainScript values are native Python objects, so arithmetic, indexing,
+slicing, comparison and `for` loops all apply to imported objects directly:
+
+```brittainscript
+np = pyimport("numpy")
+values = np.array([10, 20, 30, 40])
+
+push(values * 2)                    # [20 40 60 80]
+push(values[1:3])                   # [20 30]
+for value in values:
+    push(value)
+end
+```
+
+`examples/torch_demo.bs` in the repository trains a small linear model with
+PyTorch, autograd and a hand-written SGD loop.
+
+**A note on scope:** `pyimport` gives a script the whole Python environment,
+including `os` and `subprocess`. That is the expected trade-off for a scripting
+language FFI — it is the same power a Python script has — but it does mean a
+`.bs` file can do anything the Python interpreter running it can do. Treat
+untrusted BrittainScript the way you would treat untrusted Python.
+
+---
+
 ## Built-in Functions
 
 | Function | Example | Returns |
@@ -417,6 +508,7 @@ push(temp)
 | `appendfile()` | `appendfile("a.txt", "hi")` | appends to file, returns `true`/`false` |
 | `fileexists()` | `fileexists("a.txt")` | `true`/`false` |
 | `deletefile()` | `deletefile("a.txt")` | deletes file, returns `true`/`false` |
+| `pyimport()` | `pyimport("numpy")` | the imported Python module |
 
 ---
 
@@ -426,7 +518,7 @@ From highest to lowest:
 
 1. `[]` — Brackets (indexing/slicing)
 2. `^` — Power
-3. `*`, `/`, `%` — Multiply, Divide, Modulo
+3. `*`, `/`, `@` — Multiply, Divide, Matrix multiply
 4. `+`, `-` — Plus, Minus
 5. `<`, `>`, `<=`, `>=`, `==`, `!=` — Comparisons
 6. `not` — Logical NOT
