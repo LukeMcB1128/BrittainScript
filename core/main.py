@@ -374,6 +374,34 @@ def run_file(file_path):
     except ReturnSignal:
         print("Error: return used outside a function")
 
+def read_block_lines(first_line, read_line):
+    # Typed-in blocks arrive with no indentation, but the block collector reads
+    # structure from indentation, so re-indent by nesting depth as we go. That
+    # also lets an inner 'end' close only its own block instead of everything.
+    lines = [first_line.strip()]
+    depth = 1
+    while depth > 0:
+        try:
+            line = read_line()
+        except (EOFError, KeyboardInterrupt):
+            break
+        content = strip_inline_comment(line).strip()
+        if content == 'end':
+            depth -= 1
+            lines.append('    ' * depth + 'end')
+            continue
+        if branch_keyword(content):
+            # elif/else line up with the block they belong to
+            lines.append('    ' * (depth - 1) + line.strip())
+            continue
+        lines.append('    ' * depth + line.strip())
+        if is_block_start(content):
+            depth += 1
+    while depth > 0:
+        depth -= 1
+        lines.append('    ' * depth + 'end')
+    return lines
+
 def run_repl():
     print("BrittainScript — type 'exit' to quit")
     while True:
@@ -388,19 +416,10 @@ def run_repl():
         if not stripped_text:
             continue
 
-        first_word = stripped_text.split()[0]
+        first_word = block_keyword(stripped_text) or stripped_text.split()[0]
         if first_word in ('cond', 'while', 'for', 'func'):
-            body = []
-            while True:
-                try:
-                    line = input('...> ')
-                except (EOFError, KeyboardInterrupt):
-                    break
-                if line.strip() == 'end':
-                    break
-                body.append(line)
             try:
-                execute_lines([text] + body + ['end'])
+                execute_lines(read_block_lines(text, lambda: input('...> ')))
             except BreakSignal:
                 print("Error: break used outside a loop")
             except ContinueSignal:
