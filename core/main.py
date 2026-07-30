@@ -68,13 +68,57 @@ def split_assignment(line):
             next_char = line[index + 1] if index + 1 < len(line) else ''
             if previous_char in ('=', '!', '<', '>') or next_char == '=':
                 continue
+            if previous_char in AUGMENTED_OPERATORS:
+                continue
             return line[:index].strip(), line[index + 1:].strip()
+    return None
+
+# 'x += 1' and friends -- the operator sits immediately before the '='
+AUGMENTED_OPERATORS = ('+', '-', '*', '/', '%', '^')
+
+def split_augmented_assignment(line):
+    in_string = False
+    escaped = False
+    depth = 0
+    for index, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == '\\' and in_string:
+            escaped = True
+            continue
+        if char == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if char in '([':
+            depth += 1
+            continue
+        if char in ')]':
+            depth -= 1
+            continue
+        if char == '=' and depth == 0:
+            previous_char = line[index - 1] if index > 0 else ''
+            next_char = line[index + 1] if index + 1 < len(line) else ''
+            if next_char == '=' or previous_char not in AUGMENTED_OPERATORS:
+                return None
+            target = line[:index - 1].strip()
+            if not target:
+                return None
+            return target, previous_char, line[index + 1:].strip()
     return None
 
 def parse_expression(text):
     return parser_module.parser.parse(text, lexer=lexer_module.lexer.clone())
 
 def execute_line(line):
+    augmented = split_augmented_assignment(line)
+    if augmented:
+        target, operator, expression = augmented
+        value = parse_expression(f'{target} {operator} ({expression})')
+        parser_module.assign_target(target, value)
+        return
     assignment = split_assignment(line)
     if assignment:
         target, expression = assignment

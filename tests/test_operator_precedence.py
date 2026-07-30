@@ -55,5 +55,60 @@ class ArithmeticPrecedenceTests(unittest.TestCase):
         self.assertIn("division by zero", output)
 
 
+class AugmentedAssignmentTests(unittest.TestCase):
+    def run_script(self, source):
+        import main
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            main.execute_lines([line + "\n" for line in source.strip("\n").split("\n")])
+        return output.getvalue().strip().split("\n")
+
+    def test_augmented_operators_update_the_variable(self):
+        self.assertEqual(self.run_script("""
+x = 5
+x += 2
+push(x)
+y = 10
+y -= 3
+push(y)
+z = 2
+z *= 4
+push(z)
+w = 9
+w /= 2
+push(w)
+m = 10
+m %= 3
+push(m)
+"""), ["7", "7", "8", "4.5", "1"])
+
+    def test_augmented_assignment_works_without_spaces(self):
+        self.assertEqual(self.run_script("n = 1\nn+=1\npush(n)"), ["2"])
+
+    def test_augmented_assignment_works_on_strings_and_lists(self):
+        self.assertEqual(self.run_script("""
+s = "ab"
+s += "cd"
+push(s)
+xs = [1, 2]
+xs += [3]
+push(xs)
+"""), ["abcd", "[1, 2, 3]"])
+
+    def test_augmented_assignment_works_on_an_indexed_target(self):
+        self.assertEqual(self.run_script("counts = [0, 0]\ncounts[1] += 5\npush(counts)"), ["[0, 5]"])
+
+    def test_plain_assignment_and_comparisons_are_unaffected(self):
+        self.assertEqual(self.run_script("""
+a = 1
+c = a + 2
+push(c)
+push(a == 1)
+push(a != 2)
+push(a <= 1)
+push(a >= 1)
+"""), ["3", "True", "True", "True", "True"])
+
+
 if __name__ == "__main__":
     unittest.main()
