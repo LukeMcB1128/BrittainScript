@@ -1,0 +1,29 @@
+# test_datetime.bs -- exercises the datetime library
+add datetime
+
+t = datetime.now()
+push("Current time: " + tostr(t))
+
+formatted = datetime.format(t, "%Y-%m-%d %H:%M:%S")
+push("Formatted time: " + formatted)
+
+push("Year: " + tostr(datetime.year(t)))
+push("Month: " + tostr(datetime.month(t)))
+push("Day: " + tostr(datetime.day(t)))
+push("Hour: " + tostr(datetime.hour(t)))
+push("Minute: " + tostr(datetime.minute(t)))
+push("Second: " + tostr(datetime.second(t)))
+push("Weekday: " + tostr(datetime.weekday(t)))
+
+parsed = datetime.parse("2024-02-29", "%Y-%m-%d")
+push("Parsed year: " + tostr(datetime.year(parsed)))
+
+push("Is 2024 a leap year? " + tostr(datetime.isLeapYear(2024)))
+push("Is 2023 a leap year? " + tostr(datetime.isLeapYear(2023)))
+
+push("Days in Feb 2024: " + tostr(datetime.daysInMonth(2024, 2)))
+push("Days in Feb 2023: " + tostr(datetime.daysInMonth(2023, 2)))
+
+# bad input prints a friendly error instead of crashing
+bad = datetime.parse("not a date", "%Y-%m-%d")
+push("Bad parse returned: " + tostr(bad))

@@ -1,0 +1,156 @@
+# gui.bs -- graphical windows, widgets, and canvas drawing for BrittainScript
+# usage: add gui, then win = gui.window("Title", 400, 300) ... gui.run()
+# callbacks are function names as strings: gui.button(win, "Go", "on_go")
+
+# windows
+func window(title, width, height):
+    return guiwindow(title, width, height)
+end
+
+func title(win, text):
+    return guititle(win, text)
+end
+
+func close(win):
+    return guiclose(win)
+end
+
+func run():
+    return guirun()
+end
+
+# widgets
+func frame(win):
+    return guiframe(win)
+end
+
+func label(win, text):
+    return guilabel(win, text)
+end
+
+func button(win, text, callback):
+    return guibutton(win, text, callback)
+end
+
+func entry(win):
+    return guientry(win)
+end
+
+func textbox(win, width, height):
+    return guitextbox(win, width, height)
+end
+
+func checkbox(win, text):
+    return guicheckbox(win, text)
+end
+
+func slider(win, low, high):
+    return guislider(win, low, high)
+end
+
+func canvas(win, width, height):
+    return guicanvas(win, width, height)
+end
+
+# layout
+func pack(widget):
+    return guipack(widget)
+end
+
+func place(widget, x, y):
+    return guiplace(widget, x, y)
+end
+
+func grid(widget, row, col):
+    return guigrid(widget, row, col)
+end
+
+# widget state
+func getText(widget):
+    return guigettext(widget)
+end
+
+func setText(widget, text):
+    return guisettext(widget, text)
+end
+
+func setColor(widget, background, foreground):
+    return guisetcolor(widget, background, foreground)
+end
+
+func setFont(widget, fontname, size):
+    return guisetfont(widget, fontname, size)
+end
+
+func isChecked(widget):
+    return guiischecked(widget)
+end
+
+func getValue(widget):
+    return guigetvalue(widget)
+end
+
+func setValue(widget, value):
+    return guisetvalue(widget, value)
+end
+
+# canvas drawing -- these return a shape id for move/erase
+func line(cnv, x1, y1, x2, y2, color):
+    return guidrawline(cnv, x1, y1, x2, y2, color)
+end
+
+func rect(cnv, x1, y1, x2, y2, color):
+    return guidrawrect(cnv, x1, y1, x2, y2, color)
+end
+
+func oval(cnv, x1, y1, x2, y2, color):
+    return guidrawoval(cnv, x1, y1, x2, y2, color)
+end
+
+func circle(cnv, x, y, radius, color):
+    return guidrawoval(cnv, x - radius, y - radius, x + radius, y + radius, color)
+end
+
+func text(cnv, x, y, message, color):
+    return guidrawtext(cnv, x, y, message, color)
+end
+
+func move(cnv, shape, dx, dy):
+    return guimove(cnv, shape, dx, dy)
+end
+
+func erase(cnv, shape):
+    return guierase(cnv, shape)
+end
+
+func clearCanvas(cnv):
+    return guiclearcanvas(cnv)
+end
+
+# events and timers -- callbacks are function names as strings
+# onKey callback receives the key name: func on_key(key):
+# onClick callback receives coordinates: func on_click(x, y):
+func onKey(win, callback):
+    return guionkey(win, callback)
+end
+
+func onClick(widget, callback):
+    return guionclick(widget, callback)
+end
+
+func after(milliseconds, callback):
+    return guiafter(milliseconds, callback)
+end
+
+# dialogs
+func alert(title, message):
+    return guialert(title, message)
+end
+
+func confirm(title, message):
+    return guiconfirm(title, message)
+end
+
+func prompt(title, message):
+    return guiprompt(title, message)
+end
