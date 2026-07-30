@@ -33,7 +33,7 @@
       "patterns": [
         {
           "name": "keyword.control.bs",
-          "match": "\\b(cond|while|for|in|break|continue|end|return)\\b"
+          "match": "\\b(cond|elif|else|while|for|in|break|continue|end|return)\\b"
         },
         {
           "name": "keyword.declaration.bs",
@@ -57,7 +57,7 @@
       "patterns": [
         {
           "name": "constant.language.boolean.bs",
-          "match": "\\b(true|false)\\b"
+          "match": "\\b(true|false|null)\\b"
         },
         {
           "name": "constant.language.bs",

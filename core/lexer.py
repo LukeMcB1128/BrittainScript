@@ -39,6 +39,7 @@ tokens = (
     'LESSTHANEQUALTO',
     'TRUE',
     'FALSE',
+    'NULL',
     # control flow
     'COND',
     'RANGE',
@@ -58,6 +59,7 @@ reserved = {
     'not':     'NOT',
     'true':    'TRUE',
     'false':   'FALSE',
+    'null':    'NULL',
     'cond':    'COND',
     'space':   'RANGE',
 }

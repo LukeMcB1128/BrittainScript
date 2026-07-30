@@ -113,6 +113,55 @@ cond (count > 1)
 end
 ```
 
+Use `elif` for further conditions and `else` for the fallback. The first branch
+whose condition is true runs, and the rest are skipped.
+
+```
+cond score >= 90:
+    push("A")
+elif score >= 80:
+    push("B")
+elif score >= 70:
+    push("C")
+else:
+    push("F")
+end
+```
+
+Both are optional: a `cond` on its own still works, `elif` can appear without an
+`else`, and `else` can appear without any `elif`. An `else` must come last and
+takes no condition.
+
+### Null
+
+`null` is the empty value. It is what a function returns when it returns
+nothing, and what a built-in gives back when it fails.
+
+```
+x = null
+push(x)                      => null
+push(x == null)              => True
+push(not null)               => True
+
+cond x == null:
+    push("nothing here")
+end
+```
+
+`null` is falsy, so it can be tested directly:
+
+```
+value = datetime.parse(text, "%Y-%m-%d")
+cond value:
+    push(datetime.year(value))
+else:
+    push("could not read that date")
+end
+```
+
+`push()` and `tostr()` render it as `null`. A bare `null` on its own line prints
+nothing, the same way an assignment does.
+
 ### Loops
 
 ```

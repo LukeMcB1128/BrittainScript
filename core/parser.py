@@ -153,9 +153,15 @@ def p_expression_pi(p):
     'expression : PI'
     p[0] = math.pi
 
+def display(value):
+    # 'null' is Python's None underneath -- show it with the BrittainScript name
+    if value is None:
+        return 'null'
+    return value
+
 def p_expression_print(p):
     'expression : PRINT LPAREN expression RPAREN'
-    print(p[3])
+    print(display(p[3]))
     p[0] = None
 
 def p_expression_string(p):
@@ -274,7 +280,7 @@ def call_function(name, args):
         if len(args) != 1:
             print("Error: tostr() expects 1 argument")
             return None
-        return str(args[0])
+        return str(display(args[0]))
     if name == 'input':
         if len(args) > 1:
             print("Error: input() expects 0 or 1 arguments")
@@ -526,6 +532,10 @@ def p_expression_true(p):
 def p_expression_false(p):
     'expression : FALSE'
     p[0] = False
+
+def p_expression_null(p):
+    'expression : NULL'
+    p[0] = None
 
 def p_expression_cond(p):
     'expression : COND LPAREN expression RPAREN'

@@ -2,7 +2,7 @@
   "name": "brittainscript",
   "displayName": "BrittainScript",
   "description": "Language support for BrittainScript (.bs files)",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "LukeBrittain",
   "engines": { "vscode": "^1.75.0" },
   "categories": ["Programming Languages"],

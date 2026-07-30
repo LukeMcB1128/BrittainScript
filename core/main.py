@@ -93,33 +93,64 @@ def block_keyword(line):
 def is_block_start(line):
     return block_keyword(line) is not None
 
-def collect_block(lines, start_index, parent_indent=0):
-    body = []
+def branch_keyword(line):
+    for keyword in ('elif', 'else'):
+        if line == keyword or line == keyword + ':':
+            return keyword
+        if line.startswith(keyword + ' ') or line.startswith(keyword + '('):
+            return keyword
+    return None
+
+def collect_block(lines, start_index, parent_indent=0, collect_branches=False):
+    # branches is [(header, body)]; the first header is None because the opening
+    # 'cond' line is the header for it. Blocks close on 'end' or on a dedent, so
+    # both styles have to keep working.
+    branches = [(None, [])]
     i = start_index
     block_indents = [parent_indent]
     while i < len(lines):
         line = strip_inline_comment(lines[i])
         if not line:
-            body.append(lines[i])
+            branches[-1][1].append(lines[i])
             i += 1
             continue
 
         current_indent = indentation(lines[i])
-        while len(block_indents) > 1 and current_indent <= block_indents[-1] and line != 'end':
+        # an 'elif'/'else' sitting at the indent of an inner block belongs to
+        # that block, so it must not pop it the way an ordinary dedent would
+        continues_branch = branch_keyword(line) is not None
+        while len(block_indents) > 1 and line != 'end':
+            if continues_branch:
+                if current_indent >= block_indents[-1]:
+                    break
+            elif current_indent > block_indents[-1]:
+                break
             block_indents.pop()
-        if len(block_indents) == 1 and current_indent <= parent_indent and line != 'end':
-            return body, i
+
+        is_branch = collect_branches and continues_branch and len(block_indents) == 1
+        if len(block_indents) == 1 and current_indent <= parent_indent and line != 'end' and not is_branch:
+            return finish_block(branches, collect_branches), i
+
+        if is_branch:
+            branches.append((line, []))
+            i += 1
+            continue
 
         if is_block_start(line):
             block_indents.append(current_indent)
         elif line == 'end':
             if len(block_indents) == 1:
-                return body, i + 1
+                return finish_block(branches, collect_branches), i + 1
             block_indents.pop()
-        body.append(lines[i])
+        branches[-1][1].append(lines[i])
         i += 1
     print("Syntax error: missing end")
-    return body, i
+    return finish_block(branches, collect_branches), i
+
+def finish_block(branches, collect_branches):
+    if collect_branches:
+        return branches
+    return branches[0][1]
 
 def parse_colon_expression(line, keyword):
     expression = line[len(keyword):].strip()
@@ -129,10 +160,39 @@ def parse_colon_expression(line, keyword):
         expression = expression[1:-1].strip()
     return expression
 
-def execute_cond(line, body):
-    condition_text = parse_colon_expression(line, 'cond')
-    if parse_expression(condition_text):
-        execute_lines(body)
+def execute_cond(line, branches):
+    if not validate_branches(branches):
+        return
+    for header, body in branches:
+        if header is None:
+            condition_text = parse_colon_expression(line, 'cond')
+        elif branch_keyword(header) == 'else':
+            execute_lines(body)
+            return
+        else:
+            condition_text = parse_colon_expression(header, 'elif')
+        if not condition_text:
+            print("Syntax error: expected a condition")
+            return
+        if parse_expression(condition_text):
+            execute_lines(body)
+            return
+
+def validate_branches(branches):
+    seen_else = False
+    for header, body in branches:
+        if header is None:
+            continue
+        keyword = branch_keyword(header)
+        if seen_else:
+            print(f"Syntax error: {keyword} after else")
+            return False
+        if keyword == 'else':
+            if parse_colon_expression(header, 'else'):
+                print("Syntax error: else does not take a condition")
+                return False
+            seen_else = True
+    return True
 
 def execute_while(line, body):
     condition_text = parse_colon_expression(line, 'while')
@@ -262,10 +322,13 @@ def execute_lines(lines):
             i += 1
             continue
 
-        first_word = block_keyword(line) or line.split()[0]
+        first_word = block_keyword(line) or branch_keyword(line) or line.split()[0]
         if first_word == 'cond':
-            body, i = collect_block(lines, i + 1, indentation(lines[i]))
-            execute_cond(line, body)
+            branches, i = collect_block(lines, i + 1, indentation(lines[i]), collect_branches=True)
+            execute_cond(line, branches)
+        elif first_word in ('elif', 'else'):
+            print(f"Syntax error: unexpected {first_word}")
+            i += 1
         elif first_word == 'while':
             body, i = collect_block(lines, i + 1, indentation(lines[i]))
             execute_while(line, body)
