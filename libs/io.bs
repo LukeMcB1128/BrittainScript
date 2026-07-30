@@ -1,0 +1,28 @@
+# file io
+func create(path):
+    return createfile(path)
+end
+
+func read(path):
+    return readfile(path)
+end
+
+func readLines(path):
+    return readlines(path)
+end
+
+func write(path, content):
+    return writefile(path, content)
+end
+
+func append(path, content):
+    return appendfile(path, content)
+end
+
+func exists(path):
+    return fileexists(path)
+end
+
+func delete(path):
+    return deletefile(path)
+end
