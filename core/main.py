@@ -285,10 +285,26 @@ def execute_func_definition(line, body):
         return
     functions[name] = (params, body)
 
-def call_user_function(name, args):
-    if name not in functions:
+def call_variable(name, args):
+    # a name can hold something callable -- a Python function pulled in through
+    # pyimport, for instance. Functions defined with 'func' still win.
+    try:
+        value = parser_module.get_name(name)
+    except KeyError:
         print(f"Undefined function: {name}")
         return None
+    if not callable(value):
+        print(f"Error: '{name}' is not callable")
+        return None
+    try:
+        return value(*args)
+    except Exception as error:
+        print(f"Error calling '{name}': {error}")
+        return None
+
+def call_user_function(name, args):
+    if name not in functions:
+        return call_variable(name, args)
     params, body = functions[name]
     if len(args) != len(params):
         print(f"Error: {name}() expects {len(params)} arguments")
