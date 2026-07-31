@@ -77,6 +77,10 @@
         },
         {
           "name": "keyword.operator.assignment.bs",
+          "match": "[+\\-*/%^]=(?!=)"
+        },
+        {
+          "name": "keyword.operator.assignment.bs",
           "match": "(?<![=!<>])=(?!=)"
         },
         {

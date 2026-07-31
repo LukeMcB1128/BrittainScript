@@ -29,7 +29,7 @@ push("Hello, BrittainScript!")
 Or use the terminal:
 
 ```bash
-python3 main.py path/to/yourfile.bs
+bs path/to/yourfile.bs
 ```
 
 ### Interactive REPL
@@ -37,7 +37,7 @@ python3 main.py path/to/yourfile.bs
 Open the integrated terminal and run:
 
 ```bash
-python3 main.py
+bs
 ```
 
 Then type expressions one at a time:
@@ -71,7 +71,15 @@ result = 8 / 2           # 4
 result = 10 % 3          # 1
 result = 2 ^ 3           # 8
 result = sqrroot(16)     # 4.0
+
+count = 1
+count += 2               # 3
+count -= 1               # 2
+count *= 5               # 10
 ```
+
+`+=`, `-=`, `*=`, `/=`, `%=` and `^=` all work, including on an indexed
+target such as `totals[0] += 1`.
 
 ### Trigonometry (degrees)
 
@@ -96,6 +104,9 @@ trimmed = "  text  ".trim()  # "text"
 
 has_substring = text.contains("world")    # true
 index = text.locate("world")              # 6
+
+emoji = "café ✓ 日本語"   # non-ascii text is kept intact
+push(len("café"))        # 4
 ```
 
 ### Type Conversion
@@ -531,6 +542,37 @@ language FFI — it is the same power a Python script has — but it does mean a
 untrusted BrittainScript the way you would treat untrusted Python.
 
 ---
+
+## Translating Python (`py2bs`)
+
+Installing `brittainscript` also installs `bs-from-python`, which translates a
+subset of Python into BrittainScript and checks the result by running both
+programs and comparing their output.
+
+```bash
+bs-from-python program.py --out program.bs
+```
+
+Verification is on by default, so exit code 0 means the two programs printed
+exactly the same thing. Point it at a folder instead to get a report of what
+could not be translated and why:
+
+```bash
+bs-from-python somefolder/
+```
+
+`def`, `if`/`elif`/`else`, `while`, `for`, `break`, `continue`, `return`,
+`print`, `len`, `str`, `abs`, `round`, `range`, list literals, indexing,
+slicing, f-strings and `import` all translate. `import math` becomes
+`math = pyimport("math")`, and `from math import sqrt` becomes
+`sqrt = pyimport("math").sqrt`.
+
+Rejected: classes, dicts, tuples, comprehensions, `try`/`except`, `lambda`,
+generators, `**`, and imports of modules that reach outside the process. A few
+constructs are refused specifically because a translation would run and give a
+*different* answer — `name or "default"` returns the string in Python but
+`true` here, and `i < len(xs) and xs[i] > 0` does not guard, because
+BrittainScript evaluates both sides.
 
 ## Built-in Functions
 
