@@ -6,6 +6,7 @@ something else.
 """
 
 import ast
+import importlib.util
 import warnings
 
 from .errors import UnsupportedFeature
@@ -54,6 +55,47 @@ REJECTED_BINARY_OPERATORS = {
     ast.RShift: ('bitwise operators', None),
 }
 
+# words the lexer turns into their own token: unusable as any name at all
+LEXER_KEYWORDS = {
+    'sqrroot', 'sin', 'cos', 'tan', 'pi', 'push', 'and', 'or', 'not', 'true',
+    'false', 'null', 'cond', 'space',
+}
+
+# words matched at the start of a statement. A function may be called 'add',
+# because a call never starts a line with 'add ', but a variable may not be:
+# 'add = 5' is read as a library import.
+STATEMENT_KEYWORDS = {
+    'while', 'for', 'func', 'end', 'return', 'break', 'continue', 'add',
+    'elif', 'else', 'in',
+}
+
+BS_KEYWORDS = LEXER_KEYWORDS | STATEMENT_KEYWORDS
+
+# pyimport resolves a real module, so a translated program can reach anything
+# installed. Verification runs the Python, so modules that touch the world
+# outside the process are refused rather than executed.
+UNSAFE_IMPORTS = {
+    'os', 'sys', 'subprocess', 'shutil', 'socket', 'urllib', 'http', 'requests',
+    'ftplib', 'smtplib', 'tempfile', 'glob', 'pathlib', 'sqlite3', 'pickle',
+    'shelve', 'ctypes', 'multiprocessing', 'threading', 'signal', 'webbrowser',
+    'asyncio', 'importlib', 'builtins', 'atexit', 'gc', 'mmap', 'fcntl',
+    'platform', 'getpass', 'io', 'fileinput', 'zipfile', 'tarfile',
+}
+
+
+def module_is_available(name):
+    try:
+        return importlib.util.find_spec(name) is not None
+    except (ImportError, ValueError, ModuleNotFoundError):
+        return False
+
+
+def attribute_root(node):
+    while isinstance(node, ast.Attribute):
+        node = node.value
+    return node.id if isinstance(node, ast.Name) else None
+
+
 COMPARISON_OPERATORS = {
     ast.Eq: '==',
     ast.NotEq: '!=',
@@ -93,6 +135,7 @@ def is_total_and_pure(node):
 class CapabilityValidator(ast.NodeVisitor):
     def __init__(self):
         self.function_names = set()
+        self.imported_names = set()
         self.function_depth = 0
 
     def reject(self, node, feature, detail=None):
@@ -103,10 +146,34 @@ class CapabilityValidator(ast.NodeVisitor):
         self.reject(node, 'classes')
 
     def visit_Import(self, node):
-        self.reject(node, 'imports')
+        for alias in node.names:
+            if '.' in alias.name and not alias.asname:
+                self.reject(node, 'dotted import', alias.name)
+            self.check_module(node, alias.name)
+            self.check_binding(node, alias.asname or alias.name)
 
     def visit_ImportFrom(self, node):
-        self.reject(node, 'imports')
+        if node.level:
+            self.reject(node, 'relative imports')
+        if any(alias.name == '*' for alias in node.names):
+            self.reject(node, 'star imports')
+        self.check_module(node, node.module)
+        for alias in node.names:
+            self.check_binding(node, alias.asname or alias.name)
+
+    def check_module(self, node, name):
+        if not name:
+            self.reject(node, 'imports')
+        root = name.split('.')[0]
+        if root in UNSAFE_IMPORTS:
+            self.reject(node, 'unsafe import', f'{root} can affect the world outside the program')
+        if not module_is_available(name):
+            self.reject(node, 'unresolvable import', f"no module named '{name}'")
+
+    def check_binding(self, node, name):
+        if name in BS_KEYWORDS:
+            self.reject(node, 'name collides with a keyword', name)
+        self.imported_names.add(name)
 
     def visit_Try(self, node):
         self.reject(node, 'try/except')
@@ -200,6 +267,11 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'default arguments')
         if self.function_depth:
             self.reject(node, 'nested functions')
+        if node.name in LEXER_KEYWORDS:
+            self.reject(node, 'name collides with a keyword', node.name)
+        for argument in node.args.args:
+            if argument.arg in BS_KEYWORDS:
+                self.reject(node, 'name collides with a keyword', argument.arg)
         self.function_names.add(node.name)
         self.function_depth += 1
         self.generic_visit(node)
@@ -213,6 +285,8 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'tuple unpacking')
         if not isinstance(target, (ast.Name, ast.Subscript)):
             self.reject(node, 'assignment target')
+        if isinstance(target, ast.Name) and target.id in BS_KEYWORDS:
+            self.reject(node, 'name collides with a keyword', target.id)
         self.generic_visit(node)
 
     def visit_For(self, node):
@@ -220,6 +294,8 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'loop else')
         if not isinstance(node.target, ast.Name):
             self.reject(node, 'tuple unpacking')
+        if node.target.id in BS_KEYWORDS:
+            self.reject(node, 'name collides with a keyword', node.target.id)
         # range() is allowed here and nowhere else, so check its arguments
         # directly rather than letting visit_Call reject the call itself
         if is_range_call(node.iter):
@@ -298,14 +374,22 @@ class CapabilityValidator(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Attribute(self, node):
-        # only method calls are reachable; a bare attribute is rejected here
-        self.reject(node, 'attribute access')
+        # reading a member of an imported module is fine; any other bare
+        # attribute means an object model BrittainScript does not have
+        if attribute_root(node) not in self.imported_names:
+            self.reject(node, 'attribute access')
+        self.generic_visit(node)
 
     def visit_Call(self, node):
         if node.keywords:
             self.reject(node, 'keyword arguments')
         if isinstance(node.func, ast.Attribute):
             name = node.func.attr
+            if attribute_root(node.func) in self.imported_names:
+                self.visit(node.func.value)
+                for argument in node.args:
+                    self.visit(argument)
+                return
             if name in REJECTED_METHODS:
                 self.reject(node, f'{name}() method', REJECTED_METHODS[name])
             if name not in ALLOWED_METHODS:
@@ -321,17 +405,16 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, f'{name}() outside a for loop')
         if name in ('open', 'input', 'eval', 'exec', '__import__'):
             self.reject(node, 'I/O or dynamic execution', f'{name}()')
-        if name not in CALLABLE_BUILTINS and name not in self.function_names:
+        if (
+            name not in CALLABLE_BUILTINS
+            and name not in self.function_names
+            and name not in self.imported_names
+        ):
             self.reject(node, 'unsupported call', f'{name}()')
         self.generic_visit(node)
 
     def visit_Constant(self, node):
-        if isinstance(node.value, str):
-            try:
-                node.value.encode('ascii')
-            except UnicodeEncodeError:
-                self.reject(node, 'non-ascii string literal')
-        elif isinstance(node.value, complex):
+        if isinstance(node.value, complex):
             self.reject(node, 'complex numbers')
         self.generic_visit(node)
 
@@ -348,6 +431,18 @@ def collect_function_names(tree):
     return {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
 
 
+def collect_imported_names(tree):
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.add(alias.asname or alias.name.split('.')[0])
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                names.add(alias.asname or alias.name)
+    return names
+
+
 def parse_and_validate(source):
     try:
         with warnings.catch_warnings():
@@ -362,5 +457,6 @@ def parse_and_validate(source):
     # names are gathered first so a call to a function defined further down the
     # file is not mistaken for an unsupported builtin
     validator.function_names = collect_function_names(tree)
+    validator.imported_names = collect_imported_names(tree)
     validator.visit(tree)
     return tree

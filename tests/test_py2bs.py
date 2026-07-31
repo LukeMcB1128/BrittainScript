@@ -143,8 +143,6 @@ class RejectionTests(unittest.TestCase):
         self.assertEqual(rejection(source).feature, feature)
 
     def test_rejected_statements(self):
-        self.assertRejects('import math', 'imports')
-        self.assertRejects('from math import pi', 'imports')
         self.assertRejects('class A:\n    pass\n', 'classes')
         self.assertRejects('try:\n    pass\nexcept:\n    pass\n', 'try/except')
         self.assertRejects('with open("f") as h:\n    pass\n', 'with')
@@ -210,14 +208,98 @@ class RejectionTests(unittest.TestCase):
     def test_format_specifiers_are_rejected(self):
         self.assertRejects('print(f"{x:.2f}")', 'format specifiers')
 
-    def test_non_ascii_string_is_rejected(self):
-        self.assertRejects('print("caf\u00e9")', 'non-ascii string literal')
-
     def test_invalid_python_is_reported(self):
         self.assertEqual(rejection('def f(:\n').feature, 'invalid python')
 
     def test_a_rejection_names_the_line(self):
         self.assertEqual(rejection('x = 1\ny = {"a": 1}\n').line, 2)
+
+
+class ImportTests(unittest.TestCase):
+    def assertRejects(self, source, feature):
+        self.assertEqual(rejection(source).feature, feature)
+
+    def test_import_becomes_pyimport(self):
+        self.assertEqual(to_bs('import math'), 'math = pyimport("math")\n')
+
+    def test_import_as_binds_the_alias(self):
+        self.assertEqual(to_bs('import random as rng'), 'rng = pyimport("random")\n')
+
+    def test_from_import_reads_the_member(self):
+        self.assertEqual(
+            to_bs('from math import sqrt'), 'sqrt = pyimport("math").sqrt\n'
+        )
+
+    def test_module_attributes_and_calls_are_allowed(self):
+        self.assertEqual(
+            to_bs('import math\nprint(math.pi)\n'),
+            'math = pyimport("math")\npush(math.pi)\n',
+        )
+        self.assertEqual(
+            to_bs('import math\nprint(math.gcd(4, 6))\n'),
+            'math = pyimport("math")\npush(math.gcd(4, 6))\n',
+        )
+
+    def test_nested_module_attributes(self):
+        self.assertIn('json.decoder.JSONDecodeError', to_bs('import json\nx = json.decoder.JSONDecodeError\n'))
+
+    def test_a_from_imported_function_can_be_called(self):
+        self.assertIn('sqrt(9)', to_bs('from math import sqrt\nprint(sqrt(9))\n'))
+
+    def test_modules_that_reach_outside_are_rejected(self):
+        self.assertRejects('import os', 'unsafe import')
+        self.assertRejects('import subprocess', 'unsafe import')
+        self.assertRejects('from pathlib import Path', 'unsafe import')
+
+    def test_a_module_that_does_not_exist_is_rejected(self):
+        self.assertRejects('import not_a_real_package_xyz', 'unresolvable import')
+
+    def test_relative_and_star_imports_are_rejected(self):
+        self.assertRejects('from . import thing', 'relative imports')
+        self.assertRejects('from math import *', 'star imports')
+
+    def test_dotted_import_without_an_alias_is_rejected(self):
+        self.assertRejects('import xml.etree', 'dotted import')
+
+    def test_attribute_access_off_a_module_only(self):
+        self.assertRejects('print(a.b)', 'attribute access')
+
+    def test_import_round_trips(self):
+        result = translate('import math\nprint(math.floor(3.7))\n')
+        self.assertTrue(result.ok, result.error)
+        self.assertEqual(result.python_stdout, '3\n')
+
+
+class KeywordCollisionTests(unittest.TestCase):
+    def assertRejects(self, source, feature):
+        self.assertEqual(rejection(source).feature, feature)
+
+    def test_assigning_an_interpreter_keyword_is_rejected(self):
+        self.assertRejects('push = 5', 'name collides with a keyword')
+        self.assertRejects('space = 5', 'name collides with a keyword')
+        self.assertRejects('null = 5', 'name collides with a keyword')
+
+    def test_defining_a_function_named_for_a_keyword_is_rejected(self):
+        self.assertRejects('def push():\n    pass\n', 'name collides with a keyword')
+
+    def test_a_parameter_named_for_a_keyword_is_rejected(self):
+        self.assertRejects('def f(cond):\n    pass\n', 'name collides with a keyword')
+
+    def test_a_loop_variable_named_for_a_keyword_is_rejected(self):
+        self.assertRejects('for pi in xs:\n    pass\n', 'name collides with a keyword')
+
+    def test_an_import_binding_named_for_a_keyword_is_rejected(self):
+        self.assertRejects('import math as pi', 'name collides with a keyword')
+
+
+class NonAsciiTests(unittest.TestCase):
+    def test_non_ascii_strings_translate(self):
+        self.assertEqual(to_bs('print("café")'), 'push("café")\n')
+
+    def test_non_ascii_round_trips(self):
+        result = translate('print("café ✓ 日本語")\nprint(len("日本語"))\n')
+        self.assertTrue(result.ok, result.error)
+        self.assertEqual(result.python_stdout, 'café ✓ 日本語\n3\n')
 
 
 class TranslateApiTests(unittest.TestCase):
@@ -231,11 +313,11 @@ class TranslateApiTests(unittest.TestCase):
         self.assertIsNone(result.error)
 
     def test_result_fields_on_rejection(self):
-        result = translate('import os')
+        result = translate('x = {"a": 1}')
         self.assertFalse(result.ok)
         self.assertIsNone(result.brittainscript)
-        self.assertEqual(result.rejected_features, ['imports'])
-        self.assertIn('imports', result.error)
+        self.assertEqual(result.rejected_features, ['dict literals'])
+        self.assertIn('dict literals', result.error)
 
     def test_verification_can_be_skipped(self):
         result = translate('print(1)', verify=False)
@@ -276,7 +358,8 @@ class ReportTests(unittest.TestCase):
         features = dict(report.feature_counts)
         self.assertIn('dict literals', features)
         self.assertIn('try/except', features)
-        self.assertIn('imports', features)
+        self.assertIn('unsafe import', features)
+        self.assertIn('unresolvable import', features)
 
     def test_report_percentages_sum_to_one_hundred(self):
         report = run_corpus(REJECTS, verify=False)

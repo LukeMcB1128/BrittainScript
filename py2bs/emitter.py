@@ -106,6 +106,17 @@ class Emitter(ast.NodeVisitor):
         self.emit(f'for {node.target.id} in {rendered}:')
         self.emit_block(node.body)
 
+    def visit_Import(self, node):
+        for alias in node.names:
+            binding = alias.asname or alias.name.split('.')[0]
+            self.emit(f'{binding} = pyimport({bs_string(alias.name)})')
+
+    def visit_ImportFrom(self, node):
+        for alias in node.names:
+            binding = alias.asname or alias.name
+            module = bs_string(node.module)
+            self.emit(f'{binding} = pyimport({module}).{alias.name}')
+
     def visit_Break(self, node):
         self.emit('break')
 
@@ -176,6 +187,9 @@ class Emitter(ast.NodeVisitor):
         left = self.expression(node.left)
         right = self.expression(node.comparators[0])
         return f'({left} {operator} {right})'
+
+    def expression_Attribute(self, node):
+        return f'{self.expression(node.value)}.{node.attr}'
 
     def expression_Subscript(self, node):
         value = self.expression(node.value)
