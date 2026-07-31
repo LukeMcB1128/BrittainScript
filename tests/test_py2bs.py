@@ -288,6 +288,23 @@ class ReportTests(unittest.TestCase):
         self.assertIn('rejected features, by share of rejections:', text)
         self.assertIn('%', text)
 
+    def test_an_unreadable_file_does_not_abort_the_run(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            good = pathlib.Path(directory) / 'good.py'
+            good.write_text('print(1)\n')
+            binary = pathlib.Path(directory) / 'binary.py'
+            binary.write_bytes(b'x = "\xe9"\n')
+            report = run_corpus(directory, verify=False)
+            self.assertEqual(report.translated, 1)
+            self.assertEqual(report.feature_counts['unreadable file'], 1)
+
+    def test_source_with_a_null_byte_is_rejected_not_raised(self):
+        # reported as a rejection rather than escaping as an exception; the
+        # ValueError/RecursionError branch covers Python versions that do not
+        # raise SyntaxError here
+        self.assertEqual(rejection('x = 1\x00\n').feature, 'invalid python')
+
     def test_corpus_report_counts_successes(self):
         report = run_corpus(CORPUS, verify=True)
         self.assertEqual(report.rejected, 0)

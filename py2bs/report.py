@@ -59,7 +59,7 @@ def run_corpus(directory, verify=True, timeout=10):
     for path in paths:
         try:
             source = path.read_text()
-        except OSError as error:
+        except (OSError, UnicodeDecodeError) as error:
             report.rejected += 1
             report.feature_counts['unreadable file'] += 1
             report.failures.append((path.name, str(error)))

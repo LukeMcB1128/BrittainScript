@@ -6,6 +6,7 @@ something else.
 """
 
 import ast
+import warnings
 
 from .errors import UnsupportedFeature
 
@@ -349,9 +350,14 @@ def collect_function_names(tree):
 
 def parse_and_validate(source):
     try:
-        tree = ast.parse(source)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            tree = ast.parse(source)
     except SyntaxError as error:
         raise UnsupportedFeature('invalid python', error.lineno, error.msg)
+    except (ValueError, RecursionError) as error:
+        # null bytes, or source nested too deeply to walk
+        raise UnsupportedFeature('unparseable python', None, str(error))
     validator = CapabilityValidator()
     # names are gathered first so a call to a function defined further down the
     # file is not mistaken for an unsupported builtin
