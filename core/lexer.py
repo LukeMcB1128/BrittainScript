@@ -125,7 +125,10 @@ def t_NAME(t):
 
 def t_STRING(t):
     r'"([^"\\]|\\.)*"'
-    t.value = bytes(t.value[1:-1], "utf-8").decode("unicode_escape")
+    # escape sequences are decoded, but characters outside ascii have to survive
+    # intact -- encoding to utf-8 first turned "café" into "cafÃ©"
+    body = t.value[1:-1]
+    t.value = body.encode('latin-1', 'backslashreplace').decode('unicode_escape')
     return t
 
 def t_COMMENT(t):
