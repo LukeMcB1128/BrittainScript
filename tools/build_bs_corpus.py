@@ -11,9 +11,9 @@ rejected and why.
     python3 tools/build_bs_corpus.py --no-verify
 
 Verification runs each translated program in both languages and compares their
-output, which means it EXECUTES the Python. py2bs rejects imports, open(),
-input() and eval() before that point, so anything reaching execution is inert,
-but use --no-verify if you would rather nothing ran at all.
+output, which means it EXECUTES the Python. py2bs rejects open(), input(),
+eval() and any import that reaches outside the process before that point, but
+use --no-verify if you would rather nothing ran at all.
 
 This file reads and decodes sources itself rather than handing a directory to
 py2bs.report, so it behaves the same on any released version of py2bs.
@@ -24,6 +24,12 @@ import json
 import pathlib
 import sys
 from collections import Counter
+
+# prefer the checkout this script lives in over any installed copy, so running
+# it from a working tree exercises the code in that tree
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+if (REPO_ROOT / 'py2bs' / '__init__.py').exists():
+    sys.path.insert(0, str(REPO_ROOT))
 
 try:
     from py2bs import translate
