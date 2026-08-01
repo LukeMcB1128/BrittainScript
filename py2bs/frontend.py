@@ -133,13 +133,57 @@ def is_total_and_pure(node):
 
 
 class CapabilityValidator(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self, survey=None):
         self.function_names = set()
         self.imported_names = set()
         self.function_depth = 0
+        # When survey is a set, rejections are COLLECTED instead of raised, so one
+        # pass reports every unsupported construct in a file rather than the first
+        # one encountered. Translation never uses this — see survey_features().
+        self.survey = survey
+        self._descended = set()
 
     def reject(self, node, feature, detail=None):
-        raise UnsupportedFeature(feature, getattr(node, 'lineno', None), detail)
+        if self.survey is None:
+            raise UnsupportedFeature(feature, getattr(node, 'lineno', None), detail)
+        # Feature granularity should match IMPLEMENTATION granularity, and these
+        # two are not one task each — they are a list of missing builtins, where
+        # adding sorted() has nothing to do with adding zip(). Recorded coarsely
+        # they are the largest addressable bar on the board and tell you nothing
+        # about what to write. Recorded with the name, the survey ranks the
+        # builtins directly.
+        if detail and feature in ('unsupported call', 'unsupported method'):
+            self.survey.add(f'{feature} {detail}')
+        else:
+            self.survey.add(feature)
+        # Normal rejection aborts the walk, so most visit_* methods return without
+        # descending. Keep descending here or everything nested inside a class body
+        # stays invisible, which is exactly the measurement being taken.
+        self.generic_visit(node)
+
+    def generic_visit(self, node):
+        """Walk each node's children at most once per survey.
+
+        In survey mode a node is reached repeatedly: reject() descends so a
+        rejected subtree still gets measured, the visit_* method that called
+        reject descends again when it returns, and several methods reject twice.
+        Re-walking every time costs N^depth. Fourteen nested functions with
+        default arguments took 17 seconds, and one real file from The Stack
+        pinned a survey run at 100% CPU with no progress for minutes.
+
+        Translation is unaffected — reject() raises there and never reaches this.
+        """
+        if self.survey is not None:
+            # Keyed on function_depth, not the node alone: reject() descends
+            # before visit_FunctionDef has counted the function it is inside, so
+            # the same subtree legitimately yields different results at different
+            # depths. Keying on id(node) alone silently lost 'nested functions'
+            # in 30 of 5,136 files.
+            key = (id(node), self.function_depth)
+            if key in self._descended:
+                return
+            self._descended.add(key)
+        super().generic_visit(node)
 
     # --- wholly unsupported statements -----------------------------------
     def visit_ClassDef(self, node):
@@ -294,7 +338,9 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'loop else')
         if not isinstance(node.target, ast.Name):
             self.reject(node, 'tuple unpacking')
-        if node.target.id in BS_KEYWORDS:
+        # elif, because reject() only raises when translating. A survey collects
+        # and walks on, and `.id` does not exist on the Tuple we just rejected.
+        elif node.target.id in BS_KEYWORDS:
             self.reject(node, 'name collides with a keyword', node.target.id)
         # range() is allowed here and nowhere else, so check its arguments
         # directly rather than letting visit_Call reject the call itself
@@ -400,6 +446,7 @@ class CapabilityValidator(ast.NodeVisitor):
             return
         if not isinstance(node.func, ast.Name):
             self.reject(node, 'computed call')
+            return          # unreachable when translating; reject() raised
         name = node.func.id
         if name in ITERABLE_ONLY_BUILTINS:
             self.reject(node, f'{name}() outside a for loop')
@@ -460,3 +507,43 @@ def parse_and_validate(source):
     validator.imported_names = collect_imported_names(tree)
     validator.visit(tree)
     return tree
+
+
+def survey_features(source):
+    """Every construct in `source` that py2bs cannot translate, as a set.
+
+    parse_and_validate raises on the FIRST unsupported construct, which is right
+    for translating and useless for planning: a corpus histogram built from it
+    counts a file using classes AND dicts AND comprehensions exactly once, under
+    whichever the validator happened to check first. The counts then cannot be
+    added up, and the cheap features hide behind the expensive ones.
+
+    This walks the whole file and returns all of them, so "which set of features
+    unlocks the most files" becomes an answerable question instead of a guess.
+    An empty set means the file would pass validation.
+
+    Never executes anything — this is a pure AST walk, unlike verification.
+    """
+    try:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            tree = ast.parse(source)
+    except SyntaxError:
+        return {'invalid python'}
+    except (ValueError, RecursionError):
+        return {'unparseable python'}
+
+    found = set()
+    validator = CapabilityValidator(survey=found)
+    validator.function_names = collect_function_names(tree)
+    validator.imported_names = collect_imported_names(tree)
+    try:
+        validator.visit(tree)
+    except RecursionError:
+        found.add('unparseable python')
+    except Exception:
+        # A validator that only ever ran to the first rejection can hit states it
+        # was never written for once it keeps walking. Partial results are still
+        # usable; a crashed survey of one file must not stop the scan.
+        found.add('survey error')
+    return found
