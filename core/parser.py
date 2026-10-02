@@ -10,9 +10,11 @@ import datetime
 try:
     from core.diagnostics import report, BSError, expression_offset
     from core.values import BSModule
+    from core.expressions import deferred, ExpressionParser
 except ModuleNotFoundError:
     from diagnostics import report, BSError, expression_offset
     from values import BSModule
+    from expressions import deferred, ExpressionParser
 
 # variable storage
 names = {}
@@ -280,23 +282,22 @@ def p_expression_dictionary_empty(p):
 def p_expression_dictionary(p):
     '''expression : LBRACE dictionary_items RBRACE
                   | LBRACE dictionary_items COMMA RBRACE'''
-    p[0] = p[2]
+    p[0] = dict(p[2])
 
 
 def p_dictionary_item(p):
     'dictionary_item : expression COLON expression'
-    p[0] = {p[1]: p[3]}
+    p[0] = (p[1], p[3])
 
 
 def p_dictionary_items_single(p):
     'dictionary_items : dictionary_item'
-    p[0] = p[1]
+    p[0] = [p[1]]
 
 
 def p_dictionary_items_many(p):
     'dictionary_items : dictionary_items COMMA dictionary_item'
-    p[1].update(p[3])
-    p[0] = p[1]
+    p[0] = p[1] + [p[3]]
 
 def p_expression_index(p):
     'expression : expression LBRACKET expression RBRACKET'
@@ -714,7 +715,11 @@ def p_error(p):
     else:
         report("Syntax error at end of input")
 
-parser = yacc.yacc()
+for _rule_name, _rule in list(globals().items()):
+    if _rule_name.startswith('p_expression_') or _rule_name == 'p_statement_assign':
+        globals()[_rule_name] = deferred(_rule)
+
+parser = ExpressionParser(yacc.yacc())
 
 if __name__ == '__main__':
     while True:

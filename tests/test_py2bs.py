@@ -175,9 +175,8 @@ class RejectionTests(unittest.TestCase):
         self.assertRejects('a, b = 1, 2', 'tuple unpacking')
         self.assertRejects('for a, b in xs:\n    pass\n', 'tuple unpacking')
 
-    def test_short_circuit_guard_is_rejected(self):
-        # BrittainScript evaluates both sides, so this guard would not guard
-        self.assertRejects('if i < len(xs) and xs[i] > 0:\n    pass\n', 'short-circuit and/or')
+    def test_short_circuit_guard_is_accepted(self):
+        self.assertIn('and', to_bs('if i < len(xs) and xs[i] > 0:\n    pass\n'))
 
     def test_non_boolean_and_or_is_rejected(self):
         # Python returns an operand here; BrittainScript returns a bool

@@ -155,7 +155,18 @@ and Python containers. Dictionaries and library namespaces are distinct values.
 
 ### Logic and comparisons
 
-Use `==`, `!=`, `<`, `<=`, `>`, `>=`, `not`, `and`, and `or`. Logical operators produce boolean values.
+Use `==`, `!=`, `<`, `<=`, `>`, `>=`, `not`, `and`, and `or`. Logical operators produce boolean values. They evaluate from left to right.
+`and` skips its right operand when the left operand is false.
+`or` skips its right operand when the left operand is true.
+
+```bs
+data = null
+push(data != null and data["field"] == 1) # False; the index is skipped
+push(true or 1 / 0)                     # True; division is skipped
+```
+
+Expressions are parsed in full before execution. A skipped operand must still
+have valid syntax. Reads, calls, and errors in skipped operands do not occur.
 
 ```bs
 ready = true
@@ -490,14 +501,12 @@ and rebinding built-in exception type names are rejected. A catch-all handler mu
 
 Classes, `with`, `lambda`, comprehensions, generators,
 decorators, dictionary unpacking, sets, tuples, `*args`, `global`, and chained comparisons
-have no BrittainScript equivalent. Four rejections are subtler, and each
+have no BrittainScript equivalent. Three rejections are subtler, and each
 would otherwise produce a program that runs and gives a different answer:
 
 - **`and`/`or` returning a value.** `name or "default"` yields the string in
   Python and `true` in BrittainScript, so `and`/`or` are only accepted when
   both sides are already booleans.
-- **`and`/`or` as a guard.** BrittainScript evaluates both sides, so
-  `i < len(xs) and xs[i] > 0` does not protect the index.
 - **`**`.** `2 ** 3` is `8` in Python and `8.0` in BrittainScript.
 - **`list.pop()`.** Returns the removed item in Python, `null` here.
 
@@ -522,4 +531,4 @@ Run the automated tests from the repository root:
 python3 -m unittest discover -s tests
 ```
 
-Implementation overview: `core/lexer.py` tokenizes source, `core/parser.py` parses/evaluates expressions, `core/main.py` executes files and blocks, and `core/gui_backend.py` adapts Tkinter.
+Implementation overview: `core/lexer.py` tokenizes source, `core/parser.py` parses expressions, `core/expressions.py` evaluates expression trees, `core/main.py` executes files and blocks, and `core/gui_backend.py` adapts Tkinter.

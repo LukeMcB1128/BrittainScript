@@ -155,18 +155,6 @@ def is_boolean_valued(node):
     return False
 
 
-def is_total_and_pure(node):
-    # BrittainScript evaluates both sides of 'and'/'or', so the right-hand side
-    # must not be able to fail or have an effect. This is what makes the common
-    # guard 'i < len(xs) and xs[i] > 0' unsafe to translate.
-    for child in ast.walk(node):
-        if isinstance(child, (ast.Call, ast.Subscript, ast.Attribute)):
-            return False
-        if isinstance(child, ast.BinOp) and isinstance(child.op, (ast.Div, ast.Mod, ast.Pow, ast.FloorDiv)):
-            return False
-    return True
-
-
 class CapabilityValidator(ast.NodeVisitor):
     def __init__(self, survey=None):
         self.function_names = set()
@@ -470,21 +458,13 @@ class CapabilityValidator(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_BoolOp(self, node):
-        # both operands are evaluated in BrittainScript, and the result is a
-        # bool rather than one of the operands
+        # BS short-circuits, but returns a bool rather than an operand.
         if not is_boolean_valued(node):
             self.reject(
                 node,
                 'non-boolean and/or',
                 "'and'/'or' return a bool in BrittainScript, not the operand",
             )
-        for value in node.values[1:]:
-            if not is_total_and_pure(value):
-                self.reject(
-                    node,
-                    'short-circuit and/or',
-                    'BrittainScript evaluates both sides, so this cannot guard',
-                )
         self.generic_visit(node)
 
     def visit_Subscript(self, node):
