@@ -1,4 +1,6 @@
-# BrittainScript
+# BrittainScript (legacy guide)
+
+> **Current documentation:** use the [BrittainScript language reference](LANGUAGE_REFERENCE.md). It reflects the current package layout and language features. This historical guide is retained for compatibility with existing links.
 
 A custom scripting language built in Python using PLY (Python Lex-Yacc), created as a genius hour project.
 

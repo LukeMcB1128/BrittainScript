@@ -1,10 +1,17 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 import re
+import operator
+import math
+try:
+    from core.diagnostics import report
+except ModuleNotFoundError:
+    from diagnostics import report
 import lexer as lexer_module
 import parser as parser_module
 
 functions = {}
+function_environments = [None]
 
 class BreakSignal(Exception):
     pass
@@ -68,13 +75,71 @@ def split_assignment(line):
             next_char = line[index + 1] if index + 1 < len(line) else ''
             if previous_char in ('=', '!', '<', '>') or next_char == '=':
                 continue
+            if previous_char in AUGMENTED_OPERATORS:
+                continue
             return line[:index].strip(), line[index + 1:].strip()
+    return None
+
+# 'x += 1' and friends -- the operator sits immediately before the '='
+AUGMENTED_OPERATORS = ('+', '-', '*', '/', '%', '^')
+INPLACE_OPERATORS = {
+    '+': operator.iadd, '-': operator.isub, '*': operator.imul,
+    '/': operator.itruediv, '//': operator.ifloordiv, '%': operator.imod,
+    '^': math.pow,
+}
+
+def split_augmented_assignment(line):
+    in_string = False
+    escaped = False
+    depth = 0
+    for index, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == '\\' and in_string:
+            escaped = True
+            continue
+        if char == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if char in '([':
+            depth += 1
+            continue
+        if char in ')]':
+            depth -= 1
+            continue
+        if char == '=' and depth == 0:
+            previous_char = line[index - 1] if index > 0 else ''
+            next_char = line[index + 1] if index + 1 < len(line) else ''
+            if next_char == '=' or previous_char not in AUGMENTED_OPERATORS:
+                return None
+            operator_start = index - 1
+            if previous_char == '/' and line[index - 2:index] == '//':
+                operator_start -= 1
+            target = line[:operator_start].strip()
+            if not target:
+                return None
+            return target, line[operator_start:index], line[index + 1:].strip()
     return None
 
 def parse_expression(text):
     return parser_module.parser.parse(text, lexer=lexer_module.lexer.clone())
 
 def execute_line(line):
+    augmented = split_augmented_assignment(line)
+    if augmented:
+        target, operation, expression = augmented
+        try:
+            container, key = parser_module.resolve_target(target)
+            current = (parser_module.get_name(key) if container is parser_module.NAME_TARGET
+                       else container[key])
+            value = INPLACE_OPERATORS[operation](current, parse_expression(expression))
+            parser_module.store_target(container, key, value)
+        except (KeyError, TypeError, IndexError, ValueError, ZeroDivisionError) as error:
+            report(f'Error: augmented assignment failed: {error}')
+        return
     assignment = split_assignment(line)
     if assignment:
         target, expression = assignment
@@ -144,7 +209,7 @@ def collect_block(lines, start_index, parent_indent=0, collect_branches=False):
             block_indents.pop()
         branches[-1][1].append(lines[i])
         i += 1
-    print("Syntax error: missing end")
+    report("Syntax error: missing end")
     return finish_block(branches, collect_branches), i
 
 def finish_block(branches, collect_branches):
@@ -172,7 +237,7 @@ def execute_cond(line, branches):
         else:
             condition_text = parse_colon_expression(header, 'elif')
         if not condition_text:
-            print("Syntax error: expected a condition")
+            report("Syntax error: expected a condition")
             return
         if parse_expression(condition_text):
             execute_lines(body)
@@ -185,11 +250,11 @@ def validate_branches(branches):
             continue
         keyword = branch_keyword(header)
         if seen_else:
-            print(f"Syntax error: {keyword} after else")
+            report(f"Syntax error: {keyword} after else")
             return False
         if keyword == 'else':
             if parse_colon_expression(header, 'else'):
-                print("Syntax error: else does not take a condition")
+                report("Syntax error: else does not take a condition")
                 return False
             seen_else = True
     return True
@@ -207,7 +272,7 @@ def execute_while(line, body):
 def execute_for(line, body):
     match = re.fullmatch(r'for\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s+(.+?):?', line)
     if not match:
-        print("Syntax error: expected for name in expression:")
+        report("Syntax error: expected for name in expression:")
         return
     name, iterable_text = match.groups()
     iterable = parse_expression(iterable_text)
@@ -216,7 +281,7 @@ def execute_for(line, body):
     try:
         iterator = iter(iterable)
     except TypeError:
-        print("Error: for loop target is not iterable")
+        report("Error: for loop target is not iterable")
         return
 
     for value in iterator:
@@ -231,88 +296,105 @@ def execute_for(line, body):
 def execute_func_definition(line, body):
     match = re.fullmatch(r'func\s+([A-Za-z_][A-Za-z0-9_]*)\s*\((.*?)\)\s*:?', line)
     if not match:
-        print("Syntax error: expected func name(arg1, arg2):")
+        report("Syntax error: expected func name(arg1, arg2):")
         return
     name, raw_params = match.groups()
     params = [param.strip() for param in raw_params.split(',') if param.strip()]
     invalid = [param for param in params if not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', param)]
     if invalid:
-        print("Syntax error: invalid function parameter")
+        report("Syntax error: invalid function parameter")
         return
-    functions[name] = (params, body)
+    environment = function_environments[-1]
+    registry = functions if environment is None else environment
+    registry[name] = (params, body)
+
+def call_variable(name, args):
+    # a name can hold something callable -- a Python function pulled in through
+    # pyimport, for instance. Functions defined with 'func' still win.
+    try:
+        value = parser_module.get_name(name)
+    except KeyError:
+        report(f"Undefined function: {name}")
+        return None
+    if not callable(value):
+        report(f"Error: '{name}' is not callable")
+        return None
+    try:
+        return value(*args)
+    except Exception as error:
+        report(f"Error calling '{name}': {error}")
+        return None
 
 def call_user_function(name, args):
+    environment = function_environments[-1]
+    if environment is not None and name in environment:
+        return call_definition(name, environment[name], args, environment)
     if name not in functions:
-        print(f"Undefined function: {name}")
-        return None
-    params, body = functions[name]
+        return call_variable(name, args)
+    return call_definition(name, functions[name], args)
+
+
+def call_definition(name, definition, args, environment=None):
+    params, body = definition
     if len(args) != len(params):
-        print(f"Error: {name}() expects {len(params)} arguments")
+        report(f"Error: {name}() expects {len(params)} arguments")
         return None
 
     parser_module.push_scope(dict(zip(params, args)))
+    function_environments.append(environment)
     try:
         execute_lines(body)
     except ReturnSignal as signal:
         return signal.value
     except BreakSignal:
-        print("Error: break used outside a loop")
+        report("Error: break used outside a loop")
         return None
     except ContinueSignal:
-        print("Error: continue used outside a loop")
+        report("Error: continue used outside a loop")
         return None
     finally:
+        function_environments.pop()
         parser_module.pop_scope()
     return None
 
 def call_module_function(module, func_name, args):
     funcs = module['funcs']
     if func_name not in funcs:
-        print(f"Error: '{module['name']}' has no function '{func_name}'")
+        report(f"Error: '{module['name']}' has no function '{func_name}'")
         return None
-    params, body = funcs[func_name]
-    if len(args) != len(params):
-        print(f"Error: {func_name}() expects {len(params)} arguments")
-        return None
-    # Register module functions globally so they can call each other recursively
-    for name, defn in funcs.items():
-        functions[name] = defn
-    parser_module.push_scope(dict(zip(params, args)))
+    return call_definition(func_name, funcs[func_name], args, funcs)
+
+
+def call_callback_function(name, args):
+    # GUI events call user functions even while a library runs its event loop.
+    function_environments.append(None)
     try:
-        execute_lines(body)
-    except ReturnSignal as s:
-        return s.value
-    except BreakSignal:
-        print("Error: break used outside a loop")
-        return None
-    except ContinueSignal:
-        print("Error: continue used outside a loop")
-        return None
+        return parser_module.call_function(name, args)
     finally:
-        parser_module.pop_scope()
-        for name in funcs:
-            functions.pop(name, None)
-    return None
+        function_environments.pop()
 
 def import_module(lib_name):
     libs_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
     lib_path = os.path.join(libs_dir, lib_name + '.bs')
     if not os.path.exists(lib_path):
-        print(f"Error: library '{lib_name}' not found")
+        report(f"Error: library '{lib_name}' not found")
         return None
-    before = set(functions.keys())
     with open(lib_path, 'r') as f:
         lines = f.readlines()
+    module_funcs = {}
+    function_environments.append(module_funcs)
     try:
-        execute_lines(lines)
-    except (BreakSignal, ContinueSignal, ReturnSignal):
-        pass
-    new_names = set(functions.keys()) - before
-    module_funcs = {name: functions.pop(name) for name in new_names}
+        try:
+            execute_lines(lines)
+        except (BreakSignal, ContinueSignal, ReturnSignal):
+            pass
+    finally:
+        function_environments.pop()
     return {'__bs_module__': True, 'name': lib_name, 'funcs': module_funcs}
 
 parser_module.set_function_caller(call_user_function)
 parser_module.set_module_caller(call_module_function)
+parser_module.gui_backend.set_callback_invoker(call_callback_function)
 
 def execute_lines(lines):
     i = 0
@@ -327,7 +409,7 @@ def execute_lines(lines):
             branches, i = collect_block(lines, i + 1, indentation(lines[i]), collect_branches=True)
             execute_cond(line, branches)
         elif first_word in ('elif', 'else'):
-            print(f"Syntax error: unexpected {first_word}")
+            report(f"Syntax error: unexpected {first_word}")
             i += 1
         elif first_word == 'while':
             body, i = collect_block(lines, i + 1, indentation(lines[i]))
@@ -345,10 +427,20 @@ def execute_lines(lines):
         elif first_word == 'return':
             return_text = line[len('return'):].strip()
             raise ReturnSignal(parse_expression(return_text) if return_text else None)
+        elif first_word == 'local':
+            local_names = [name.strip() for name in line[len('local'):].split(',') if name.strip()]
+            if any(not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in local_names):
+                report('Syntax error: invalid local name')
+            else:
+                parser_module.declare_locals(local_names)
+            i += 1
+        elif first_word == 'discard':
+            parse_expression(line[len('discard'):].strip())
+            i += 1
         elif first_word == 'add':
             parts = line.split(None, 1)
             if len(parts) < 2:
-                print("Syntax error: expected import name")
+                report("Syntax error: expected import name")
             else:
                 lib_name = parts[1].strip()
                 module = import_module(lib_name)
@@ -356,7 +448,7 @@ def execute_lines(lines):
                     parser_module.set_name(lib_name, module)
             i += 1
         elif first_word == 'end':
-            print("Syntax error: unexpected end")
+            report("Syntax error: unexpected end")
             i += 1
         else:
             execute_line(line)
@@ -368,11 +460,11 @@ def run_file(file_path):
     try:
         execute_lines(lines)
     except BreakSignal:
-        print("Error: break used outside a loop")
+        report("Error: break used outside a loop")
     except ContinueSignal:
-        print("Error: continue used outside a loop")
+        report("Error: continue used outside a loop")
     except ReturnSignal:
-        print("Error: return used outside a function")
+        report("Error: return used outside a function")
 
 def read_block_lines(first_line, read_line):
     # Typed-in blocks arrive with no indentation, but the block collector reads
@@ -421,20 +513,20 @@ def run_repl():
             try:
                 execute_lines(read_block_lines(text, lambda: input('...> ')))
             except BreakSignal:
-                print("Error: break used outside a loop")
+                report("Error: break used outside a loop")
             except ContinueSignal:
-                print("Error: continue used outside a loop")
+                report("Error: continue used outside a loop")
             except ReturnSignal:
-                print("Error: return used outside a function")
+                report("Error: return used outside a function")
         else:
             try:
                 execute_lines([stripped_text])
             except BreakSignal:
-                print("Error: break used outside a loop")
+                report("Error: break used outside a loop")
             except ContinueSignal:
-                print("Error: continue used outside a loop")
+                report("Error: continue used outside a loop")
             except ReturnSignal:
-                print("Error: return used outside a function")
+                report("Error: return used outside a function")
 
 def cli_entry():
     if len(sys.argv) > 1:
