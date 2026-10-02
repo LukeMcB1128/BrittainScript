@@ -7,6 +7,7 @@ import re
 import gui_backend
 import calendar
 import datetime
+import json_backend
 try:
     from core.diagnostics import report, BSError, expression_offset
     from core.values import BSModule
@@ -376,6 +377,8 @@ def call_function(name, args):
 
 
 def _call_function(name, args):
+    if name in json_backend.BUILTINS:
+        return json_backend.BUILTINS[name](*args)
     if name in ('dict', 'list'):
         constructor = dict if name == 'dict' else list
         return constructor(*args)

@@ -405,6 +405,39 @@ gui.run()
 
 Callbacks are function names as strings. Button and timer callbacks receive no arguments; `onKey` gets a key name and `onClick` gets `x, y`. See [`examples/gui_demo.bs`](../examples/gui_demo.bs).
 
+## JSON library
+
+Use `add json` for JSON data and files.
+
+```bs
+add json
+record = json.parse("{\"name\":\"Luke\",\"active\":true}")
+record["score"] = 11
+push(json.stringify(record))
+push(json.pretty(record, 2))
+json.save("record.json", record)
+record = json.load("record.json")
+```
+
+| Function | Action |
+| --- | --- |
+| `json.parse(text)` | Parse JSON into BS values. |
+| `json.stringify(value)` | Encode compact JSON. |
+| `json.pretty(value, indent)` | Encode JSON with the given indentation. |
+| `json.load(path)` | Read and parse a UTF-8 file. |
+| `json.save(path, value)` | Write a UTF-8 file; return `true`. |
+| `json.loads(text)`, `json.dumps(value)` | Aliases for parse and stringify. |
+
+JSON objects become dictionaries; arrays become lists. JSON booleans and `null`
+become BS booleans and `null`. Object keys must be strings when encoding.
+Numbers must be finite. Cycles, unsupported values, and invalid UTF-8 strings raise errors.
+Shared list and dictionary values are allowed when they do not form a cycle.
+
+Invalid JSON raises `JSONDecodeError`, which can be caught as `ValueError`.
+Non-finite numbers raise `ValueError`. File errors keep their Python types.
+Saving validates and encodes the data before opening the destination file.
+Invalid data therefore leaves an existing file unchanged.
+
 ## Python interoperability
 
 Use `pyimport("module")` for any Python package installed in the same environment. Imported modules and returned values support attributes, positional method calls, indexing, slicing, iteration, arithmetic, and `@` matrix multiplication.
