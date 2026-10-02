@@ -1,7 +1,7 @@
 try:
-    from core.diagnostics import report
+    from core.diagnostics import report, BSError
 except ModuleNotFoundError:
-    from diagnostics import report
+    from diagnostics import report, BSError
 
 # gui_backend.py -- tkinter bridge for the BrittainScript gui library
 #
@@ -22,6 +22,7 @@ callback_invoker = None
 widgets = {}
 next_id = 1
 root_window = None
+callback_error_frames = []
 
 
 def set_callback_invoker(invoker):
@@ -66,10 +67,20 @@ def _lookup(widget_id, kinds=None):
 
 
 def _run_callback(name, args):
+    if callback_error_frames and callback_error_frames[-1]:
+        return
     if callback_invoker is None:
         report("GUI error: no callback invoker set")
         return
-    callback_invoker(name, list(args))
+    try:
+        callback_invoker(name, list(args))
+    except BSError as error:
+        if not callback_error_frames:
+            raise
+        callback_error_frames[-1].append(error)
+        # Tk consumes exceptions raised by event callbacks. Return normally to
+        # Tk, then raise the original BS error when the event loop exits.
+        root_window.quit()
 
 
 def gui_window(args):
@@ -112,7 +123,14 @@ def gui_run(args):
     if root_window is None or not _window_alive(root_window):
         report("GUI error: create a window before calling run()")
         return None
-    root_window.mainloop()
+    errors = []
+    callback_error_frames.append(errors)
+    try:
+        root_window.mainloop()
+        if errors:
+            raise errors[0]
+    finally:
+        callback_error_frames.pop()
     return None
 
 
@@ -450,6 +468,8 @@ def call_builtin(name, args):
         return None
     try:
         return handler(args)
+    except BSError:
+        raise
     except Exception as error:
-        report(f"GUI error: {error}")
+        report(f"GUI error: {error}", cause=error)
         return None

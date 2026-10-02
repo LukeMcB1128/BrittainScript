@@ -33,7 +33,7 @@
       "patterns": [
         {
           "name": "keyword.control.bs",
-          "match": "\\b(cond|elif|else|while|for|in|break|continue|end|return)\\b"
+          "match": "\\b(cond|elif|else|while|for|in|break|continue|end|return|try|catch|finally|raise|as)\\b"
         },
         {
           "name": "keyword.declaration.bs",
@@ -51,7 +51,7 @@
     },
     "builtins": {
       "name": "support.function.builtin.bs",
-      "match": "\\b(push|input|len|tonum|tostr|type|clear|absolute|round|floor|ceiling|space|sqrroot|sin|cos|tan|pyimport)\\b"
+      "match": "\\b(push|input|len|tonum|tostr|type|clear|absolute|round|floor|ceiling|space|sqrroot|sin|cos|tan|pyimport|error)\\b"
     },
     "constants": {
       "patterns": [

@@ -4,9 +4,10 @@ import re
 import operator
 import math
 try:
-    from core.diagnostics import report
+    import core.diagnostics as diagnostics
 except ModuleNotFoundError:
-    from diagnostics import report
+    import diagnostics
+report = diagnostics.report
 import lexer as lexer_module
 import parser as parser_module
 
@@ -125,7 +126,13 @@ def split_augmented_assignment(line):
     return None
 
 def parse_expression(text):
-    return parser_module.parser.parse(text, lexer=lexer_module.lexer.clone())
+    with diagnostics.expression_location(text):
+        try:
+            return parser_module.parser.parse(text, lexer=lexer_module.lexer.clone())
+        except (BreakSignal, ContinueSignal, ReturnSignal, diagnostics.BSError):
+            raise
+        except Exception as error:
+            raise diagnostics.from_python(error) from error
 
 def execute_line(line):
     augmented = split_augmented_assignment(line)
@@ -138,7 +145,7 @@ def execute_line(line):
             value = INPLACE_OPERATORS[operation](current, parse_expression(expression))
             parser_module.store_target(container, key, value)
         except (KeyError, TypeError, IndexError, ValueError, ZeroDivisionError) as error:
-            report(f'Error: augmented assignment failed: {error}')
+            report(f'Error: augmented assignment failed: {error}', cause=error)
         return
     assignment = split_assignment(line)
     if assignment:
@@ -150,8 +157,8 @@ def execute_line(line):
         print(result)
 
 def block_keyword(line):
-    for keyword in ('cond', 'while', 'for', 'func'):
-        if line == keyword or line.startswith(keyword + ' ') or line.startswith(keyword + '('):
+    for keyword in ('cond', 'while', 'for', 'func', 'try'):
+        if line in (keyword, keyword + ':') or line.startswith(keyword + ' ') or line.startswith(keyword + '('):
             return keyword
     return None
 
@@ -159,7 +166,7 @@ def is_block_start(line):
     return block_keyword(line) is not None
 
 def branch_keyword(line):
-    for keyword in ('elif', 'else'):
+    for keyword in ('elif', 'else', 'catch', 'finally'):
         if line == keyword or line == keyword + ':':
             return keyword
         if line.startswith(keyword + ' ') or line.startswith(keyword + '('):
@@ -197,7 +204,8 @@ def collect_block(lines, start_index, parent_indent=0, collect_branches=False):
             return finish_block(branches, collect_branches), i
 
         if is_branch:
-            branches.append((line, []))
+            header = lines[i].with_text(line) if isinstance(lines[i], diagnostics.SourceLine) else line
+            branches.append((header, []))
             i += 1
             continue
 
@@ -229,34 +237,38 @@ def execute_cond(line, branches):
     if not validate_branches(branches):
         return
     for header, body in branches:
-        if header is None:
-            condition_text = parse_colon_expression(line, 'cond')
-        elif branch_keyword(header) == 'else':
-            execute_lines(body)
-            return
-        else:
-            condition_text = parse_colon_expression(header, 'elif')
-        if not condition_text:
-            report("Syntax error: expected a condition")
-            return
-        if parse_expression(condition_text):
-            execute_lines(body)
-            return
+        source = header if header is not None else line
+        with diagnostics.source_location(source):
+            if header is None:
+                condition_text = parse_colon_expression(line, 'cond')
+            elif branch_keyword(header) == 'else':
+                execute_lines(body)
+                return
+            else:
+                condition_text = parse_colon_expression(header, 'elif')
+            if not condition_text:
+                report("Syntax error: expected a condition")
+            if parse_expression(condition_text):
+                execute_lines(body)
+                return
 
 def validate_branches(branches):
     seen_else = False
     for header, body in branches:
         if header is None:
             continue
-        keyword = branch_keyword(header)
-        if seen_else:
-            report(f"Syntax error: {keyword} after else")
-            return False
-        if keyword == 'else':
-            if parse_colon_expression(header, 'else'):
-                report("Syntax error: else does not take a condition")
+        with diagnostics.source_location(header):
+            keyword = branch_keyword(header)
+            if keyword not in ('elif', 'else'):
+                report(f"Syntax error: unexpected {keyword}")
+            if seen_else:
+                report(f"Syntax error: {keyword} after else")
                 return False
-            seen_else = True
+            if keyword == 'else':
+                if parse_colon_expression(header, 'else'):
+                    report("Syntax error: else does not take a condition")
+                    return False
+                seen_else = True
     return True
 
 def execute_while(line, body):
@@ -280,8 +292,8 @@ def execute_for(line, body):
         return
     try:
         iterator = iter(iterable)
-    except TypeError:
-        report("Error: for loop target is not iterable")
+    except TypeError as error:
+        report("Error: for loop target is not iterable", cause=error)
         return
 
     for value in iterator:
@@ -321,8 +333,10 @@ def call_variable(name, args):
         return None
     try:
         return value(*args)
+    except diagnostics.BSError:
+        raise
     except Exception as error:
-        report(f"Error calling '{name}': {error}")
+        report(f"Error calling '{name}': {error}", cause=error)
         return None
 
 def call_user_function(name, args):
@@ -343,15 +357,12 @@ def call_definition(name, definition, args, environment=None):
     parser_module.push_scope(dict(zip(params, args)))
     function_environments.append(environment)
     try:
-        execute_lines(body)
+        with diagnostics.call_frame(name):
+            execute_lines(body)
     except ReturnSignal as signal:
         return signal.value
-    except BreakSignal:
-        report("Error: break used outside a loop")
-        return None
-    except ContinueSignal:
-        report("Error: continue used outside a loop")
-        return None
+    except (BreakSignal, ContinueSignal) as signal:
+        raise signal.error
     finally:
         function_environments.pop()
         parser_module.pop_scope()
@@ -360,7 +371,7 @@ def call_definition(name, definition, args, environment=None):
 def call_module_function(module, func_name, args):
     funcs = module['funcs']
     if func_name not in funcs:
-        report(f"Error: '{module['name']}' has no function '{func_name}'")
+        report(f"Error: '{module['name']}' has no function '{func_name}'", kind='AttributeError')
         return None
     return call_definition(func_name, funcs[func_name], args, funcs)
 
@@ -377,10 +388,11 @@ def import_module(lib_name):
     libs_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
     lib_path = os.path.join(libs_dir, lib_name + '.bs')
     if not os.path.exists(lib_path):
-        report(f"Error: library '{lib_name}' not found")
+        report(f"Error: library '{lib_name}' not found", kind='ImportError')
         return None
     with open(lib_path, 'r') as f:
-        lines = f.readlines()
+        lines = [diagnostics.SourceLine(text, lib_path, index)
+                 for index, text in enumerate(f, 1)]
     module_funcs = {}
     function_environments.append(module_funcs)
     try:
@@ -396,75 +408,203 @@ parser_module.set_function_caller(call_user_function)
 parser_module.set_module_caller(call_module_function)
 parser_module.gui_backend.set_callback_invoker(call_callback_function)
 
+def catch_spec(header):
+    match = re.fullmatch(r'catch(?:\s+([A-Za-z_][A-Za-z0-9_]*))?(?:\s+as\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:?', header)
+    if not match:
+        report('Syntax error: expected catch Type as name, catch as name, or catch')
+    kind, name = match.groups()
+    statement_names = ('try', 'catch', 'finally', 'raise', 'end', 'local', 'discard',
+                       'func', 'for', 'while', 'in', 'elif', 'else', 'return',
+                       'break', 'continue', 'add')
+    if name in lexer_module.reserved or name in statement_names:
+        report('Syntax error: invalid catch variable')
+    return kind or 'Error', name
+
+
+def execute_try(line, branches):
+    if line not in ('try', 'try:'):
+        report('Syntax error: try does not take an expression')
+    handlers = []
+    final_body = None
+    else_body = None
+    catch_all = False
+    for header, body in branches[1:]:
+        with diagnostics.source_location(header):
+            keyword = branch_keyword(header)
+            if final_body is not None:
+                report('Syntax error: finally must be last')
+            if keyword == 'catch':
+                if else_body is not None:
+                    report('Syntax error: catch after else')
+                if catch_all:
+                    report('Syntax error: catch-all handler must be last')
+                kind, name = catch_spec(header)
+                catch_all = kind in ('Error', 'Exception')
+                handlers.append((kind, name, body))
+            elif keyword == 'finally':
+                if parse_colon_expression(header, 'finally'):
+                    report('Syntax error: finally does not take an expression')
+                final_body = body
+            elif keyword == 'else':
+                if not handlers or else_body is not None or parse_colon_expression(header, 'else'):
+                    report('Syntax error: expected one else after catch')
+                else_body = body
+            else:
+                report(f'Syntax error: unexpected {keyword} in try')
+    if not handlers and final_body is None:
+        report('Syntax error: try requires catch or finally')
+
+    try:
+        try:
+            execute_lines(branches[0][1])
+        except diagnostics.BSError as error:
+            for kind, name, body in handlers:
+                if error.matches(kind):
+                    if name:
+                        parser_module.set_name(name, error)
+                    try:
+                        with diagnostics.handling(error):
+                            execute_lines(body)
+                    finally:
+                        if name:
+                            parser_module.unset_name(name)
+                    break
+            else:
+                raise
+        else:
+            if else_body is not None:
+                execute_lines(else_body)
+    finally:
+        if final_body is not None:
+            # A pending error is also available to bare raise in finally.
+            pending = sys.exc_info()[1]
+            active = pending if isinstance(pending, diagnostics.BSError) else diagnostics.current_error()
+            with diagnostics.handling(active):
+                execute_lines(final_body)
+
+
 def execute_lines(lines):
+    lines = [line if isinstance(line, diagnostics.SourceLine)
+             else diagnostics.SourceLine(line, line=index)
+             for index, line in enumerate(lines, 1)]
+    with diagnostics.execution():
+        return _execute_lines(lines)
+
+
+def _execute_lines(lines):
     i = 0
     while i < len(lines):
         line = strip_inline_comment(lines[i])
         if not line:
             i += 1
             continue
+        with diagnostics.source_location(lines[i].with_text(line)):
+            try:
+                i = execute_statement(lines, i, lines[i].with_text(line))
+            except (BreakSignal, ContinueSignal, ReturnSignal) as signal:
+                if not hasattr(signal, 'error'):
+                    keyword = {BreakSignal: 'break', ContinueSignal: 'continue', ReturnSignal: 'return'}[type(signal)]
+                    signal.error = diagnostics.BSError(f'{keyword} used outside a loop or function')
+                    signal.error.raised = True
+                raise
+            except diagnostics.BSError:
+                raise
+            except Exception as error:
+                raise diagnostics.from_python(error) from error
 
-        first_word = block_keyword(line) or branch_keyword(line) or line.split()[0]
-        if first_word == 'cond':
-            branches, i = collect_block(lines, i + 1, indentation(lines[i]), collect_branches=True)
-            execute_cond(line, branches)
-        elif first_word in ('elif', 'else'):
-            report(f"Syntax error: unexpected {first_word}")
-            i += 1
-        elif first_word == 'while':
-            body, i = collect_block(lines, i + 1, indentation(lines[i]))
-            execute_while(line, body)
-        elif first_word == 'for':
-            body, i = collect_block(lines, i + 1, indentation(lines[i]))
-            execute_for(line, body)
-        elif first_word == 'func':
-            body, i = collect_block(lines, i + 1, indentation(lines[i]))
-            execute_func_definition(line, body)
-        elif first_word == 'break':
-            raise BreakSignal()
-        elif first_word == 'continue':
-            raise ContinueSignal()
-        elif first_word == 'return':
-            return_text = line[len('return'):].strip()
-            raise ReturnSignal(parse_expression(return_text) if return_text else None)
-        elif first_word == 'local':
-            local_names = [name.strip() for name in line[len('local'):].split(',') if name.strip()]
-            if any(not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in local_names):
-                report('Syntax error: invalid local name')
-            else:
-                parser_module.declare_locals(local_names)
-            i += 1
-        elif first_word == 'discard':
-            parse_expression(line[len('discard'):].strip())
-            i += 1
-        elif first_word == 'add':
-            parts = line.split(None, 1)
-            if len(parts) < 2:
-                report("Syntax error: expected import name")
-            else:
-                lib_name = parts[1].strip()
-                module = import_module(lib_name)
-                if module:
-                    parser_module.set_name(lib_name, module)
-            i += 1
-        elif first_word == 'end':
-            report("Syntax error: unexpected end")
-            i += 1
+
+def execute_statement(lines, i, line):
+    first_word = block_keyword(line) or branch_keyword(line) or line.split()[0]
+    if first_word == 'cond':
+        branches, i = collect_block(lines, i + 1, indentation(lines[i]), collect_branches=True)
+        execute_cond(line, branches)
+    elif first_word in ('elif', 'else', 'catch', 'finally'):
+        report(f"Syntax error: unexpected {first_word}")
+        i += 1
+    elif first_word == 'while':
+        body, i = collect_block(lines, i + 1, indentation(lines[i]))
+        execute_while(line, body)
+    elif first_word == 'for':
+        body, i = collect_block(lines, i + 1, indentation(lines[i]))
+        execute_for(line, body)
+    elif first_word == 'func':
+        body, i = collect_block(lines, i + 1, indentation(lines[i]))
+        execute_func_definition(line, body)
+    elif first_word == 'try':
+        branches, i = collect_block(lines, i + 1, indentation(lines[i]), collect_branches=True)
+        execute_try(line, branches)
+    elif first_word == 'raise':
+        expression = line[len('raise'):].strip()
+        if expression:
+            value = parse_expression(expression)
+            if isinstance(value, type) and issubclass(value, Exception):
+                value = value()
+            if isinstance(value, str):
+                value = diagnostics.BSError(value)
+            elif isinstance(value, Exception) and not isinstance(value, diagnostics.BSError):
+                value = diagnostics.from_python(value)
+            if not isinstance(value, diagnostics.BSError):
+                report('Error: raise expects an error value or a string', kind='TypeError')
+            raise value.mark_raised()
+        error = diagnostics.current_error()
+        if error is None:
+            report('Error: raise used without an active error')
+        raise error
+    elif first_word == 'break':
+        raise BreakSignal()
+    elif first_word == 'continue':
+        raise ContinueSignal()
+    elif first_word == 'return':
+        return_text = line[len('return'):].strip()
+        raise ReturnSignal(parse_expression(return_text) if return_text else None)
+    elif first_word == 'local':
+        local_names = [name.strip() for name in line[len('local'):].split(',') if name.strip()]
+        if any(not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in local_names):
+            report('Syntax error: invalid local name')
         else:
-            execute_line(line)
-            i += 1
+            parser_module.declare_locals(local_names)
+        i += 1
+    elif first_word == 'discard':
+        parse_expression(line[len('discard'):].strip())
+        i += 1
+    elif first_word == 'add':
+        parts = line.split(None, 1)
+        if len(parts) < 2:
+            report("Syntax error: expected import name")
+        else:
+            lib_name = parts[1].strip()
+            module = import_module(lib_name)
+            if module:
+                parser_module.set_name(lib_name, module)
+        i += 1
+    elif first_word == 'end':
+        report("Syntax error: unexpected end")
+        i += 1
+    else:
+        execute_line(line)
+        i += 1
+    return i
+
 
 def run_file(file_path):
-    with open(file_path, 'r') as f:
-        lines = f.readlines()
+    source = diagnostics.SourceLine('', os.path.abspath(file_path), 1)
     try:
-        execute_lines(lines)
-    except BreakSignal:
-        report("Error: break used outside a loop")
-    except ContinueSignal:
-        report("Error: continue used outside a loop")
-    except ReturnSignal:
-        report("Error: return used outside a function")
+        with diagnostics.source_location(source), diagnostics.execution():
+            with open(file_path, 'r') as f:
+                lines = [diagnostics.SourceLine(text, source.file, index)
+                         for index, text in enumerate(f, 1)]
+            execute_lines(lines)
+    except diagnostics.BSError as error:
+        diagnostics.emit(error)
+        return 1
+    except (BreakSignal, ContinueSignal, ReturnSignal) as signal:
+        diagnostics.emit(signal.error)
+        return 1
+    except Exception as error:
+        with diagnostics.source_location(source):
+            diagnostics.emit(diagnostics.from_python(error))
+        return 1
+    return 0
 
 def read_block_lines(first_line, read_line):
     # Typed-in blocks arrive with no indentation, but the block collector reads
@@ -509,28 +649,21 @@ def run_repl():
             continue
 
         first_word = block_keyword(stripped_text) or stripped_text.split()[0]
-        if first_word in ('cond', 'while', 'for', 'func'):
-            try:
-                execute_lines(read_block_lines(text, lambda: input('...> ')))
-            except BreakSignal:
-                report("Error: break used outside a loop")
-            except ContinueSignal:
-                report("Error: continue used outside a loop")
-            except ReturnSignal:
-                report("Error: return used outside a function")
-        else:
-            try:
-                execute_lines([stripped_text])
-            except BreakSignal:
-                report("Error: break used outside a loop")
-            except ContinueSignal:
-                report("Error: continue used outside a loop")
-            except ReturnSignal:
-                report("Error: return used outside a function")
+        try:
+            if first_word in ('cond', 'while', 'for', 'func', 'try'):
+                lines = read_block_lines(text, lambda: input('...> '))
+            else:
+                lines = [text]
+            execute_lines([diagnostics.SourceLine(line, '<repl>', index)
+                           for index, line in enumerate(lines, 1)])
+        except diagnostics.BSError as error:
+            diagnostics.emit(error)
+        except (BreakSignal, ContinueSignal, ReturnSignal) as signal:
+            diagnostics.emit(signal.error)
 
 def cli_entry():
     if len(sys.argv) > 1:
-        run_file(sys.argv[1])
+        sys.exit(run_file(sys.argv[1]))
     else:
         run_repl()
 

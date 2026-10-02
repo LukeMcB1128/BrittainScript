@@ -144,9 +144,8 @@ class RejectionTests(unittest.TestCase):
 
     def test_rejected_statements(self):
         self.assertRejects('class A:\n    pass\n', 'classes')
-        self.assertRejects('try:\n    pass\nexcept:\n    pass\n', 'try/except')
         self.assertRejects('with open("f") as h:\n    pass\n', 'with')
-        self.assertRejects('raise ValueError()', 'raise')
+        self.assertRejects('raise ValueError() from None', 'exception chaining')
         self.assertRejects('assert True', 'assert')
         self.assertRejects('del x', 'del')
         self.assertRejects('x: int = 1', 'annotated assignment')
@@ -357,7 +356,7 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(report.rejected, len(list(REJECTS.glob('*.py'))))
         features = dict(report.feature_counts)
         self.assertIn('dict literals', features)
-        self.assertIn('try/except', features)
+        self.assertIn('exception chaining', features)
         self.assertIn('unsafe import', features)
         self.assertIn('unresolvable import', features)
 

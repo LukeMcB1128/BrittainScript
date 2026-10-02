@@ -148,7 +148,7 @@ def t_newline(t):
 t_ignore = ' \t'
 
 def t_error(t):
-    report("Illegal character: '%s'" % t.value[0])
+    report("Illegal character: '%s'" % t.value[0], offset=t.lexpos)
     t.lexer.skip(1)
 
 lexer = lex.lex()

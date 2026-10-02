@@ -6,6 +6,7 @@ something else.
 """
 
 import ast
+import builtins
 import importlib.machinery
 import warnings
 
@@ -68,9 +69,16 @@ LEXER_KEYWORDS = {
 STATEMENT_KEYWORDS = {
     'while', 'for', 'func', 'end', 'return', 'break', 'continue', 'add',
     'elif', 'else', 'in', 'local', 'discard',
+    'try', 'catch', 'finally', 'raise',
 }
 
 BS_KEYWORDS = LEXER_KEYWORDS | STATEMENT_KEYWORDS
+
+EXCEPTION_TYPES = {
+    name for name, value in vars(builtins).items()
+    if isinstance(value, type) and issubclass(value, Exception)
+    and name not in ('ExceptionGroup',)
+}
 
 # pyimport resolves a real module, so a translated program can reach anything
 # installed. Verification runs the Python, so modules that touch the world
@@ -158,6 +166,7 @@ class CapabilityValidator(ast.NodeVisitor):
     def __init__(self, survey=None):
         self.function_names = set()
         self.imported_names = set()
+        self.exception_names = set()
         self.function_depth = 0
         # When survey is a set, rejections are COLLECTED instead of raised, so one
         # pass reports every unsupported construct in a file rather than the first
@@ -239,13 +248,37 @@ class CapabilityValidator(ast.NodeVisitor):
     def check_binding(self, node, name):
         if name in BS_KEYWORDS:
             self.reject(node, 'name collides with a keyword', name)
+        if name in EXCEPTION_TYPES:
+            self.reject(node, 'exception type binding', name)
         self.imported_names.add(name)
 
     def visit_Try(self, node):
-        self.reject(node, 'try/except')
+        for statement in node.body:
+            self.visit(statement)
+        catch_all = False
+        for handler in node.handlers:
+            if catch_all:
+                self.reject(handler, 'exception handler order', 'the catch-all handler must be last')
+            if handler.type is not None and (
+                not isinstance(handler.type, ast.Name) or handler.type.id not in EXCEPTION_TYPES
+            ):
+                self.reject(handler, 'exception handler type', 'use one built-in exception type')
+            catch_all = handler.type is None or (
+                isinstance(handler.type, ast.Name) and handler.type.id == 'Exception'
+            )
+            if handler.name:
+                if handler.name in BS_KEYWORDS:
+                    self.reject(handler, 'name collides with a keyword', handler.name)
+                if handler.name in EXCEPTION_TYPES:
+                    self.reject(handler, 'exception type binding', handler.name)
+                self.exception_names.add(handler.name)
+            for statement in handler.body:
+                self.visit(statement)
+        for statement in node.orelse + node.finalbody:
+            self.visit(statement)
 
     def visit_TryStar(self, node):
-        self.reject(node, 'try/except')
+        self.reject(node, 'exception groups')
 
     def visit_With(self, node):
         self.reject(node, 'with')
@@ -266,7 +299,9 @@ class CapabilityValidator(ast.NodeVisitor):
         self.reject(node, 'global/nonlocal')
 
     def visit_Raise(self, node):
-        self.reject(node, 'raise')
+        if node.cause is not None:
+            self.reject(node, 'exception chaining')
+        self.generic_visit(node)
 
     def visit_Assert(self, node):
         self.reject(node, 'assert')
@@ -333,11 +368,15 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'default arguments')
         if self.function_depth:
             self.reject(node, 'nested functions')
-        if node.name in LEXER_KEYWORDS:
+        if node.name in LEXER_KEYWORDS or node.name in ('try', 'catch', 'finally', 'raise'):
             self.reject(node, 'name collides with a keyword', node.name)
+        if node.name in EXCEPTION_TYPES:
+            self.reject(node, 'exception type binding', node.name)
         for argument in node.args.args:
             if argument.arg in BS_KEYWORDS:
                 self.reject(node, 'name collides with a keyword', argument.arg)
+            if argument.arg in EXCEPTION_TYPES:
+                self.reject(node, 'exception type binding', argument.arg)
         self.function_names.add(node.name)
         self.function_depth += 1
         self.generic_visit(node)
@@ -353,6 +392,8 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'assignment target')
         if isinstance(target, ast.Name) and target.id in BS_KEYWORDS:
             self.reject(node, 'name collides with a keyword', target.id)
+        if isinstance(target, ast.Name) and target.id in EXCEPTION_TYPES:
+            self.reject(node, 'exception type binding', target.id)
         self.generic_visit(node)
 
     def visit_For(self, node):
@@ -364,6 +405,8 @@ class CapabilityValidator(ast.NodeVisitor):
         # and walks on, and `.id` does not exist on the Tuple we just rejected.
         elif node.target.id in BS_KEYWORDS:
             self.reject(node, 'name collides with a keyword', node.target.id)
+        elif node.target.id in EXCEPTION_TYPES:
+            self.reject(node, 'exception type binding', node.target.id)
         # range() is allowed here and nowhere else, so check its arguments
         # directly rather than letting visit_Call reject the call itself
         if is_range_call(node.iter):
@@ -382,6 +425,8 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'assignment target')
         if isinstance(node.target, ast.Name) and node.target.id in BS_KEYWORDS:
             self.reject(node, 'name collides with a keyword', node.target.id)
+        if isinstance(node.target, ast.Name) and node.target.id in EXCEPTION_TYPES:
+            self.reject(node, 'exception type binding', node.target.id)
         for operator_type, (feature, detail) in REJECTED_BINARY_OPERATORS.items():
             if isinstance(node.op, operator_type):
                 self.reject(node, feature, detail)
@@ -446,7 +491,8 @@ class CapabilityValidator(ast.NodeVisitor):
     def visit_Attribute(self, node):
         # reading a member of an imported module is fine; any other bare
         # attribute means an object model BrittainScript does not have
-        if attribute_root(node) not in self.imported_names:
+        if (attribute_root(node) not in self.imported_names
+                and not (attribute_root(node) in self.exception_names and node.attr == 'args')):
             self.reject(node, 'attribute access')
         self.generic_visit(node)
 
@@ -478,6 +524,7 @@ class CapabilityValidator(ast.NodeVisitor):
             self.reject(node, 'I/O or dynamic execution', f'{name}()')
         if (
             name not in CALLABLE_BUILTINS
+            and name not in EXCEPTION_TYPES
             and name not in self.function_names
             and name not in self.imported_names
         ):

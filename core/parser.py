@@ -3,13 +3,14 @@ import lexer as lexer_module
 from lexer import tokens
 import math
 import os
+import re
 import gui_backend
 import calendar
 import datetime
 try:
-    from core.diagnostics import report
+    from core.diagnostics import report, BSError, expression_offset
 except ModuleNotFoundError:
-    from diagnostics import report
+    from diagnostics import report, BSError, expression_offset
 
 # variable storage
 names = {}
@@ -47,7 +48,7 @@ def get_name(name):
     for scope in visible_scopes():
         if name in scope:
             if scope[name] is UNBOUND:
-                raise KeyError(name)
+                raise UnboundLocalError(f"local variable '{name}' has no value")
             return scope[name]
     raise KeyError(name)
 
@@ -57,6 +58,16 @@ def set_name(name, value):
             scope[name] = value
             return
     scopes[-1][name] = value
+
+
+def unset_name(name):
+    for scope in visible_scopes():
+        if name in scope:
+            if getattr(scope, 'lexical', False):
+                scope[name] = UNBOUND
+            else:
+                del scope[name]
+            return
 
 
 def visible_scopes():
@@ -78,7 +89,7 @@ def assign_target(target, value):
         container, key = resolve_target(target)
         store_target(container, key, value)
     except (KeyError, TypeError, IndexError, ValueError) as error:
-        report(f'Error: invalid assignment target: {error}')
+        report(f'Error: invalid assignment target: {error}', cause=error)
 
 def resolve_target(target):
     """Evaluate a target once, including nested indexes and slice bounds."""
@@ -153,8 +164,8 @@ def p_expression_plus(p):
     'expression : expression PLUS expression'
     try:
         p[0] = p[1] + p[3]
-    except TypeError:
-        report(f"Error: cannot add {type(p[1]).__name__} and {type(p[3]).__name__}")
+    except TypeError as error:
+        report(f"Error: cannot add {type(p[1]).__name__} and {type(p[3]).__name__}", cause=error, offset=p.lexpos(2))
         p[0] = None
 
 def p_expression_minus(p):
@@ -164,7 +175,7 @@ def p_expression_minus(p):
 def p_expression_divide(p):
     'expression : expression DIVIDE expression'
     if p[3] == 0:
-        report("Error: division by zero")
+        report("Error: division by zero", offset=p.lexpos(2))
         p[0] = None
         return
     p[0] = p[1] / p[3]
@@ -173,7 +184,7 @@ def p_expression_divide(p):
 def p_expression_floordivide(p):
     'expression : expression FLOORDIVIDE expression'
     if p[3] == 0:
-        report('Error: division by zero')
+        report('Error: division by zero', offset=p.lexpos(2))
         p[0] = None
         return
     p[0] = p[1] // p[3]
@@ -182,8 +193,8 @@ def p_expression_times(p):
     'expression : expression MULTIPLY expression'
     try:
         p[0] = p[1] * p[3]
-    except TypeError:
-        report(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}")
+    except TypeError as error:
+        report(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}", cause=error, offset=p.lexpos(2))
         p[0] = None
 
 def p_expression_matmul(p):
@@ -191,13 +202,13 @@ def p_expression_matmul(p):
     try:
         p[0] = p[1] @ p[3]
     except TypeError as exc:
-        report(f"Error: cannot matrix-multiply: {exc}")
+        report(f"Error: cannot matrix-multiply: {exc}", cause=exc, offset=p.lexpos(2))
         p[0] = None
 
 def p_expression_modulo(p):
     'expression : expression MODULO expression'
     if p[3] == 0:
-        report("Error: modulo by zero")
+        report("Error: modulo by zero", offset=p.lexpos(2))
         p[0] = None
         return
     p[0] = p[1] % p[3]
@@ -251,7 +262,7 @@ def p_expression_name(p):
     try:
         p[0] = get_name(p[1])
     except KeyError:
-        report(f'Undefined variable: {p[1]}')
+        report(f'Undefined variable: {p[1]}', offset=p.lexpos(1))
         p[0] = 0
 
 def p_expression_list(p):
@@ -262,16 +273,16 @@ def p_expression_index(p):
     'expression : expression LBRACKET expression RBRACKET'
     try:
         p[0] = p[1][p[3]]
-    except (TypeError, IndexError, KeyError):
-        report("Error: invalid index")
+    except (TypeError, IndexError, KeyError) as error:
+        report("Error: invalid index", cause=error, offset=p.lexpos(2))
         p[0] = None
 
 def p_expression_slice(p):
     'expression : expression LBRACKET optional_expression COLON optional_expression RBRACKET'
     try:
         p[0] = p[1][p[3]:p[5]]
-    except TypeError:
-        report("Error: invalid slice")
+    except (TypeError, ValueError) as error:
+        report("Error: invalid slice", cause=error, offset=p.lexpos(2))
         p[0] = None
 
 def p_optional_expression_empty(p):
@@ -300,7 +311,8 @@ def p_arguments_many(p):
 
 def p_expression_function_call(p):
     'expression : NAME LPAREN optional_arguments RPAREN'
-    p[0] = call_function(p[1], p[3])
+    with expression_offset(p.lexpos(1)):
+        p[0] = call_function(p[1], p[3])
 
 def p_expression_range_call(p):
     'expression : RANGE LPAREN optional_arguments RPAREN'
@@ -308,7 +320,8 @@ def p_expression_range_call(p):
 
 def p_expression_method_call(p):
     'expression : expression DOT NAME LPAREN optional_arguments RPAREN'
-    p[0] = call_method(p[1], p[3], p[5])
+    with expression_offset(p.lexpos(3)):
+        p[0] = call_method(p[1], p[3], p[5])
 
 def p_expression_attribute(p):
     'expression : expression DOT NAME'
@@ -324,6 +337,23 @@ def p_expression_attribute(p):
         p[0] = None
 
 def call_function(name, args):
+    try:
+        return _call_function(name, args)
+    except BSError:
+        raise
+    except Exception as error:
+        report(f"Error calling '{name}': {error}", cause=error)
+
+
+def _call_function(name, args):
+    if name == 'error':
+        if len(args) not in (1, 2) or not all(isinstance(arg, str) for arg in args):
+            report('Error: error() expects a message and an optional type string', kind='TypeError')
+            return None
+        if len(args) == 2 and not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', args[1]):
+            report('Error: error type must be a name', kind='ValueError')
+            return None
+        return BSError(args[0], args[1] if len(args) == 2 else 'RuntimeError')
     if name == 'pyimport':
         if len(args) != 1 or not isinstance(args[0], str):
             report("Error: pyimport() expects one string argument")
@@ -332,7 +362,7 @@ def call_function(name, args):
         try:
             return importlib.import_module(args[0])
         except ImportError as exc:
-            report(f"Error: cannot import '{args[0]}': {exc}")
+            report(f"Error: cannot import '{args[0]}': {exc}", cause=exc)
             return None
     if name == 'len':
         if len(args) != 1:
@@ -346,8 +376,8 @@ def call_function(name, args):
         try:
             value = float(args[0]) if '.' in str(args[0]) else int(args[0])
             return value
-        except ValueError:
-            report("Error: tonum() could not convert value")
+        except ValueError as error:
+            report("Error: tonum() could not convert value", cause=error)
             return None
     if name == 'tostr':
         if len(args) != 1:
@@ -400,7 +430,7 @@ def call_function(name, args):
             with open(args[0], 'r') as f:
                 return f.read()
         except OSError as error:
-            report(f"Error: could not read file '{args[0]}': {error}")
+            report(f"Error: could not read file '{args[0]}': {error}", cause=error)
             return None
     if name == 'readlines':
         if len(args) != 1:
@@ -410,7 +440,7 @@ def call_function(name, args):
             with open(args[0], 'r') as f:
                 return [line.rstrip('\n') for line in f.readlines()]
         except OSError as error:
-            report(f"Error: could not read file '{args[0]}': {error}")
+            report(f"Error: could not read file '{args[0]}': {error}", cause=error)
             return None
     if name == 'createfile':
         if len(args) != 1:
@@ -420,11 +450,11 @@ def call_function(name, args):
             with open(args[0], 'x'):
                 pass
             return True
-        except FileExistsError:
-            report(f"Error: file '{args[0]}' already exists")
+        except FileExistsError as error:
+            report(f"Error: file '{args[0]}' already exists", cause=error)
             return False
         except OSError as error:
-            report(f"Error: could not create file '{args[0]}': {error}")
+            report(f"Error: could not create file '{args[0]}': {error}", cause=error)
             return False
     if name == 'writefile':
         if len(args) != 2:
@@ -435,7 +465,7 @@ def call_function(name, args):
                 f.write(str(args[1]))
             return True
         except OSError as error:
-            report(f"Error: could not write file '{args[0]}': {error}")
+            report(f"Error: could not write file '{args[0]}': {error}", cause=error)
             return False
     if name == 'appendfile':
         if len(args) != 2:
@@ -446,7 +476,7 @@ def call_function(name, args):
                 f.write(str(args[1]))
             return True
         except OSError as error:
-            report(f"Error: could not append to file '{args[0]}': {error}")
+            report(f"Error: could not append to file '{args[0]}': {error}", cause=error)
             return False
     if name == 'fileexists':
         if len(args) != 1:
@@ -461,7 +491,7 @@ def call_function(name, args):
             os.remove(args[0])
             return True
         except OSError as error:
-            report(f"Error: could not delete file '{args[0]}': {error}")
+            report(f"Error: could not delete file '{args[0]}': {error}", cause=error)
             return False
     if name == "datetime":
         return call_datetime(args)
@@ -507,10 +537,19 @@ def call_datetime(args):
     try:
         return handler(rest)
     except (AttributeError, TypeError, ValueError) as error:
-        report(f"Error: datetime {command}() failed: {error}")
+        report(f"Error: datetime {command}() failed: {error}", cause=error)
         return None
 
 def call_method(receiver, name, args):
+    try:
+        return _call_method(receiver, name, args)
+    except BSError:
+        raise
+    except Exception as error:
+        report(f"Error calling '{name}': {error}", cause=error)
+
+
+def _call_method(receiver, name, args):
     if isinstance(receiver, dict) and receiver.get('__bs_module__'):
         if module_caller:
             return module_caller(receiver, name, args)
@@ -526,6 +565,9 @@ def call_method(receiver, name, args):
         receiver.append(args[0])
         return None
     if name == 'contains' and isinstance(receiver, str):
+        if len(args) != 1:
+            report('Error: contains() expects 1 argument', kind='TypeError')
+            return None
         if args[0] in receiver:
             return True
         else:
@@ -535,8 +577,8 @@ def call_method(receiver, name, args):
     if name == 'remove' and isinstance(receiver, list) and len(args) == 1:
         try:
             receiver.remove(args[0])
-        except ValueError:
-            report("Error: list does not contain value")
+        except ValueError as error:
+            report("Error: list does not contain value", cause=error)
         return None
     if name == 'pop' and isinstance(receiver, list) and len(args) == 0:
         if not receiver:
@@ -557,8 +599,10 @@ def call_method(receiver, name, args):
     if callable(attribute):
         try:
             return attribute(*args)
+        except BSError:
+            raise
         except Exception as exc:
-            report(f"Error calling '{name}': {exc}")
+            report(f"Error calling '{name}': {exc}", cause=exc)
             return None
     return attribute
 
@@ -616,7 +660,7 @@ def p_expression_cond(p):
 
 def p_error(p):
     if p:
-        report("Syntax error at '%s'" % p.value)
+        report("Syntax error at '%s'" % p.value, offset=p.lexpos)
     else:
         report("Syntax error at end of input")
 
