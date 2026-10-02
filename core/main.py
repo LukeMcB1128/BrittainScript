@@ -5,14 +5,26 @@ import operator
 import math
 try:
     import core.diagnostics as diagnostics
+    import core.runtime as runtime
 except ModuleNotFoundError:
     import diagnostics
+    import runtime
 report = diagnostics.report
 import lexer as lexer_module
 import parser as parser_module
 
 functions = {}
 function_environments = [None]
+
+
+def current_functions():
+    active = runtime.state.get()
+    return active.functions if active is not None else functions
+
+
+def current_environments():
+    active = runtime.state.get()
+    return active.environments if active is not None else function_environments
 
 class BreakSignal(Exception):
     pass
@@ -316,8 +328,8 @@ def execute_func_definition(line, body):
     if invalid:
         report("Syntax error: invalid function parameter")
         return
-    environment = function_environments[-1]
-    registry = functions if environment is None else environment
+    environment = current_environments()[-1]
+    registry = current_functions() if environment is None else environment
     registry[name] = (params, body)
 
 def call_variable(name, args):
@@ -340,12 +352,13 @@ def call_variable(name, args):
         return None
 
 def call_user_function(name, args):
-    environment = function_environments[-1]
+    environment = current_environments()[-1]
     if environment is not None and name in environment:
         return call_definition(name, environment[name], args, environment)
-    if name not in functions:
+    registry = current_functions()
+    if name not in registry:
         return call_variable(name, args)
-    return call_definition(name, functions[name], args)
+    return call_definition(name, registry[name], args)
 
 
 def call_definition(name, definition, args, environment=None):
@@ -355,7 +368,7 @@ def call_definition(name, definition, args, environment=None):
         return None
 
     parser_module.push_scope(dict(zip(params, args)))
-    function_environments.append(environment)
+    current_environments().append(environment)
     try:
         with diagnostics.call_frame(name):
             execute_lines(body)
@@ -364,7 +377,7 @@ def call_definition(name, definition, args, environment=None):
     except (BreakSignal, ContinueSignal) as signal:
         raise signal.error
     finally:
-        function_environments.pop()
+        current_environments().pop()
         parser_module.pop_scope()
     return None
 
@@ -373,18 +386,29 @@ def call_module_function(module, func_name, args):
     if func_name not in funcs:
         report(f"Error: '{module['name']}' has no function '{func_name}'", kind='AttributeError')
         return None
+    if callable(funcs[func_name]):
+        with diagnostics.call_frame(module['name'] + '.' + func_name):
+            try:
+                return funcs[func_name](*args)
+            except diagnostics.BSError:
+                raise
+            except Exception as error:
+                raise diagnostics.from_python(error) from error
     return call_definition(func_name, funcs[func_name], args, funcs)
 
 
 def call_callback_function(name, args):
     # GUI events call user functions even while a library runs its event loop.
-    function_environments.append(None)
+    current_environments().append(None)
     try:
         return parser_module.call_function(name, args)
     finally:
-        function_environments.pop()
+        current_environments().pop()
 
 def import_module(lib_name):
+    if lib_name == 'server':
+        import server_backend
+        return server_backend.create_module(sys.modules[__name__])
     libs_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
     lib_path = os.path.join(libs_dir, lib_name + '.bs')
     if not os.path.exists(lib_path):
@@ -394,14 +418,14 @@ def import_module(lib_name):
         lines = [diagnostics.SourceLine(text, lib_path, index)
                  for index, text in enumerate(f, 1)]
     module_funcs = {}
-    function_environments.append(module_funcs)
+    current_environments().append(module_funcs)
     try:
         try:
             execute_lines(lines)
         except (BreakSignal, ContinueSignal, ReturnSignal):
             pass
     finally:
-        function_environments.pop()
+        current_environments().pop()
     return parser_module.BSModule({'__bs_module__': True, 'name': lib_name, 'funcs': module_funcs})
 
 parser_module.set_function_caller(call_user_function)

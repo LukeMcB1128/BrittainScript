@@ -339,7 +339,7 @@ File writes return `true` on success. Failed reads and writes raise errors. File
 
 ## Bundled libraries
 
-Load a bundled module with `add name`, then call its functions. Modules live in `libs/` next to the interpreter, not beside the source file.
+Load a bundled module with `add name`, then call its functions. BS modules live in `libs/` next to the interpreter, not beside the source file. The native `server` module uses the Python backend.
 
 ```bs
 add math
@@ -437,6 +437,86 @@ Invalid JSON raises `JSONDecodeError`, which can be caught as `ValueError`.
 Non-finite numbers raise `ValueError`. File errors keep their Python types.
 Saving validates and encodes the data before opening the destination file.
 Invalid data therefore leaves an existing file unchanged.
+
+## HTTP server library
+
+Install the optional dependencies from a checkout:
+
+```bash
+python3 -m pip install -e '.[server]'
+```
+
+For a published version that includes this feature, use
+`python3 -m pip install 'brittainscript[server]'`.
+Then use `add server` and register BS functions as request handlers:
+
+```bs
+add server
+func health(request):
+    return {"status": "ok"}
+end
+func echo(request):
+    return server.response(request["json"], 201)
+end
+discard server.get("/health", "health")
+discard server.post("/echo", "echo")
+discard server.run("127.0.0.1", 8000)
+```
+
+Handlers must exist before registration and take one parameter. Supply the
+function name as a string. Werkzeug processes routes. Waitress serves HTTP with
+four worker threads. The interpreter executes BS handlers directly.
+
+| Function | Action |
+| --- | --- |
+| `server.get(path, handler)` | Register GET and HEAD requests. |
+| `server.post(path, handler)` | Register POST requests. |
+| `server.put`, `server.patch`, `server.delete`, `server.head`, `server.options` | Register the named method; each takes a path and handler name. |
+| `server.route(method, path, handler)` | Register an HTTP method from the list above. |
+| `server.response(body, status, headers)` | Set a response status and headers. Status defaults to 200; headers default to `{}`. |
+| `server.run(host, port)` | Serve requests until stopped. Defaults are `127.0.0.1` and `8000`. |
+| `server.stop()` | Request shutdown; return `true` if the server is running. |
+| `server.port()` | Return the bound port, or `null` if the server is stopped. |
+| `server.app()` | Return a WSGI application for an external host or tests. |
+
+Use an IPv4 or IPv6 address for `host`. Port `0` selects an available port.
+Register each method and path only once. GET includes HEAD, so a separate HEAD
+handler cannot use the same path. OPTIONS is automatic unless you register it.
+Routes can have parameters such as `/users/<int:user_id>` or `/files/<path:name>`.
+
+Each handler gets a dictionary with these fields:
+
+| Field | Value |
+| --- | --- |
+| `method`, `path` | The HTTP method and URL path. |
+| `params` | Route parameters; an `int` parameter is a number. |
+| `query` | Query strings; the first value is used for each key. |
+| `query_all` | All query values as lists. |
+| `headers` | Request headers with lowercase names. |
+| `body` | The request body as UTF-8 text. |
+| `json` | Parsed JSON for `application/json` or `application/*+json`; otherwise `null`. |
+
+Return a dictionary, list, number, boolean, or `null` for a JSON response.
+Return a string for a text response. Python byte values produce binary responses.
+Use `server.response(body, status, headers)` to set a status or headers, for example
+`server.response({"error": "missing"}, 404, {"X-Result": "missing"})`.
+Header names and values must be strings. The backend controls transport headers.
+
+Invalid UTF-8 or JSON returns HTTP 400. Bodies larger than 1 MiB return HTTP 413.
+Missing routes return 404; an incorrect method returns 405. An uncaught handler
+error returns a generic 500 response and prints the BS error to stderr. Other
+requests can continue. Catch errors in the handler to return a specific response.
+
+The first call to `server.app()` or `server.run()` fixes the routes, functions,
+and startup variables. Define all functions and variables before this call.
+Each request gets a separate copy of BS dictionaries and lists. Changes made in
+one request do not change the startup data or another request. Use a database
+for persistent application data. Opaque Python objects, such as connections and
+locks, remain shared; their thread safety depends on the Python package.
+
+`server.run()` blocks. Ctrl+C or `server.stop()` starts shutdown. The backend
+allows active responses up to five seconds to finish. An external WSGI host
+controls its own server lifecycle; `server.stop()` only controls `server.run()`.
 
 ## Python interoperability
 
@@ -551,6 +631,9 @@ null value translates cleanly but fails the output comparison.
 
 - [`examples/gui_demo.bs`](../examples/gui_demo.bs): GUI widgets, callbacks, dialogs, and canvas drawing.
 - [`examples/error_handling.bs`](../examples/error_handling.bs): conversion errors, custom errors, and Python errors.
+- [`examples/dictionaries.bs`](../examples/dictionaries.bs): dictionaries and membership tests.
+- [`examples/json_data.bs`](../examples/json_data.bs): JSON parsing, output, and errors.
+- [`examples/api_server.bs`](../examples/api_server.bs): HTTP routes and JSON responses; requires the server extra.
 - [`examples/orbit_focus_studio.bs`](../examples/orbit_focus_studio.bs): larger persistent GUI app.
 - [`examples/torch_demo.bs`](../examples/torch_demo.bs): PyTorch autograd via the bridge (requires PyTorch).
 
@@ -564,4 +647,6 @@ Run the automated tests from the repository root:
 python3 -m unittest discover -s tests
 ```
 
-Implementation overview: `core/lexer.py` tokenizes source, `core/parser.py` parses expressions, `core/expressions.py` evaluates expression trees, `core/main.py` executes files and blocks, and `core/gui_backend.py` adapts Tkinter.
+Install `.[server]` to include the server tests. These tests use local loopback sockets.
+
+Implementation overview: `core/lexer.py` tokenizes source, `core/parser.py` parses expressions, `core/expressions.py` evaluates expression trees, `core/main.py` executes files and blocks, `core/runtime.py` separates request state, `core/server_backend.py` adapts HTTP, and `core/gui_backend.py` adapts Tkinter.

@@ -1,6 +1,6 @@
 # BrittainScript
 
-BrittainScript is a compact scripting language built in Python. It supports expressions, functions, control flow, lists, bundled libraries, Tkinter GUI programs, and direct use of installed Python packages.
+BrittainScript is a compact scripting language built in Python. It supports expressions, functions, control flow, lists, dictionaries, error handling, JSON, HTTP servers, bundled libraries, Tkinter GUI programs, and direct use of installed Python packages.
 
 ## Quick start
 
@@ -24,6 +24,16 @@ push(greet("BrittainScript"))
 ```
 
 Read the complete [language guide](Documentation/LANGUAGE_REFERENCE.md) for syntax, built-ins, libraries, Python interop, GUI use, examples, and safety notes.
+
+To run the HTTP server example, install the server dependencies:
+
+```bash
+python3 -m pip install -e '.[server]'
+bs examples/api_server.bs
+```
+
+Then open `http://127.0.0.1:8000/health`. BS functions handle requests directly.
+Werkzeug processes routes, and Waitress serves HTTP requests.
 
 ## License
 

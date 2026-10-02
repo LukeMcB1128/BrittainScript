@@ -12,10 +12,12 @@ try:
     from core.diagnostics import report, BSError, expression_offset
     from core.values import BSModule
     from core.expressions import deferred, ExpressionParser
+    import core.runtime as runtime
 except ModuleNotFoundError:
     from diagnostics import report, BSError, expression_offset
     from values import BSModule
     from expressions import deferred, ExpressionParser
+    import runtime
 
 # variable storage
 names = {}
@@ -43,11 +45,17 @@ precedence = (
 )
 
 def push_scope(scope=None):
-    scopes.append(FunctionScope({} if scope is None else scope))
+    current_scopes().append(FunctionScope({} if scope is None else scope))
 
 def pop_scope():
-    if len(scopes) > 1:
-        scopes.pop()
+    active = current_scopes()
+    if len(active) > 1:
+        active.pop()
+
+
+def current_scopes():
+    active = runtime.state.get()
+    return active.scopes if active is not None else scopes
 
 def get_name(name):
     for scope in visible_scopes():
@@ -62,7 +70,7 @@ def set_name(name, value):
         if name in scope:
             scope[name] = value
             return
-    scopes[-1][name] = value
+    current_scopes()[-1][name] = value
 
 
 def unset_name(name):
@@ -76,18 +84,20 @@ def unset_name(name):
 
 
 def visible_scopes():
-    if getattr(scopes[-1], 'lexical', False):
-        return (scopes[-1], scopes[0])
-    return reversed(scopes)
+    active = current_scopes()
+    if getattr(active[-1], 'lexical', False):
+        return (active[-1], active[0])
+    return reversed(active)
 
 
 def declare_locals(local_names):
-    if len(scopes) == 1:
+    active = current_scopes()
+    if len(active) == 1:
         report('Error: local used outside a function')
         return
-    scopes[-1].lexical = True
+    active[-1].lexical = True
     for name in local_names:
-        scopes[-1].setdefault(name, UNBOUND)
+        active[-1].setdefault(name, UNBOUND)
 
 def assign_target(target, value):
     try:

@@ -19,6 +19,9 @@ classifiers = [
     "Topic :: Software Development :: Interpreters",
 ]
 
+[project.optional-dependencies]
+server = ["Werkzeug>=3.1,<4", "waitress>=3.0.2,<4"]
+
 [project.scripts]
 bs = "core.main:cli_entry"
 bs-from-python = "py2bs.cli:main"
