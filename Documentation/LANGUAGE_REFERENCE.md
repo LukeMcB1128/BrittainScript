@@ -1,6 +1,6 @@
 # BrittainScript language reference
 
-This guide covers BrittainScript 0.4.0 as implemented in this repository.
+This guide covers BrittainScript 0.6.1 as implemented in this repository.
 BrittainScript is a small scripting language implemented in Python, with direct access to installed Python packages when needed.
 
 ## Install and run
