@@ -41,6 +41,16 @@ class ModuloPrecedenceTests(unittest.TestCase):
 
 
 class ArithmeticPrecedenceTests(unittest.TestCase):
+    def test_floor_division_has_product_precedence(self):
+        self.assertEqual(evaluate('2 + 7 // 3'), 4)
+        self.assertEqual(evaluate('9 // 2 * 3'), 12)
+        self.assertEqual(evaluate('9 // (2 * 3)'), 1)
+
+    def test_floor_division_by_zero_reports_an_error(self):
+        result, output = evaluate_capturing('10 // 0')
+        self.assertIsNone(result)
+        self.assertIn('division by zero', output)
+
     def test_products_bind_tighter_than_sums(self):
         self.assertEqual(evaluate("2 + 3 * 4"), 14)
         self.assertEqual(evaluate("2 * 3 + 4"), 10)

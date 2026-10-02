@@ -8,6 +8,7 @@ depend on the two languages agreeing about precedence.
 import ast
 
 from .errors import UnsupportedFeature
+from .lowering import collect_local_names
 from .frontend import (
     BINARY_OPERATORS,
     CALLABLE_BUILTINS,
@@ -55,6 +56,10 @@ class Emitter(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
         parameters = ', '.join(argument.arg for argument in node.args.args)
         self.emit(f'func {node.name}({parameters}):')
+        self.depth += 1
+        local_names = ', '.join(sorted(collect_local_names(node)))
+        self.emit('local' + (' ' + local_names if local_names else ''))
+        self.depth -= 1
         self.emit_block(node.body)
 
     def visit_Return(self, node):
@@ -66,6 +71,10 @@ class Emitter(ast.NodeVisitor):
     def visit_Assign(self, node):
         target = self.expression(node.targets[0])
         self.emit(f'{target} = {self.expression(node.value)}')
+
+    def visit_AugAssign(self, node):
+        self.emit(f'{self.expression(node.target)} {BINARY_OPERATORS[type(node.op)]}= '
+                  f'{self.expression(node.value)}')
 
     def visit_If(self, node):
         self.emit(f'cond {self.expression(node.test)}:')
@@ -129,7 +138,11 @@ class Emitter(ast.NodeVisitor):
 
     def visit_Expr(self, node):
         rendered = self.expression(node.value)
-        self.emit(rendered)
+        if (isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name)
+                and node.value.func.id == 'print'):
+            self.emit(rendered)
+        else:
+            self.emit(f'discard {rendered}')
 
     def generic_visit(self, node):
         self.unsupported(node, type(node).__name__)

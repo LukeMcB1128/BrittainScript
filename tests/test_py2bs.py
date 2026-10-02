@@ -43,7 +43,7 @@ class EmissionTests(unittest.TestCase):
     def test_function_definition(self):
         self.assertEqual(
             to_bs('def add(a, b):\n    return a + b\n'),
-            'func add(a, b):\n    return (a + b)\nend\n',
+            'func add(a, b):\n    local a, b\n    return (a + b)\nend\n',
         )
 
     def test_if_elif_else(self):
@@ -100,7 +100,7 @@ class EmissionTests(unittest.TestCase):
         self.assertEqual(to_bs('print(f"n={n}")'), 'push(("n=" + tostr(n)))\n')
 
     def test_method_calls_pass_through(self):
-        self.assertEqual(to_bs('xs.append(1)'), 'xs.append(1)\n')
+        self.assertEqual(to_bs('xs.append(1)'), 'discard xs.append(1)\n')
         self.assertEqual(to_bs('print(s.upper())'), 'push(s.upper())\n')
 
     def test_binary_operations_are_parenthesised(self):
@@ -108,26 +108,26 @@ class EmissionTests(unittest.TestCase):
 
 
 class LoweringTests(unittest.TestCase):
-    def test_augmented_assignment_is_expanded(self):
-        self.assertEqual(to_bs('x += 1'), 'x = (x + 1)\n')
-        self.assertEqual(to_bs('x -= 1'), 'x = (x - 1)\n')
-        self.assertEqual(to_bs('x *= 2'), 'x = (x * 2)\n')
+    def test_augmented_assignment_is_preserved(self):
+        self.assertEqual(to_bs('x += 1'), 'x += 1\n')
+        self.assertEqual(to_bs('x -= 1'), 'x -= 1\n')
+        self.assertEqual(to_bs('x *= 2'), 'x *= 2\n')
 
     def test_augmented_assignment_on_an_index(self):
-        self.assertEqual(to_bs('xs[0] += 1'), 'xs[0] = (xs[0] + 1)\n')
+        self.assertEqual(to_bs('xs[0] += 1'), 'xs[0] += 1\n')
 
     def test_unary_minus_becomes_a_subtraction(self):
         self.assertEqual(to_bs('print(-5)'), 'push((0 - 5))\n')
         self.assertEqual(to_bs('print(-x)'), 'push((0 - x))\n')
 
-    def test_floor_division_becomes_floor(self):
-        self.assertEqual(to_bs('print(a // b)'), 'push(floor((a / b)))\n')
+    def test_floor_division_is_preserved(self):
+        self.assertEqual(to_bs('print(a // b)'), 'push((a // b))\n')
 
-    def test_function_locals_are_renamed_away_from_globals(self):
+    def test_function_locals_are_declared_in_the_function(self):
         source = 'total = 1\ndef f():\n    total = 2\n    return total\n'
         emitted = to_bs(source)
-        self.assertIn('f_total = 2', emitted)
-        self.assertIn('return f_total', emitted)
+        self.assertIn('local total', emitted)
+        self.assertIn('return total', emitted)
 
     def test_locals_that_do_not_collide_keep_their_names(self):
         source = 'def f():\n    scratch = 2\n    return scratch\n'

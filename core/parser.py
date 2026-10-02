@@ -6,12 +6,22 @@ import os
 import gui_backend
 import calendar
 import datetime
+try:
+    from core.diagnostics import report
+except ModuleNotFoundError:
+    from diagnostics import report
 
 # variable storage
 names = {}
 scopes = [names]
 function_caller = None
 module_caller = None
+UNBOUND = object()
+NAME_TARGET = object()
+
+
+class FunctionScope(dict):
+    lexical = False
 
 precedence = (
     ('left', 'OR'),
@@ -20,54 +30,108 @@ precedence = (
     ('left', 'EQUALTO', 'NOTEQUALTO'),
     ('left', 'LESSTHAN', 'GREATERTHAN', 'LESSTHANEQUALTO', 'GREATERTHANEQUALTO'),
     ('left', 'PLUS', 'MINUS'),
-    ('left', 'MULTIPLY', 'DIVIDE', 'MODULO', 'AT'),
+    ('left', 'MULTIPLY', 'DIVIDE', 'FLOORDIVIDE', 'MODULO', 'AT'),
     ('right', 'POWER'),
     ('left', 'LBRACKET'),
     ('left', 'DOT'),
 )
 
 def push_scope(scope=None):
-    scopes.append({} if scope is None else scope)
+    scopes.append(FunctionScope({} if scope is None else scope))
 
 def pop_scope():
     if len(scopes) > 1:
         scopes.pop()
 
 def get_name(name):
-    for scope in reversed(scopes):
+    for scope in visible_scopes():
         if name in scope:
+            if scope[name] is UNBOUND:
+                raise KeyError(name)
             return scope[name]
     raise KeyError(name)
 
 def set_name(name, value):
-    for scope in reversed(scopes):
+    for scope in visible_scopes():
         if name in scope:
             scope[name] = value
             return
     scopes[-1][name] = value
 
-def assign_target(target, value):
-    target = target.strip()
-    indexed = re_match_index(target)
-    if indexed:
-        name, index_text = indexed
-        try:
-            container = get_name(name)
-            index = parser.parse(index_text, lexer=lexer_module.lexer.clone())
-            container[index] = value
-        except KeyError:
-            print(f'Undefined variable: {name}')
-        except (TypeError, IndexError):
-            print("Error: invalid assignment target")
-        return
-    set_name(target, value)
 
-def re_match_index(target):
+def visible_scopes():
+    if getattr(scopes[-1], 'lexical', False):
+        return (scopes[-1], scopes[0])
+    return reversed(scopes)
+
+
+def declare_locals(local_names):
+    if len(scopes) == 1:
+        report('Error: local used outside a function')
+        return
+    scopes[-1].lexical = True
+    for name in local_names:
+        scopes[-1].setdefault(name, UNBOUND)
+
+def assign_target(target, value):
+    try:
+        container, key = resolve_target(target)
+        store_target(container, key, value)
+    except (KeyError, TypeError, IndexError, ValueError) as error:
+        report(f'Error: invalid assignment target: {error}')
+
+def resolve_target(target):
+    """Evaluate a target once, including nested indexes and slice bounds."""
     import re
-    match = re.fullmatch(r'([A-Za-z_][A-Za-z0-9_]*)\s*\[(.+)\]', target)
-    if not match:
-        return None
-    return match.group(1), match.group(2)
+    target = target.strip()
+    if re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', target):
+        return NAME_TARGET, target
+    scanner = lexer_module.lexer.clone()
+    scanner.input(target)
+    depth = 0
+    opening = None
+    for token in scanner:
+        if token.type == 'LBRACKET':
+            if depth == 0:
+                opening = token.lexpos
+            depth += 1
+        elif token.type == 'RBRACKET':
+            depth -= 1
+            if depth == 0 and token.lexpos == len(target) - 1:
+                container = parser.parse(target[:opening], lexer=lexer_module.lexer.clone())
+                return container, parse_target_index(target[opening + 1:-1])
+    raise ValueError('expected a name or an indexed value')
+
+
+def parse_target_index(text):
+    scanner = lexer_module.lexer.clone()
+    scanner.input(text)
+    depth = 0
+    cuts = []
+    for token in scanner:
+        if token.type in ('LPAREN', 'LBRACKET'):
+            depth += 1
+        elif token.type in ('RPAREN', 'RBRACKET'):
+            depth -= 1
+        elif token.type == 'COLON' and depth == 0:
+            cuts.append(token.lexpos)
+    if not cuts:
+        return parser.parse(text, lexer=lexer_module.lexer.clone())
+    if len(cuts) > 2:
+        raise ValueError('too many slice bounds')
+    bounds = [-1] + cuts + [len(text)]
+    values = []
+    for left, right in zip(bounds, bounds[1:]):
+        part = text[left + 1:right].strip()
+        values.append(parser.parse(part, lexer=lexer_module.lexer.clone()) if part else None)
+    return slice(*values)
+
+
+def store_target(container, key, value):
+    if container is NAME_TARGET:
+        set_name(key, value)
+    else:
+        container[key] = value
 
 def set_function_caller(caller):
     global function_caller
@@ -90,7 +154,7 @@ def p_expression_plus(p):
     try:
         p[0] = p[1] + p[3]
     except TypeError:
-        print(f"Error: cannot add {type(p[1]).__name__} and {type(p[3]).__name__}")
+        report(f"Error: cannot add {type(p[1]).__name__} and {type(p[3]).__name__}")
         p[0] = None
 
 def p_expression_minus(p):
@@ -100,17 +164,26 @@ def p_expression_minus(p):
 def p_expression_divide(p):
     'expression : expression DIVIDE expression'
     if p[3] == 0:
-        print("Error: division by zero")
+        report("Error: division by zero")
         p[0] = None
         return
     p[0] = p[1] / p[3]
+
+
+def p_expression_floordivide(p):
+    'expression : expression FLOORDIVIDE expression'
+    if p[3] == 0:
+        report('Error: division by zero')
+        p[0] = None
+        return
+    p[0] = p[1] // p[3]
 
 def p_expression_times(p):
     'expression : expression MULTIPLY expression'
     try:
         p[0] = p[1] * p[3]
     except TypeError:
-        print(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}")
+        report(f"Error: cannot multiply {type(p[1]).__name__} and {type(p[3]).__name__}")
         p[0] = None
 
 def p_expression_matmul(p):
@@ -118,13 +191,13 @@ def p_expression_matmul(p):
     try:
         p[0] = p[1] @ p[3]
     except TypeError as exc:
-        print(f"Error: cannot matrix-multiply: {exc}")
+        report(f"Error: cannot matrix-multiply: {exc}")
         p[0] = None
 
 def p_expression_modulo(p):
     'expression : expression MODULO expression'
     if p[3] == 0:
-        print("Error: modulo by zero")
+        report("Error: modulo by zero")
         p[0] = None
         return
     p[0] = p[1] % p[3]
@@ -178,7 +251,7 @@ def p_expression_name(p):
     try:
         p[0] = get_name(p[1])
     except KeyError:
-        print(f'Undefined variable: {p[1]}')
+        report(f'Undefined variable: {p[1]}')
         p[0] = 0
 
 def p_expression_list(p):
@@ -190,7 +263,7 @@ def p_expression_index(p):
     try:
         p[0] = p[1][p[3]]
     except (TypeError, IndexError, KeyError):
-        print("Error: invalid index")
+        report("Error: invalid index")
         p[0] = None
 
 def p_expression_slice(p):
@@ -198,7 +271,7 @@ def p_expression_slice(p):
     try:
         p[0] = p[1][p[3]:p[5]]
     except TypeError:
-        print("Error: invalid slice")
+        report("Error: invalid slice")
         p[0] = None
 
 def p_optional_expression_empty(p):
@@ -241,54 +314,54 @@ def p_expression_attribute(p):
     'expression : expression DOT NAME'
     receiver, attr = p[1], p[3]
     if isinstance(receiver, dict) and receiver.get('__bs_module__'):
-        print(f"Error: '{receiver['name']}' members must be called")
+        report(f"Error: '{receiver['name']}' members must be called")
         p[0] = None
         return
     try:
         p[0] = getattr(receiver, attr)
     except AttributeError:
-        print(f"Error: no attribute '{attr}' on {type(receiver).__name__}")
+        report(f"Error: no attribute '{attr}' on {type(receiver).__name__}")
         p[0] = None
 
 def call_function(name, args):
     if name == 'pyimport':
         if len(args) != 1 or not isinstance(args[0], str):
-            print("Error: pyimport() expects one string argument")
+            report("Error: pyimport() expects one string argument")
             return None
         import importlib
         try:
             return importlib.import_module(args[0])
         except ImportError as exc:
-            print(f"Error: cannot import '{args[0]}': {exc}")
+            report(f"Error: cannot import '{args[0]}': {exc}")
             return None
     if name == 'len':
         if len(args) != 1:
-            print("Error: len() expects 1 argument")
+            report("Error: len() expects 1 argument")
             return None
         return len(args[0])
     if name == 'tonum':
         if len(args) != 1:
-            print("Error: tonum() expects 1 argument")
+            report("Error: tonum() expects 1 argument")
             return None
         try:
             value = float(args[0]) if '.' in str(args[0]) else int(args[0])
             return value
         except ValueError:
-            print("Error: tonum() could not convert value")
+            report("Error: tonum() could not convert value")
             return None
     if name == 'tostr':
         if len(args) != 1:
-            print("Error: tostr() expects 1 argument")
+            report("Error: tostr() expects 1 argument")
             return None
         return str(display(args[0]))
     if name == 'input':
         if len(args) > 1:
-            print("Error: input() expects 0 or 1 arguments")
+            report("Error: input() expects 0 or 1 arguments")
             return None
         return input(args[0] if args else '')
     if name == 'range':
         if len(args) not in (1, 2, 3):
-            print("Error: range() expects 1 to 3 arguments")
+            report("Error: range() expects 1 to 3 arguments")
             return []
         return list(range(*args))
     if name == 'clear':
@@ -296,99 +369,99 @@ def call_function(name, args):
         return None
     if name == 'absolute':
         if len(args) != 1:
-            print("Error: absolute() expects 1 argument")
+            report("Error: absolute() expects 1 argument")
             return None
         return abs(args[0])
     if name == 'round':
         if len(args) != 1:
-            print("Error: round() expects 1 argument")
+            report("Error: round() expects 1 argument")
             return None
         return round(args[0])
     if name == 'floor':
         if len(args) != 1:
-            print("Error: floor() expects 1 argument")
+            report("Error: floor() expects 1 argument")
             return None
         return math.floor(args[0])
     if name == 'ceiling':
         if len(args) != 1:
-            print("Error: ceiling() expects 1 argument")
+            report("Error: ceiling() expects 1 argument")
             return None
         return math.ceil(args[0])
     if name == 'type':
         if len(args) != 1:
-            print("Error: type() expects 1 argument")
+            report("Error: type() expects 1 argument")
             return None
         return type(args[0])
     if name == 'readfile':
         if len(args) != 1:
-            print("Error: readfile() expects 1 argument")
+            report("Error: readfile() expects 1 argument")
             return None
         try:
             with open(args[0], 'r') as f:
                 return f.read()
         except OSError as error:
-            print(f"Error: could not read file '{args[0]}': {error}")
+            report(f"Error: could not read file '{args[0]}': {error}")
             return None
     if name == 'readlines':
         if len(args) != 1:
-            print("Error: readlines() expects 1 argument")
+            report("Error: readlines() expects 1 argument")
             return None
         try:
             with open(args[0], 'r') as f:
                 return [line.rstrip('\n') for line in f.readlines()]
         except OSError as error:
-            print(f"Error: could not read file '{args[0]}': {error}")
+            report(f"Error: could not read file '{args[0]}': {error}")
             return None
     if name == 'createfile':
         if len(args) != 1:
-            print("Error: createfile() expects 1 argument")
+            report("Error: createfile() expects 1 argument")
             return None
         try:
             with open(args[0], 'x'):
                 pass
             return True
         except FileExistsError:
-            print(f"Error: file '{args[0]}' already exists")
+            report(f"Error: file '{args[0]}' already exists")
             return False
         except OSError as error:
-            print(f"Error: could not create file '{args[0]}': {error}")
+            report(f"Error: could not create file '{args[0]}': {error}")
             return False
     if name == 'writefile':
         if len(args) != 2:
-            print("Error: writefile() expects 2 arguments")
+            report("Error: writefile() expects 2 arguments")
             return None
         try:
             with open(args[0], 'w') as f:
                 f.write(str(args[1]))
             return True
         except OSError as error:
-            print(f"Error: could not write file '{args[0]}': {error}")
+            report(f"Error: could not write file '{args[0]}': {error}")
             return False
     if name == 'appendfile':
         if len(args) != 2:
-            print("Error: appendfile() expects 2 arguments")
+            report("Error: appendfile() expects 2 arguments")
             return None
         try:
             with open(args[0], 'a') as f:
                 f.write(str(args[1]))
             return True
         except OSError as error:
-            print(f"Error: could not append to file '{args[0]}': {error}")
+            report(f"Error: could not append to file '{args[0]}': {error}")
             return False
     if name == 'fileexists':
         if len(args) != 1:
-            print("Error: fileexists() expects 1 argument")
+            report("Error: fileexists() expects 1 argument")
             return None
         return os.path.exists(args[0])
     if name == 'deletefile':
         if len(args) != 1:
-            print("Error: deletefile() expects 1 argument")
+            report("Error: deletefile() expects 1 argument")
             return None
         try:
             os.remove(args[0])
             return True
         except OSError as error:
-            print(f"Error: could not delete file '{args[0]}': {error}")
+            report(f"Error: could not delete file '{args[0]}': {error}")
             return False
     if name == "datetime":
         return call_datetime(args)
@@ -396,7 +469,7 @@ def call_function(name, args):
         return gui_backend.call_builtin(name, args)
     if function_caller:
         return function_caller(name, args)
-    print(f"Undefined function: {name}")
+    report(f"Undefined function: {name}")
     return None
 
 gui_backend.set_callback_invoker(lambda name, args: call_function(name, args))
@@ -419,29 +492,29 @@ DATETIME_COMMANDS = {
 
 def call_datetime(args):
     if not args:
-        print("Error: datetime() expects a command argument")
+        report("Error: datetime() expects a command argument")
         return None
     command = args[0]
     entry = DATETIME_COMMANDS.get(command)
     if entry is None:
-        print(f"Error: unknown datetime command '{command}'")
+        report(f"Error: unknown datetime command '{command}'")
         return None
     arity, handler = entry
     rest = args[1:]
     if len(rest) != arity:
-        print(f"Error: datetime {command}() expects {arity} argument{'s' if arity != 1 else ''}")
+        report(f"Error: datetime {command}() expects {arity} argument{'s' if arity != 1 else ''}")
         return None
     try:
         return handler(rest)
     except (AttributeError, TypeError, ValueError) as error:
-        print(f"Error: datetime {command}() failed: {error}")
+        report(f"Error: datetime {command}() failed: {error}")
         return None
 
 def call_method(receiver, name, args):
     if isinstance(receiver, dict) and receiver.get('__bs_module__'):
         if module_caller:
             return module_caller(receiver, name, args)
-        print(f"Error: no module caller set")
+        report(f"Error: no module caller set")
         return None
     if name == 'upper' and isinstance(receiver, str) and not args:
         return receiver.upper()
@@ -463,11 +536,11 @@ def call_method(receiver, name, args):
         try:
             receiver.remove(args[0])
         except ValueError:
-            print("Error: list does not contain value")
+            report("Error: list does not contain value")
         return None
     if name == 'pop' and isinstance(receiver, list) and len(args) == 0:
         if not receiver:
-            print("Error: cannot pop from an empty list")
+            report("Error: cannot pop from an empty list")
             return None
         receiver.pop()
         return None
@@ -479,13 +552,13 @@ def call_method(receiver, name, args):
     try:
         attribute = getattr(receiver, name)
     except AttributeError:
-        print(f"Error: no method '{name}' on {type(receiver).__name__}")
+        report(f"Error: no method '{name}' on {type(receiver).__name__}")
         return None
     if callable(attribute):
         try:
             return attribute(*args)
         except Exception as exc:
-            print(f"Error calling '{name}': {exc}")
+            report(f"Error calling '{name}': {exc}")
             return None
     return attribute
 
@@ -543,9 +616,9 @@ def p_expression_cond(p):
 
 def p_error(p):
     if p:
-        print("Syntax error at '%s'" % p.value)
+        report("Syntax error at '%s'" % p.value)
     else:
-        print("Syntax error at end of input")
+        report("Syntax error at end of input")
 
 parser = yacc.yacc()
 

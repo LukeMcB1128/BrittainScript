@@ -6,7 +6,7 @@ something else.
 """
 
 import ast
-import importlib.util
+import importlib.machinery
 import warnings
 
 from .errors import UnsupportedFeature
@@ -43,6 +43,7 @@ BINARY_OPERATORS = {
     ast.Mult: '*',
     ast.Div: '/',
     ast.Mod: '%',
+    ast.FloorDiv: '//',
 }
 
 REJECTED_BINARY_OPERATORS = {
@@ -66,7 +67,7 @@ LEXER_KEYWORDS = {
 # 'add = 5' is read as a library import.
 STATEMENT_KEYWORDS = {
     'while', 'for', 'func', 'end', 'return', 'break', 'continue', 'add',
-    'elif', 'else', 'in',
+    'elif', 'else', 'in', 'local', 'discard',
 }
 
 BS_KEYWORDS = LEXER_KEYWORDS | STATEMENT_KEYWORDS
@@ -84,9 +85,30 @@ UNSAFE_IMPORTS = {
 
 
 def module_is_available(name):
+    # Resolve each package path without importing a parent package. find_spec()
+    # from importlib.util imports parents when the name contains a dot.
     try:
-        return importlib.util.find_spec(name) is not None
-    except (ImportError, ValueError, ModuleNotFoundError):
+        path = None
+        parts = name.split('.')
+        for index in range(len(parts)):
+            fullname = '.'.join(parts[:index + 1])
+            spec = None
+            if index == 0:
+                spec = importlib.machinery.BuiltinImporter.find_spec(fullname)
+                if spec is None:
+                    spec = importlib.machinery.FrozenImporter.find_spec(fullname)
+            if spec is None:
+                # The parent path is explicit. Use the leaf name so namespace
+                # package specs do not look for an unimported parent in sys.modules.
+                spec = importlib.machinery.PathFinder.find_spec(parts[index], path)
+            if spec is None:
+                return False
+            locations = spec.submodule_search_locations
+            path = list(locations) if locations is not None else None
+            if index < len(parts) - 1 and path is None:
+                return False
+        return True
+    except (ImportError, ValueError, ModuleNotFoundError, OSError):
         return False
 
 
@@ -358,6 +380,8 @@ class CapabilityValidator(ast.NodeVisitor):
     def visit_AugAssign(self, node):
         if not isinstance(node.target, (ast.Name, ast.Subscript)):
             self.reject(node, 'assignment target')
+        if isinstance(node.target, ast.Name) and node.target.id in BS_KEYWORDS:
+            self.reject(node, 'name collides with a keyword', node.target.id)
         for operator_type, (feature, detail) in REJECTED_BINARY_OPERATORS.items():
             if isinstance(node.op, operator_type):
                 self.reject(node, feature, detail)

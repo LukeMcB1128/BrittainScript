@@ -62,6 +62,8 @@ items[1] = "water"
 
 ### Types
 
+Numbers can use exponent notation, such as `1e-7` and `2E3`.
+
 Native literals are numbers, double-quoted strings, lists, `true`, `false`, and `null`. `null` is the empty value and is falsy.
 
 ```bs
@@ -78,7 +80,7 @@ push(tostr(null))  # null
 
 | Syntax | Meaning |
 | --- | --- |
-| `+`, `-`, `*`, `/` | arithmetic |
+| `+`, `-`, `*`, `/`, `//` | arithmetic; `//` is floor division |
 | `%` | remainder |
 | `^` | power |
 | `@` | matrix multiplication for Python-backed values |
@@ -94,7 +96,7 @@ push(2 ^ 3)       # 8.0
 push(sin(90))     # 1.0
 ```
 
-Precedence, highest first: indexing and member access; power; `*`, `/`, `%`, `@`; `+`, `-`; comparisons; `not`; `and`; `or`. Parentheses override it. Division/modulo by zero report an error and result in `null`.
+Precedence, highest first: indexing and member access; power; `*`, `/`, `//`, `%`, `@`; `+`, `-`; comparisons; `not`; `and`; `or`. Parentheses override it. Division/modulo by zero report an error and result in `null`.
 
 ### Strings, lists, indexes, and slices
 
@@ -327,32 +329,34 @@ These are rewritten on the way through:
 
 | Python | emitted | why |
 |---|---|---|
-| `x += 1` | `x = (x + 1)` | no augmented assignment in the grammar |
+| `x += 1` | `x += 1` | preserves in-place mutation and evaluates the target once |
 | `-x` | `(0 - x)` | no unary minus |
-| `a // b` | `floor((a / b))` | no `//`; exact for integers |
+| `a // b` | `(a // b)` | uses native floor division without a float conversion |
 | `range(n)` | `space(n)` | different name |
-| a function's local `total` | `f_total` | see below |
+| a function's local `total` | `local total` | keeps the variable in the current call |
 
-### Why locals get renamed
+### Local variables and unused results
 
-Assigning to a name inside a BrittainScript function walks outward and updates
-a matching outer variable, where Python would create a local. Without renaming,
-this Python prints 6, 100, 7 but the direct translation would print 6, 6, 3:
+Each translated function starts with a `local` statement. This statement lists
+its parameters and local variables. Each call has separate local storage,
+including recursive calls. Reads use the current function scope and the module
+scope. They do not use a caller's local variables.
 
-```python
-total = 100
-def accumulate(items):
-    total = 0
-    for value in items:
-        total = total + value
-    return total
-```
+A `local` statement with no names still selects this scope behavior. Native
+functions without a `local` statement keep the scope behavior described above.
 
-So every function-local name that collides with a module-level name is renamed.
+Python discards unused expression results. The translator emits `discard
+expression` for these statements. The expression runs, but its result does not
+print. Explicit `print(...)` calls still produce output.
+
+Validation checks module paths without importing parent packages. Verification
+runs both programs. Interpreter errors use stderr during verification and cause
+a non-zero exit status. Program output remains on stdout, including messages
+that start with `Error:` or `Syntax error`.
 
 ### What is rejected, and why it is rejected rather than approximated
 
-Classes, imports, `try`/`except`, `with`, `lambda`, comprehensions, generators,
+Classes, `try`/`except`, `with`, `lambda`, comprehensions, generators,
 decorators, dicts, sets, tuples, `*args`, `global`, chained comparisons and
 `in` have no BrittainScript equivalent. Four rejections are subtler, and each
 would otherwise produce a program that runs and gives a different answer:

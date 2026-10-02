@@ -1,10 +1,15 @@
 import ply.lex as lex
+try:
+    from core.diagnostics import report
+except ModuleNotFoundError:
+    from diagnostics import report
 
 tokens = (
     'NUMBER',
     'PLUS',
     'MINUS',
     'DIVIDE',
+    'FLOORDIVIDE',
     'MULTIPLY',
     'AT',
     'POWER',
@@ -67,6 +72,7 @@ reserved = {
 t_PLUS     = r'\+'
 t_MINUS    = r'\-'
 t_DIVIDE   = r'\/'
+t_FLOORDIVIDE = r'\/\/'
 t_MULTIPLY = r'\*'
 t_AT       = r'@'
 t_POWER    = r'\^'
@@ -105,8 +111,8 @@ def t_LESSTHAN(t):
     return t
 
 def t_NUMBER(t):
-    r'\d+(\.\d+)?'
-    t.value = float(t.value) if '.' in t.value else int(t.value)
+    r'\d+(\.\d+)?([eE][+-]?\d+)?'
+    t.value = float(t.value) if any(char in t.value for char in '.eE') else int(t.value)
     return t
 
 def follows_dot(t):
@@ -142,7 +148,7 @@ def t_newline(t):
 t_ignore = ' \t'
 
 def t_error(t):
-    print("Illegal character: '%s'" % t.value[0])
+    report("Illegal character: '%s'" % t.value[0])
     t.lexer.skip(1)
 
 lexer = lex.lex()

@@ -1,3 +1,8 @@
+try:
+    from core.diagnostics import report
+except ModuleNotFoundError:
+    from diagnostics import report
+
 # gui_backend.py -- tkinter bridge for the BrittainScript gui library
 #
 # Widgets are handed to BrittainScript code as integer ids so scripts only
@@ -33,7 +38,7 @@ def _load_tk():
         from tkinter import messagebox as messagebox_module
         from tkinter import simpledialog as simpledialog_module
     except ImportError:
-        print("GUI error: tkinter is not available on this system")
+        report("GUI error: tkinter is not available on this system")
         return False
     tk = tk_module
     messagebox = messagebox_module
@@ -52,17 +57,17 @@ def _register(widget):
 def _lookup(widget_id, kinds=None):
     widget = widgets.get(widget_id)
     if widget is None:
-        print(f"GUI error: no widget with id {widget_id}")
+        report(f"GUI error: no widget with id {widget_id}")
         return None
     if kinds and not isinstance(widget, kinds):
-        print(f"GUI error: widget {widget_id} does not support this operation")
+        report(f"GUI error: widget {widget_id} does not support this operation")
         return None
     return widget
 
 
 def _run_callback(name, args):
     if callback_invoker is None:
-        print("GUI error: no callback invoker set")
+        report("GUI error: no callback invoker set")
         return
     callback_invoker(name, list(args))
 
@@ -105,7 +110,7 @@ def gui_close(args):
 
 def gui_run(args):
     if root_window is None or not _window_alive(root_window):
-        print("GUI error: create a window before calling run()")
+        report("GUI error: create a window before calling run()")
         return None
     root_window.mainloop()
     return None
@@ -208,7 +213,7 @@ def gui_gettext(args):
     try:
         return widget.cget('text')
     except Exception:
-        print(f"GUI error: widget {args[0]} has no text")
+        report(f"GUI error: widget {args[0]} has no text")
         return None
 
 
@@ -227,7 +232,7 @@ def gui_settext(args):
         try:
             widget.config(text=text)
         except Exception:
-            print(f"GUI error: widget {args[0]} has no text")
+            report(f"GUI error: widget {args[0]} has no text")
     return None
 
 
@@ -241,7 +246,7 @@ def gui_setcolor(args):
         try:
             widget.config(background=str(args[1]))
         except Exception as error:
-            print(f"GUI error: could not set color: {error}")
+            report(f"GUI error: could not set color: {error}")
     return None
 
 
@@ -252,7 +257,7 @@ def gui_setfont(args):
     try:
         widget.config(font=(str(args[1]), int(args[2])))
     except Exception as error:
-        print(f"GUI error: could not set font: {error}")
+        report(f"GUI error: could not set font: {error}")
     return None
 
 
@@ -262,7 +267,7 @@ def gui_ischecked(args):
         return None
     variable = getattr(widget, 'bs_variable', None)
     if variable is None:
-        print(f"GUI error: widget {args[0]} is not a checkbox")
+        report(f"GUI error: widget {args[0]} is not a checkbox")
         return None
     return bool(variable.get())
 
@@ -274,7 +279,7 @@ def gui_getvalue(args):
     try:
         return widget.get()
     except Exception:
-        print(f"GUI error: widget {args[0]} has no value")
+        report(f"GUI error: widget {args[0]} has no value")
         return None
 
 
@@ -285,7 +290,7 @@ def gui_setvalue(args):
     try:
         widget.set(args[1])
     except Exception:
-        print(f"GUI error: widget {args[0]} has no value")
+        report(f"GUI error: widget {args[0]} has no value")
     return None
 
 
@@ -368,7 +373,7 @@ def gui_onclick(args):
 
 def gui_after(args):
     if root_window is None or not _window_alive(root_window):
-        print("GUI error: create a window before calling after()")
+        report("GUI error: create a window before calling after()")
         return None
     callback_name = str(args[1])
     root_window.after(int(args[0]), lambda: _run_callback(callback_name, []))
@@ -441,10 +446,10 @@ def is_gui_builtin(name):
 def call_builtin(name, args):
     handler, arity = BUILTINS[name]
     if len(args) != arity:
-        print(f"Error: {name}() expects {arity} argument{'s' if arity != 1 else ''}")
+        report(f"Error: {name}() expects {arity} argument{'s' if arity != 1 else ''}")
         return None
     try:
         return handler(args)
     except Exception as error:
-        print(f"GUI error: {error}")
+        report(f"GUI error: {error}")
         return None

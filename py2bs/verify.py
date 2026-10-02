@@ -15,8 +15,11 @@ DEFAULT_TIMEOUT = 10
 # run.py only exists in a source checkout, so drive the interpreter through the
 # core package instead -- that works from the repo and from an installed wheel
 BS_RUNNER = (
-    'import sys; sys.path.insert(0, sys.argv[1]); '
-    'from core import main; main.run_file(sys.argv[2])'
+    'import sys\nsys.path.insert(0, sys.argv[1])\n'
+    'from core import main, diagnostics\n'
+    'with diagnostics.capture_errors() as errors:\n'
+    '    main.run_file(sys.argv[2])\n'
+    'sys.exit(1 if errors else 0)\n'
 )
 
 
@@ -76,11 +79,6 @@ def compare(python_source, brittainscript_source, timeout=DEFAULT_TIMEOUT):
         return False, python_result, bs_result, f'python failed: {python_result.error}'
     if not bs_result.ok:
         return False, python_result, bs_result, f'brittainscript failed: {bs_result.error}'
-    # the interpreter reports problems on stdout and keeps going, so a program
-    # that "succeeded" may still have printed an error
-    for line in bs_result.stdout.splitlines():
-        if line.startswith(('Error:', 'Syntax error', 'Undefined ')):
-            return False, python_result, bs_result, f'interpreter reported: {line}'
     if python_result.stdout != bs_result.stdout:
         return False, python_result, bs_result, 'stdout mismatch'
     return True, python_result, bs_result, None
