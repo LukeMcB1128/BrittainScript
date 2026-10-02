@@ -19,6 +19,8 @@ CALLABLE_BUILTINS = {
     'str': 'tostr',
     'abs': 'absolute',
     'round': 'round',
+    'dict': 'dict',
+    'list': 'list',
 }
 
 # range() maps to space(), but only as a for-loop iterable: space() builds a
@@ -32,6 +34,7 @@ ALLOWED_METHODS = {
     'append', 'upper', 'lower', 'strip', 'find', 'replace', 'split', 'count',
     'join', 'startswith', 'endswith', 'index', 'insert', 'extend', 'reverse',
     'sort', 'remove',
+    'get', 'keys', 'values', 'items', 'copy', 'update', 'setdefault',
 }
 
 REJECTED_METHODS = {
@@ -133,6 +136,8 @@ COMPARISON_OPERATORS = {
     ast.LtE: '<=',
     ast.Gt: '>',
     ast.GtE: '>=',
+    ast.In: 'in',
+    ast.NotIn: 'not in',
 }
 
 
@@ -334,7 +339,9 @@ class CapabilityValidator(ast.NodeVisitor):
         self.reject(node, 'generators')
 
     def visit_Dict(self, node):
-        self.reject(node, 'dict literals')
+        if any(key is None for key in node.keys):
+            self.reject(node, 'dictionary unpacking')
+        self.generic_visit(node)
 
     def visit_Set(self, node):
         self.reject(node, 'set literals')
@@ -456,8 +463,6 @@ class CapabilityValidator(ast.NodeVisitor):
         if len(node.ops) != 1:
             self.reject(node, 'chained comparison')
         operator = node.ops[0]
-        if isinstance(operator, (ast.In, ast.NotIn)):
-            self.reject(node, 'in operator')
         if isinstance(operator, (ast.Is, ast.IsNot)):
             self.reject(node, 'is operator')
         if type(operator) not in COMPARISON_OPERATORS:

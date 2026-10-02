@@ -1,2 +1,2 @@
-counts = {"a": 1}
+counts = {**other}
 print(counts)

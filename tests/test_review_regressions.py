@@ -252,12 +252,12 @@ class ModuleRegressionTests(unittest.TestCase):
         '''), '2\n99\n1\n99\n')
 
     def test_nested_module_calls_restore_outer_helpers(self):
-        inner = {'__bs_module__': True, 'name': 'inner',
-                 'funcs': {'helper': ([], ['return 3'])}}
-        outer = {'__bs_module__': True, 'name': 'outer', 'funcs': {
+        inner = parser.BSModule({'__bs_module__': True, 'name': 'inner',
+                 'funcs': {'helper': ([], ['return 3'])}})
+        outer = parser.BSModule({'__bs_module__': True, 'name': 'outer', 'funcs': {
             'run': ([], ['return inner.helper() + helper()']),
             'helper': ([], ['return 7']),
-        }}
+        }})
         parser.set_name('inner', inner)
         original = ([], ['return 99'])
         main.functions['helper'] = original

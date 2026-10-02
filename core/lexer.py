@@ -18,6 +18,8 @@ tokens = (
     'RPAREN',
     'LBRACKET',
     'RBRACKET',
+    'LBRACE',
+    'RBRACE',
     'COMMA',
     'COLON',
     'DOT',
@@ -36,6 +38,7 @@ tokens = (
     'AND',
     'OR',
     'NOT',
+    'IN',
     'EQUALTO',
     'NOTEQUALTO',
     'GREATERTHAN',
@@ -62,6 +65,7 @@ reserved = {
     'and':     'AND',
     'or':      'OR',
     'not':     'NOT',
+    'in':      'IN',
     'true':    'TRUE',
     'false':   'FALSE',
     'null':    'NULL',
@@ -81,6 +85,8 @@ t_LPAREN   = r'\('
 t_RPAREN   = r'\)'
 t_LBRACKET = r'\['
 t_RBRACKET = r'\]'
+t_LBRACE   = r'\{'
+t_RBRACE   = r'\}'
 t_COMMA    = r','
 t_COLON    = r':'
 t_DOT      = r'\.'

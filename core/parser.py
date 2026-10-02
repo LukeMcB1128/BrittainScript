@@ -9,8 +9,10 @@ import calendar
 import datetime
 try:
     from core.diagnostics import report, BSError, expression_offset
+    from core.values import BSModule
 except ModuleNotFoundError:
     from diagnostics import report, BSError, expression_offset
+    from values import BSModule
 
 # variable storage
 names = {}
@@ -28,7 +30,7 @@ precedence = (
     ('left', 'OR'),
     ('left', 'AND'),
     ('right', 'NOT'),
-    ('left', 'EQUALTO', 'NOTEQUALTO'),
+    ('left', 'EQUALTO', 'NOTEQUALTO', 'IN'),
     ('left', 'LESSTHAN', 'GREATERTHAN', 'LESSTHANEQUALTO', 'GREATERTHANEQUALTO'),
     ('left', 'PLUS', 'MINUS'),
     ('left', 'MULTIPLY', 'DIVIDE', 'FLOORDIVIDE', 'MODULO', 'AT'),
@@ -120,9 +122,9 @@ def parse_target_index(text):
     depth = 0
     cuts = []
     for token in scanner:
-        if token.type in ('LPAREN', 'LBRACKET'):
+        if token.type in ('LPAREN', 'LBRACKET', 'LBRACE'):
             depth += 1
-        elif token.type in ('RPAREN', 'RBRACKET'):
+        elif token.type in ('RPAREN', 'RBRACKET', 'RBRACE'):
             depth -= 1
         elif token.type == 'COLON' and depth == 0:
             cuts.append(token.lexpos)
@@ -269,6 +271,33 @@ def p_expression_list(p):
     'expression : LBRACKET optional_arguments RBRACKET'
     p[0] = p[2]
 
+
+def p_expression_dictionary_empty(p):
+    'expression : LBRACE RBRACE'
+    p[0] = {}
+
+
+def p_expression_dictionary(p):
+    '''expression : LBRACE dictionary_items RBRACE
+                  | LBRACE dictionary_items COMMA RBRACE'''
+    p[0] = p[2]
+
+
+def p_dictionary_item(p):
+    'dictionary_item : expression COLON expression'
+    p[0] = {p[1]: p[3]}
+
+
+def p_dictionary_items_single(p):
+    'dictionary_items : dictionary_item'
+    p[0] = p[1]
+
+
+def p_dictionary_items_many(p):
+    'dictionary_items : dictionary_items COMMA dictionary_item'
+    p[1].update(p[3])
+    p[0] = p[1]
+
 def p_expression_index(p):
     'expression : expression LBRACKET expression RBRACKET'
     try:
@@ -326,7 +355,7 @@ def p_expression_method_call(p):
 def p_expression_attribute(p):
     'expression : expression DOT NAME'
     receiver, attr = p[1], p[3]
-    if isinstance(receiver, dict) and receiver.get('__bs_module__'):
+    if isinstance(receiver, BSModule):
         report(f"Error: '{receiver['name']}' members must be called")
         p[0] = None
         return
@@ -346,6 +375,9 @@ def call_function(name, args):
 
 
 def _call_function(name, args):
+    if name in ('dict', 'list'):
+        constructor = dict if name == 'dict' else list
+        return constructor(*args)
     if name == 'error':
         if len(args) not in (1, 2) or not all(isinstance(arg, str) for arg in args):
             report('Error: error() expects a message and an optional type string', kind='TypeError')
@@ -550,10 +582,18 @@ def call_method(receiver, name, args):
 
 
 def _call_method(receiver, name, args):
-    if isinstance(receiver, dict) and receiver.get('__bs_module__'):
+    if isinstance(receiver, BSModule):
         if module_caller:
             return module_caller(receiver, name, args)
         report(f"Error: no module caller set")
+        return None
+    if isinstance(receiver, dict) and name in ('has', 'remove'):
+        if len(args) != 1:
+            report(f'Error: {name}() expects 1 argument', kind='TypeError')
+            return None
+        if name == 'has':
+            return args[0] in receiver
+        del receiver[args[0]]
         return None
     if name == 'upper' and isinstance(receiver, str) and not args:
         return receiver.upper()
@@ -617,6 +657,16 @@ def p_expression_or(p):
 def p_expression_not(p):
     'expression : NOT expression'
     p[0] = not bool(p[2])
+
+
+def p_expression_in(p):
+    'expression : expression IN expression'
+    p[0] = p[1] in p[3]
+
+
+def p_expression_not_in(p):
+    'expression : expression NOT IN expression %prec IN'
+    p[0] = p[1] not in p[4]
 
 def p_expression_equalto(p):
     'expression : expression EQUALTO expression'

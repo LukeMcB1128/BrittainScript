@@ -151,7 +151,7 @@ class RejectionTests(unittest.TestCase):
         self.assertRejects('x: int = 1', 'annotated assignment')
 
     def test_rejected_expressions(self):
-        self.assertRejects('x = {"a": 1}', 'dict literals')
+        self.assertRejects('x = {**other}', 'dictionary unpacking')
         self.assertRejects('x = {1, 2}', 'set literals')
         self.assertRejects('x = (1, 2)', 'tuples')
         self.assertRejects('x = [i for i in y]', 'comprehensions')
@@ -159,7 +159,6 @@ class RejectionTests(unittest.TestCase):
         self.assertRejects('x = 1 if y else 2', 'conditional expression')
         self.assertRejects('print(2 ** 3)', 'power operator')
         self.assertRejects('print(1 & 2)', 'bitwise operators')
-        self.assertRejects('print(a in b)', 'in operator')
         self.assertRejects('print(a is b)', 'is operator')
         self.assertRejects('print(1 < a < 3)', 'chained comparison')
 
@@ -211,7 +210,7 @@ class RejectionTests(unittest.TestCase):
         self.assertEqual(rejection('def f(:\n').feature, 'invalid python')
 
     def test_a_rejection_names_the_line(self):
-        self.assertEqual(rejection('x = 1\ny = {"a": 1}\n').line, 2)
+        self.assertEqual(rejection('x = 1\ny = {**other}\n').line, 2)
 
 
 class ImportTests(unittest.TestCase):
@@ -312,11 +311,11 @@ class TranslateApiTests(unittest.TestCase):
         self.assertIsNone(result.error)
 
     def test_result_fields_on_rejection(self):
-        result = translate('x = {"a": 1}')
+        result = translate('x = {**other}')
         self.assertFalse(result.ok)
         self.assertIsNone(result.brittainscript)
-        self.assertEqual(result.rejected_features, ['dict literals'])
-        self.assertIn('dict literals', result.error)
+        self.assertEqual(result.rejected_features, ['dictionary unpacking'])
+        self.assertIn('dictionary unpacking', result.error)
 
     def test_verification_can_be_skipped(self):
         result = translate('print(1)', verify=False)
@@ -355,7 +354,7 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(report.translated, 0)
         self.assertEqual(report.rejected, len(list(REJECTS.glob('*.py'))))
         features = dict(report.feature_counts)
-        self.assertIn('dict literals', features)
+        self.assertIn('dictionary unpacking', features)
         self.assertIn('exception chaining', features)
         self.assertIn('unsafe import', features)
         self.assertIn('unresolvable import', features)

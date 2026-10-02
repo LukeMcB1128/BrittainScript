@@ -64,7 +64,7 @@ items[1] = "water"
 
 Numbers can use exponent notation, such as `1e-7` and `2E3`.
 
-Native literals are numbers, double-quoted strings, lists, `true`, `false`, and `null`. `null` is the empty value and is falsy.
+Native literals are numbers, double-quoted strings, lists, dictionaries, `true`, `false`, and `null`. `null` is the empty value and is falsy.
 
 ```bs
 push(null == null) # True
@@ -123,6 +123,35 @@ push(scores[:2])
 | `items.has(value)` | test whether a list contains an item |
 
 The mutating list methods return `null`. Invalid indexing, an empty `pop`, and a missing `remove` raise errors. Other Python methods work as a fallback, including `"a,b".split(",")`, `text.replace(...)`, `items.sort()`, and `items.index(value)`.
+
+### Dictionaries
+
+Use `{key: value}` for a dictionary. `{}` creates an empty dictionary.
+
+```bs
+record = {"name": "Luke", "score": 10, "child": {"active": true}}
+record["score"] += 1
+push(record.get("score"))
+push("name" in record)
+```
+
+Keys must be hashable. Strings, numbers, booleans, and `null` can be keys.
+Values can contain dictionaries and lists. A trailing comma is allowed.
+Duplicate keys use the last value. Iteration visits keys in insertion order.
+Assignments modify the dictionary; aliases see the same changes.
+
+`get(key)` returns `null` for a missing key. `get(key, fallback)` supplies a fallback.
+`has(key)` tests key presence, including keys whose values are `null`.
+`remove(key)` deletes a key and returns `null`. Missing indexed keys and missing
+keys passed to `remove` raise `KeyError`. Unhashable keys raise `TypeError`.
+
+`keys()`, `values()`, and `items()` return Python iterable views. Use
+`list(record.keys())` for a list snapshot. `copy()`, `update(other)`, and
+`setdefault(key, value)` also work. `dict()` creates an empty dictionary;
+`dict(other)` copies a mapping or an iterable of key/value pairs.
+
+`in` and `not in` test dictionary keys. They also work with lists, strings,
+and Python containers. Dictionaries and library namespaces are distinct values.
 
 ### Logic and comparisons
 
@@ -380,7 +409,7 @@ push(a.shape)
 push(a @ a)
 ```
 
-There are no dictionary literals or keyword arguments in BrittainScript; use APIs with positional arguments or create a Python helper. A failed import or method call raises a catchable error. Python exception types and their parent types are preserved.
+Dictionary literals can hold data from Python libraries. Keyword arguments are not supported; use positional arguments or a Python helper. A failed import or method call raises a catchable error. Python exception types and their parent types are preserved.
 
 The bridge is not sandboxed. A script can import `os`, `subprocess`, networking libraries, or any installed package with the same privileges as its Python process. Do not run untrusted `.bs` files.
 
@@ -407,7 +436,7 @@ from py2bs import translate
 result = translate(source, verify=True)
 result.ok                 # translated and both programs printed the same thing
 result.brittainscript     # the emitted source
-result.rejected_features  # e.g. ['dict literals']
+result.rejected_features  # e.g. ['dictionary unpacking']
 result.python_stdout      # what each side actually printed
 result.bs_stdout
 result.error
@@ -460,8 +489,8 @@ Exception groups, tuple handler types, exception chaining (`raise ... from ...`)
 and rebinding built-in exception type names are rejected. A catch-all handler must be last.
 
 Classes, `with`, `lambda`, comprehensions, generators,
-decorators, dicts, sets, tuples, `*args`, `global`, chained comparisons and
-`in` have no BrittainScript equivalent. Four rejections are subtler, and each
+decorators, dictionary unpacking, sets, tuples, `*args`, `global`, and chained comparisons
+have no BrittainScript equivalent. Four rejections are subtler, and each
 would otherwise produce a program that runs and gives a different answer:
 
 - **`and`/`or` returning a value.** `name or "default"` yields the string in

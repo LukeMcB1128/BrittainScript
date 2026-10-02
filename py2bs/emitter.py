@@ -203,6 +203,11 @@ class Emitter(ast.NodeVisitor):
     def expression_List(self, node):
         return '[' + ', '.join(self.expression(item) for item in node.elts) + ']'
 
+    def expression_Dict(self, node):
+        pairs = [f'{self.expression(key)}: {self.expression(value)}'
+                 for key, value in zip(node.keys, node.values)]
+        return '{' + ', '.join(pairs) + '}'
+
     def expression_BinOp(self, node):
         operator = BINARY_OPERATORS.get(type(node.op))
         if operator is None:

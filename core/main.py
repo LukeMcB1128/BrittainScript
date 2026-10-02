@@ -65,10 +65,10 @@ def split_assignment(line):
             continue
         if in_string:
             continue
-        if char in '([':
+        if char in '([{':
             depth += 1
             continue
-        if char in ')]':
+        if char in ')]}':
             depth -= 1
             continue
         if char == '=' and depth == 0:
@@ -105,10 +105,10 @@ def split_augmented_assignment(line):
             continue
         if in_string:
             continue
-        if char in '([':
+        if char in '([{':
             depth += 1
             continue
-        if char in ')]':
+        if char in ')]}':
             depth -= 1
             continue
         if char == '=' and depth == 0:
@@ -402,7 +402,7 @@ def import_module(lib_name):
             pass
     finally:
         function_environments.pop()
-    return {'__bs_module__': True, 'name': lib_name, 'funcs': module_funcs}
+    return parser_module.BSModule({'__bs_module__': True, 'name': lib_name, 'funcs': module_funcs})
 
 parser_module.set_function_caller(call_user_function)
 parser_module.set_module_caller(call_module_function)
