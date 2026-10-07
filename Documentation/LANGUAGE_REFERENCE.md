@@ -308,9 +308,10 @@ The `bs` command and `run.py` return status `1`. Successful runs return `0`.
 Caught errors do not print a diagnostic or cause a failure status. The REPL prints
 an uncaught error and then accepts another command.
 
-An uncaught GUI callback error stops the event loop and passes out of `gui.run()`.
-A catch handler around that call can recover from it. Catch an error inside the
-callback if the event loop must continue.
+An uncaught GUI callback error is reported to stderr, and the event loop continues.
+Register `gui.onError("handler")` to pass the error to a BS handler instead.
+Use `gui.stopOnError(true)` to stop on an unhandled callback error and pass it
+out of `gui.run()`. A registered error handler handles the error and keeps the loop running.
 
 This changes the earlier behavior: failed operations no longer print an error
 and continue with `null`, `false`, or `0`. Use a catch handler for a fallback value.
@@ -404,6 +405,35 @@ gui.run()
 | Dialogs | `alert`, `confirm`, `prompt` |
 
 Callbacks are function names as strings. Button and timer callbacks receive no arguments; `onKey` gets a key name and `onClick` gets `x, y`. See [`examples/gui_demo.bs`](../examples/gui_demo.bs).
+
+### GUI lists and callback errors
+
+`gui.list(parent, items, callback)` creates a native list widget. `items` is a
+list of labels. `callback` is a function name or `null`. Selection callbacks
+receive the selected index, starting at zero:
+
+```bs
+func selected(index):
+    push(index)
+end
+notes = gui.list(win, ["First note", "Second note"], "selected")
+gui.pack(notes)
+```
+
+Use `gui.setItems(widget, items)` to replace the labels and clear selection.
+`gui.getItems(widget)` returns the displayed strings.
+`gui.selectedIndex(widget)` returns the selected index, or `null`.
+`gui.select(widget, index)` selects an item without calling the callback;
+`gui.select(widget, null)` clears selection.
+`gui.setListSize(widget, width, height)` sets width in characters and height in rows.
+Existing layout, color, and font functions also work with list widgets.
+
+By default, callback errors print a diagnostic and leave the window running.
+`gui.onError("handler")` registers a function with one error parameter.
+Use `gui.onError(null)` to restore default reporting. A failed error handler
+reports both errors and does not call itself again. `gui.stopOnError(true)`
+restores the earlier behavior for unhandled errors; `false` is the default.
+All widget operations must run on the thread that created the window.
 
 ## JSON library
 

@@ -1,7 +1,9 @@
 try:
-    from core.diagnostics import report, BSError
+    from core.diagnostics import report, BSError, emit, from_python, handling
 except ModuleNotFoundError:
-    from diagnostics import report, BSError
+    from diagnostics import report, BSError, emit, from_python, handling
+
+import threading
 
 # gui_backend.py -- tkinter bridge for the BrittainScript gui library
 #
@@ -23,6 +25,10 @@ widgets = {}
 next_id = 1
 root_window = None
 callback_error_frames = []
+error_callback = None
+stop_on_error = False
+handling_callback_error = False
+gui_thread_id = None
 
 
 def set_callback_invoker(invoker):
@@ -74,23 +80,55 @@ def _run_callback(name, args):
         return
     try:
         callback_invoker(name, list(args))
-    except BSError as error:
-        if not callback_error_frames:
-            raise
-        callback_error_frames[-1].append(error)
-        # Tk consumes exceptions raised by event callbacks. Return normally to
-        # Tk, then raise the original BS error when the event loop exits.
-        root_window.quit()
+    except Exception as cause:
+        error = from_python(cause)
+        global handling_callback_error
+        if error_callback is not None and not handling_callback_error:
+            handling_callback_error = True
+            try:
+                with handling(error):
+                    callback_invoker(error_callback, [error])
+            except Exception as handler_error:
+                emit(error)
+                emit(from_python(handler_error))
+            finally:
+                handling_callback_error = False
+            return
+        if stop_on_error and not handling_callback_error:
+            if not callback_error_frames:
+                raise error
+            callback_error_frames[-1].append(error)
+            root_window.quit()
+        else:
+            emit(error)
+
+
+def gui_onerror(args):
+    global error_callback
+    name = args[0]
+    if name is not None and (not isinstance(name, str) or not name):
+        raise TypeError('GUI error handler must be a function name or null')
+    error_callback = name
+    return None
+
+
+def gui_stoponerror(args):
+    global stop_on_error
+    if type(args[0]) is not bool:
+        raise TypeError('GUI stop-on-error setting must be a boolean')
+    stop_on_error = args[0]
+    return None
 
 
 def gui_window(args):
     if not _load_tk():
         return None
-    global root_window
+    global root_window, gui_thread_id
     title, width, height = args
     if root_window is None or not _window_alive(root_window):
         window = tk.Tk()
         root_window = window
+        gui_thread_id = threading.get_ident()
     else:
         window = tk.Toplevel(root_window)
     window.title(str(title))
@@ -170,6 +208,78 @@ def gui_textbox(args):
     if parent is None:
         return None
     return _register(tk.Text(parent, width=int(args[1]), height=int(args[2])))
+
+
+def _list_items(items):
+    if not isinstance(items, list):
+        raise TypeError('GUI list items must be a list')
+    return [str(item) for item in items]
+
+
+def gui_list(args):
+    parent = _lookup(args[0])
+    if parent is None:
+        return None
+    items = _list_items(args[1])
+    callback = args[2]
+    if callback is not None and (not isinstance(callback, str) or not callback):
+        raise TypeError('List selection callback must be a function name or null')
+    widget = tk.Listbox(parent, exportselection=False, selectmode='browse')
+    if items:
+        widget.insert('end', *items)
+    if callback is not None:
+        def selected(event):
+            indexes = widget.curselection()
+            if indexes:
+                _run_callback(callback, [int(indexes[0])])
+        widget.bind('<<ListboxSelect>>', selected)
+    return _register(widget)
+
+
+def gui_setitems(args):
+    widget = _lookup(args[0], (tk.Listbox,))
+    if widget is not None:
+        items = _list_items(args[1])
+        widget.delete(0, 'end')
+        if items:
+            widget.insert('end', *items)
+    return None
+
+
+def gui_getitems(args):
+    widget = _lookup(args[0], (tk.Listbox,))
+    return list(widget.get(0, 'end')) if widget is not None else None
+
+
+def gui_selectedindex(args):
+    widget = _lookup(args[0], (tk.Listbox,))
+    if widget is not None:
+        indexes = widget.curselection()
+        return int(indexes[0]) if indexes else None
+    return None
+
+
+def gui_select(args):
+    widget = _lookup(args[0], (tk.Listbox,))
+    if widget is not None:
+        index = args[1]
+        if index is not None and (type(index) is not int or not 0 <= index < widget.size()):
+            raise IndexError('GUI list index is out of range')
+        widget.selection_clear(0, 'end')
+        if index is not None:
+            widget.selection_set(index)
+            widget.see(index)
+    return None
+
+
+def gui_listsize(args):
+    widget = _lookup(args[0], (tk.Listbox,))
+    if widget is not None:
+        width, height = args[1:]
+        if type(width) is not int or type(height) is not int or width <= 0 or height <= 0:
+            raise ValueError('GUI list width and height must be positive integers')
+        widget.configure(width=width, height=height)
+    return None
 
 
 def gui_checkbox(args):
@@ -428,6 +538,14 @@ BUILTINS = {
     'guibutton':      (gui_button, 3),
     'guientry':       (gui_entry, 1),
     'guitextbox':     (gui_textbox, 3),
+    'guilist':        (gui_list, 3),
+    'guisetitems':    (gui_setitems, 2),
+    'guigetitems':    (gui_getitems, 1),
+    'guiselectedindex': (gui_selectedindex, 1),
+    'guiselect':      (gui_select, 2),
+    'guilistsize':    (gui_listsize, 3),
+    'guionerror':     (gui_onerror, 1),
+    'guistoponerror': (gui_stoponerror, 1),
     'guicheckbox':    (gui_checkbox, 2),
     'guislider':      (gui_slider, 3),
     'guicanvas':      (gui_canvas, 3),
@@ -462,6 +580,9 @@ def is_gui_builtin(name):
 
 
 def call_builtin(name, args):
+    if gui_thread_id is not None and gui_thread_id != threading.get_ident():
+        report('GUI operations must run on the thread that created the window', kind='RuntimeError')
+        return None
     handler, arity = BUILTINS[name]
     if len(args) != arity:
         report(f"Error: {name}() expects {arity} argument{'s' if arity != 1 else ''}")

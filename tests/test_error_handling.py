@@ -367,7 +367,7 @@ class ErrorHandlingTests(unittest.TestCase):
         backend = parser.gui_backend
         window = mock.Mock()
         window.mainloop.side_effect = lambda: backend._run_callback('fail_callback', [])
-        with mock.patch.object(backend, 'root_window', window):
+        with mock.patch.object(backend, 'root_window', window), mock.patch.object(backend, 'stop_on_error', True):
             self.assertEqual(self.run_bs('''
                 func fail_callback():
                     raise "callback failed"
