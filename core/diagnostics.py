@@ -61,6 +61,13 @@ class BSError(Exception):
     def __str__(self):
         return self.message
 
+    def __getattr__(self, name):
+        # BS fields take precedence. Other attributes retain Python semantics.
+        cause = self.__dict__.get('cause')
+        if cause is not None:
+            return getattr(cause, name)
+        raise AttributeError(name)
+
     def mark_raised(self):
         if not self.raised:
             location = _location.get()

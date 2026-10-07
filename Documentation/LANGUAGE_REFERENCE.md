@@ -50,7 +50,7 @@ message = "A # inside a string is not a comment" # this is one
 push(message)
 ```
 
-Variables are dynamically typed. Names start with a letter or underscore, followed by letters, digits, or underscores. Assignments and a bare `null` are quiet; other bare top-level expressions print their result. Prefer `push(...)` for intentional output.
+Variables are dynamically typed. Names start with a letter or underscore, followed by letters, digits, or underscores. Scripts do not print bare expression results. Use `push(...)` for output. The REPL prints the result of a single expression; function bodies and blocks remain quiet.
 
 ```bs
 title = "BrittainScript"
@@ -518,9 +518,17 @@ locks, remain shared; their thread safety depends on the Python package.
 allows active responses up to five seconds to finish. An external WSGI host
 controls its own server lifecycle; `server.stop()` only controls `server.run()`.
 
+Caught Python errors also expose their original attributes. For example,
+`problem.code` reads an HTTP status, and `problem.errno` reads a system error
+number. BS fields take precedence. Use `problem.cause` to access the original
+Python exception directly. `problem.args` keeps the original exception arguments.
+
 ## Python interoperability
 
 Use `pyimport("module")` for any Python package installed in the same environment. Imported modules and returned values support attributes, positional method calls, indexing, slicing, iteration, arithmetic, and `@` matrix multiplication.
+
+Keyword arguments are not supported. Syntax such as `method="DELETE"` inside
+a call raises `TypeError` before any argument runs. Use positional arguments.
 
 ```bs
 json = pyimport("json")

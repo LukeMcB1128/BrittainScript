@@ -3,6 +3,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import re
 import operator
 import math
+from contextvars import ContextVar
 try:
     import core.diagnostics as diagnostics
     import core.runtime as runtime
@@ -15,6 +16,7 @@ import parser as parser_module
 
 functions = {}
 function_environments = [None]
+_echo = ContextVar('brittainscript_echo', default=False)
 
 
 def current_functions():
@@ -165,8 +167,8 @@ def execute_line(line):
         parser_module.assign_target(target, parse_expression(expression))
         return
     result = parse_expression(line)
-    if result is not None:
-        print(result)
+    if result is not None and _echo.get():
+        print(parser_module.display(result))
 
 def block_keyword(line):
     for keyword in ('cond', 'while', 'for', 'func', 'try'):
@@ -507,12 +509,16 @@ def execute_try(line, branches):
                 execute_lines(final_body)
 
 
-def execute_lines(lines):
+def execute_lines(lines, echo=False):
     lines = [line if isinstance(line, diagnostics.SourceLine)
              else diagnostics.SourceLine(line, line=index)
              for index, line in enumerate(lines, 1)]
-    with diagnostics.execution():
-        return _execute_lines(lines)
+    token = _echo.set(echo)
+    try:
+        with diagnostics.execution():
+            return _execute_lines(lines)
+    finally:
+        _echo.reset(token)
 
 
 def _execute_lines(lines):
@@ -679,7 +685,7 @@ def run_repl():
             else:
                 lines = [text]
             execute_lines([diagnostics.SourceLine(line, '<repl>', index)
-                           for index, line in enumerate(lines, 1)])
+                           for index, line in enumerate(lines, 1)], echo=len(lines) == 1)
         except diagnostics.BSError as error:
             diagnostics.emit(error)
         except (BreakSignal, ContinueSignal, ReturnSignal) as signal:

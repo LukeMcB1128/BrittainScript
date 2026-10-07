@@ -18,6 +18,24 @@ def evaluate(value):
     return value
 
 
+def validate_calls(value, argument=False):
+    """Reject assignment syntax in call arguments before any expression runs."""
+    if isinstance(value, Reduction):
+        name = value.action.__name__
+        if argument and name == 'p_statement_assign':
+            report('Keyword arguments are not supported; use positional arguments',
+                   kind='TypeError', offset=value.positions[2])
+            return False
+        argument_index = {'p_expression_function_call': 3,
+                          'p_expression_range_call': 3,
+                          'p_expression_method_call': 5}.get(name)
+        return all(validate_calls(child, argument or index == argument_index)
+                   for index, child in enumerate(value.values[1:], 1))
+    if isinstance(value, (list, tuple)):
+        return all(validate_calls(child, argument) for child in value)
+    return True
+
+
 class EvaluationSlice:
     """The reduction interface used by the existing expression operations."""
 
@@ -84,7 +102,8 @@ class ExpressionParser:
 
     def compile(self, *args, **kwargs):
         with self.lock:
-            return self.grammar.parse(*args, **kwargs)
+            tree = self.grammar.parse(*args, **kwargs)
+        return tree if validate_calls(tree) else None
 
     def parse(self, *args, **kwargs):
         return evaluate(self.compile(*args, **kwargs))
