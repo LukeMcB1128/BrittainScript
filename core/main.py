@@ -408,6 +408,9 @@ def call_callback_function(name, args):
         current_environments().pop()
 
 def import_module(lib_name):
+    if lib_name == 'store':
+        import store_backend
+        return store_backend.create_module(sys.modules[__name__])
     if lib_name == 'http':
         import http_backend
         return http_backend.create_module()

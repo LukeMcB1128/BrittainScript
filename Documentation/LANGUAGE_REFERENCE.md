@@ -468,6 +468,58 @@ Non-finite numbers raise `ValueError`. File errors keep their Python types.
 Saving validates and encodes the data before opening the destination file.
 Invalid data therefore leaves an existing file unchanged.
 
+## Persistent store library
+
+Use `add store` for a file-backed JSON dictionary:
+
+```bs
+add store
+vault = store.open("vault.json")
+vault.set("notes", [])
+push(vault.get("notes"))
+```
+
+`store.open(path)` creates an empty JSON object if the file does not exist.
+An existing file must contain a valid JSON object. Its parent directory must exist.
+Keys are strings, and saved values must be valid JSON values.
+
+| Method | Action |
+| --- | --- |
+| `vault.get(key, default)` | Read a value; default is `null`. |
+| `vault.set(key, value)` | Save a value; return `true`. |
+| `vault.has(key)` | Test whether a key exists. |
+| `vault.delete(key)` | Delete a key; return whether it existed. |
+| `vault.keys()` | Return the keys as a list. |
+| `vault.snapshot()` | Read the whole dictionary. |
+| `vault.update(key, callback, default, args)` | Atomically read, transform, and save one value. |
+| `vault.transaction(callback, args)` | Atomically transform and save the whole dictionary. |
+
+Reads return separate values. Changing a returned list does not save it.
+Use `set` to save a replacement. Use `update` or `transaction` when a complete
+read-modify-write operation must hold the lock:
+
+```bs
+func increment(value):
+    return value + 1
+end
+count = vault.update("visits", "increment", 0)
+```
+
+Callbacks are BS function names. The first parameter receives the old value,
+or the whole dictionary for `transaction`. Optional `args` is a list of extra
+arguments. A transaction callback must return a dictionary. An update callback
+returns the new value. Callback variables are separate from the caller; pass
+request data through `args`. Callbacks must not call store methods, including
+methods on another store. This prevents nested lock errors and stale writes.
+
+Every operation takes a thread lock and an OS file lock. All handles use a stable
+`path.lock` file, which must remain in place. The data file is replaced atomically
+after validation and writing a complete temporary file in the same directory.
+A callback, validation, or replacement failure leaves the previous data intact.
+These guarantees require a local filesystem with file locking and atomic replace.
+Create a store before starting a server. Store objects remain shared across
+requests while ordinary BS dictionaries remain separate.
+
 ## HTTP client library
 
 Use `add http` to send HTTP requests. No extra dependencies are needed.
