@@ -1,4 +1,4 @@
-# Unreleased changes
+# 0.6.2
 
 Scripts now print only through explicit output functions such as `push()`.
 Bare calls and expressions still run, but their returned values are quiet.

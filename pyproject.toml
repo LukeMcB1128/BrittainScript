@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "brittainscript"
-version = "0.6.1"
+version = "0.6.2"
 description = "The BrittainScript programming language interpreter"
 readme = "Documentation/LANGUAGE_REFERENCE.md"
 license = { file = "LICENSE" }
