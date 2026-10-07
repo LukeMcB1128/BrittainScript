@@ -369,7 +369,7 @@ File writes return `true` on success. Failed reads and writes raise errors. File
 
 ## Bundled libraries
 
-Load a bundled module with `add name`, then call its functions. BS modules live in `libs/` next to the interpreter, not beside the source file. The native `server` module uses the Python backend.
+Load a bundled module with `add name`, then call its functions. BS modules live in `libs/` next to the interpreter, not beside the source file. The native `server`, `http`, and `store` modules use Python backends.
 
 ```bs
 add math
@@ -657,7 +657,7 @@ Missing routes return 404; an incorrect method returns 405. An uncaught handler
 error returns a generic 500 response and prints the BS error to stderr. Other
 requests can continue. Catch errors in the handler to return a specific response.
 
-The first call to `server.app()` or `server.run()` fixes the routes, functions,
+The first call to `server.app()`, `server.run()`, or `server.serve_background()` fixes the routes, functions,
 and startup variables. Define all functions and variables before this call.
 Each request gets a separate copy of BS dictionaries and lists. Changes made in
 one request do not change the startup data or another request. Use a database
@@ -807,6 +807,10 @@ null value translates cleanly but fails the output comparison.
 - [`examples/dictionaries.bs`](../examples/dictionaries.bs): dictionaries and membership tests.
 - [`examples/json_data.bs`](../examples/json_data.bs): JSON parsing, output, and errors.
 - [`examples/api_server.bs`](../examples/api_server.bs): HTTP routes and JSON responses; requires the server extra.
+- [`examples/http_client.bs`](../examples/http_client.bs): calls the API server through the HTTP client.
+- [`examples/persistent_store.bs`](../examples/persistent_store.bs): a visit counter saved in `vault.json`.
+- [`examples/string_interpolation.bs`](../examples/string_interpolation.bs): `if` and interpolated strings.
+- [`examples/note_vault.bs`](../examples/note_vault.bs): a GUI and API in one process with persistent notes; requires the server extra and Tkinter.
 - [`examples/orbit_focus_studio.bs`](../examples/orbit_focus_studio.bs): larger persistent GUI app.
 - [`examples/torch_demo.bs`](../examples/torch_demo.bs): PyTorch autograd via the bridge (requires PyTorch).
 
@@ -820,6 +824,8 @@ Run the automated tests from the repository root:
 python3 -m unittest discover -s tests
 ```
 
-Install `.[server]` to include the server tests. These tests use local loopback sockets.
+Install `.[server]` to include the server tests. HTTP tests use local loopback sockets.
+Store tests check concurrent threads and processes. GUI unit tests use test widgets;
+the native list widget has also been checked with Tkinter.
 
 Implementation overview: `core/lexer.py` tokenizes source, `core/parser.py` parses expressions, `core/expressions.py` evaluates expression trees, `core/main.py` executes files and blocks, `core/runtime.py` separates request state, `core/server_backend.py` adapts HTTP, and `core/gui_backend.py` adapts Tkinter.

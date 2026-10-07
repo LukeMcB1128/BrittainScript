@@ -102,3 +102,17 @@ discard true or f"${effect(3)}"
         self.assertEqual(raised.exception.line, 12)
         self.assertEqual(raised.exception.type, 'ZeroDivisionError')
         self.assertEqual(raised.exception.column, str(source).index('/') + 1)
+
+    def test_low_level_parser_diagnostics_do_not_run_invalid_template_calls(self):
+        effects = []
+        original_value = parser.names.get('value', parser.UNBOUND)
+        parser.names['effect'] = lambda *args: effects.append('ran')
+        import lexer
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            for source in ['effect(f"${value = 1}")', 'effect(f"${effect(method=1)}")']:
+                self.assertIsNone(parser.parser.parse(source, lexer=lexer.lexer.clone()))
+        self.assertEqual(effects, [])
+        self.assertIs(parser.names.get('value', parser.UNBOUND), original_value)
+        self.assertIn('Assignments are not allowed', output.getvalue())
+        self.assertIn('Keyword arguments', output.getvalue())

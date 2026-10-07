@@ -35,6 +35,16 @@ bs examples/api_server.bs
 Then open `http://127.0.0.1:8000/health`. BS functions handle requests directly.
 Werkzeug processes routes, and Waitress serves HTTP requests.
 
+For a complete GUI and API app in one process:
+
+```bash
+bs examples/note_vault.bs
+```
+
+Note Vault uses a native list widget, a background server, the HTTP client, JSON,
+and a persistent store. It saves notes in `note_vault.json` in the current directory.
+Read [unreleased changes](RELEASE_NOTES.md) for script output and callback behavior.
+
 ## License
 
 [MIT](LICENSE)

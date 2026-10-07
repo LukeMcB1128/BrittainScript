@@ -19,3 +19,12 @@ to stop on an unhandled callback error and raise it from `gui.run()` as before.
 `if` is now an alias for `cond`, including nested blocks and REPL input.
 Explicit interpolated strings use `f"..."` with `${expression}`. Ordinary strings
 keep their previous behavior. Use `\${...}` for literal text inside an interpolated string.
+
+New app libraries and controls:
+
+- `add http`: HTTP methods with response status, headers, text, bytes, and JSON.
+- `server.serve_background()`: a server in the same process as the GUI, with startup errors, stop, and wait.
+- `gui.list()`: native list selection with an index callback.
+- `add store`: persistent JSON dictionaries with locked updates and transactions.
+
+The Note Vault example combines these features in one script.

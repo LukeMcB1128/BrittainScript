@@ -1,5 +1,8 @@
 import sys, os
-sys.path.insert(0, os.path.dirname(__file__))
+# The direct-file entry point needs its package parent ahead of an installed
+# package with the same name. Keep canonical and bare internal imports together.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import re
 import operator
 import math

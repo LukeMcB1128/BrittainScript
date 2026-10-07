@@ -38,6 +38,10 @@ def validate_calls(value, argument=False):
     return True
 
 
+class InvalidTemplate(Exception):
+    """Stop evaluation after a low-level parser diagnostic without raising BS errors."""
+
+
 def compile_templates(value, parser):
     if isinstance(value, Reduction):
         value.values = [compile_templates(child, parser) for child in value.values]
@@ -48,8 +52,11 @@ def compile_templates(value, parser):
             if isinstance(part, ExpressionText):
                 with expression_offset(part.offset):
                     tree = parser.compile(part.text, lexer=lexer.lexer.clone())
+                    if tree is None:
+                        raise InvalidTemplate()
                     if contains_assignment(tree):
                         report('Assignments are not allowed in interpolation', kind='SyntaxError')
+                        raise InvalidTemplate()
                 parts.append(CompiledPart(tree, part.offset))
             else:
                 parts.append(part)
@@ -146,7 +153,10 @@ class ExpressionParser:
     def compile(self, *args, **kwargs):
         with self.lock:
             tree = self.grammar.parse(*args, **kwargs)
-        tree = compile_templates(tree, self)
+        try:
+            tree = compile_templates(tree, self)
+        except InvalidTemplate:
+            return None
         return tree if validate_calls(tree) else None
 
     def parse(self, *args, **kwargs):
