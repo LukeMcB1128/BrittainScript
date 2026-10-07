@@ -438,6 +438,41 @@ Non-finite numbers raise `ValueError`. File errors keep their Python types.
 Saving validates and encodes the data before opening the destination file.
 Invalid data therefore leaves an existing file unchanged.
 
+## HTTP client library
+
+Use `add http` to send HTTP requests. No extra dependencies are needed.
+
+```bs
+add http
+response = http.get("http://127.0.0.1:8000/health")
+push(response["status"])
+push(response["json"])
+response = http.post("http://127.0.0.1:8000/echo", {"message": "Hello"})
+```
+
+`http.get`, `http.delete`, `http.head`, and `http.options` take
+`(url, headers, timeout)`. Headers default to `null`; timeout defaults to ten
+seconds. `http.post`, `http.put`, and `http.patch` take
+`(url, body, headers, timeout)`, with an optional body. The general form is
+`http.request(method, url, body, headers, timeout)`.
+
+Dictionaries, lists, numbers, and booleans are sent as JSON. Strings are sent
+as UTF-8 text. Python bytes are sent as binary data. A `null` body means no body.
+To send JSON `null`, supply the string `"null"` and a JSON content-type header.
+Custom headers must have string names and values. URLs must use HTTP or HTTPS.
+TLS certificates are checked, and standard redirects are followed.
+
+Responses have `status`, lowercase `headers`, text `body`, raw `bytes`, parsed
+`json`, `json_error`, and final `url` fields. JSON content types are parsed
+automatically. Invalid JSON leaves `json` as `null` and sets `json_error` to the
+parse error message. Valid JSON or a non-JSON response sets `json_error` to `null`.
+Body text uses the declared charset, or UTF-8; invalid text bytes are replaced.
+Use `bytes` when the exact response data is needed.
+
+HTTP statuses such as 404 and 500 return normal response dictionaries.
+Connection errors, timeouts, and responses larger than 8 MiB raise catchable
+errors. These calls block until the response arrives or an error occurs.
+
 ## HTTP server library
 
 Install the optional dependencies from a checkout:
