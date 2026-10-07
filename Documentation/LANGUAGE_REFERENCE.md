@@ -510,7 +510,11 @@ four worker threads. The interpreter executes BS handlers directly.
 | `server.route(method, path, handler)` | Register an HTTP method from the list above. |
 | `server.response(body, status, headers)` | Set a response status and headers. Status defaults to 200; headers default to `{}`. |
 | `server.run(host, port)` | Serve requests until stopped. Defaults are `127.0.0.1` and `8000`. |
+| `server.serve_background(host, port)` | Start a background server; return its bound port. Defaults match `run`. |
 | `server.stop()` | Request shutdown; return `true` if the server is running. |
+| `server.wait(timeout)` | Wait for background shutdown; return `false` on timeout. No timeout waits until shutdown. |
+| `server.is_running()` | Return whether the server is running. |
+| `server.error()` | Return the last background error, or `null`. |
 | `server.port()` | Return the bound port, or `null` if the server is stopped. |
 | `server.app()` | Return a WSGI application for an external host or tests. |
 
@@ -552,6 +556,26 @@ locks, remain shared; their thread safety depends on the Python package.
 `server.run()` blocks. Ctrl+C or `server.stop()` starts shutdown. The backend
 allows active responses up to five seconds to finish. An external WSGI host
 controls its own server lifecycle; `server.stop()` only controls `server.run()`.
+
+`server.serve_background()` binds the socket before returning. Startup failures
+raise in the calling BS function. The server uses a daemon thread, so it does not
+keep a finished script alive. Stop it and wait in `finally` when a GUI closes:
+
+```bs
+port = server.serve_background("127.0.0.1", 0)
+try:
+    gui.run()
+finally:
+    server.stop()
+    server.wait(10)
+end
+```
+
+Define handlers and application variables before starting the server. GUI widget
+operations must stay on the GUI thread. Call the API through `http` from GUI
+callbacks. An unexpected background server error is printed to stderr and kept
+by `server.error()`; `server.wait()` raises it after the thread stops.
+Call `wait` outside request handlers. Shutdown also applies to background servers.
 
 Caught Python errors also expose their original attributes. For example,
 `problem.code` reads an HTTP status, and `problem.errno` reads a system error

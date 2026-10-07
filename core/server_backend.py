@@ -1,7 +1,9 @@
 """Native BS request handlers served through Werkzeug and Waitress."""
 
 from dataclasses import dataclass
+from functools import partial
 import ipaddress
+import math
 import threading
 import time
 
@@ -46,6 +48,8 @@ class Server:
         self.stopping = threading.Event()
         self.backend = None
         self.running = False
+        self.worker = None
+        self.failure = None
 
     def route(self, method, path, handler):
         if not isinstance(method, str) or method.upper() not in METHODS:
@@ -166,7 +170,7 @@ class Server:
             self.backend.pull_trigger()
             return True
 
-    def run(self, host='127.0.0.1', port=8000):
+    def _prepare(self, host, port):
         if not isinstance(host, str):
             raise TypeError('Server host must be an IP address string')
         address = ipaddress.ip_address(host)
@@ -182,6 +186,8 @@ class Server:
                 raise RuntimeError('This server is already running')
             self.running = True
             self.stopping.clear()
+            self.failure = None
+            self.worker = None
         connections = {}
         dispatcher = ThreadedTaskDispatcher()
         backend = None
@@ -193,7 +199,24 @@ class Server:
                                     ipv6=address.version == 6, max_request_body_size=MAX_BODY_SIZE)
             with self.lock:
                 self.backend = backend
-            deadline = None
+            return backend, connections, dispatcher
+        except BaseException:
+            self._cleanup(connections, dispatcher)
+            raise
+
+    def _cleanup(self, connections, dispatcher):
+        with self.lock:
+            self.backend = None
+        dispatcher.shutdown(timeout=5)
+        for channel in list(connections.values()):
+            channel.close()
+        with self.lock:
+            self.backend = None
+            self.running = False
+
+    def _serve(self, backend, connections, dispatcher, background=False):
+        deadline = None
+        try:
             while True:
                 try:
                     backend.asyncore.loop(timeout=0.05, count=1, map=connections)
@@ -206,19 +229,66 @@ class Server:
                                  for channel in list(connections.values()))
                     if not active or time.monotonic() >= deadline:
                         break
-        finally:
-            dispatcher.shutdown(timeout=5)
-            for channel in list(connections.values()):
-                channel.close()
+        except Exception as error:
             with self.lock:
-                self.backend = None
-                self.running = False
+                self.failure = diagnostics.from_python(error)
+            if not background:
+                raise
+            diagnostics.emit(self.failure)
+        finally:
+            self._cleanup(connections, dispatcher)
         return True
+
+    def run(self, host='127.0.0.1', port=8000):
+        return self._serve(*self._prepare(host, port))
+
+    def serve_background(self, host='127.0.0.1', port=8000):
+        # Bind and freeze state on the caller thread, so startup errors are caught
+        # by the BS call and GUI variables are never read by the worker thread.
+        resources = self._prepare(host, port)
+        bound_port = int(resources[0].effective_port)
+        worker = threading.Thread(target=self._serve, args=resources,
+                                  kwargs={'background': True}, name='BrittainScript HTTP', daemon=True)
+        try:
+            with self.lock:
+                self.worker = worker
+                worker.start()
+        except BaseException:
+            self._cleanup(resources[1], resources[2])
+            with self.lock:
+                self.worker = None
+            raise
+        return bound_port
+
+    def is_running(self):
+        with self.lock:
+            return self.running
+
+    def error(self):
+        with self.lock:
+            return self.failure
+
+    def wait(self, timeout=None):
+        if timeout is not None and (type(timeout) not in (int, float) or
+                                    not math.isfinite(timeout) or timeout < 0):
+            raise ValueError('Wait timeout must be a non-negative finite number of seconds')
+        if runtime.state.get() is not None:
+            raise RuntimeError('Call server.wait() outside a request handler')
+        with self.lock:
+            worker = self.worker
+        if worker is not None:
+            worker.join(timeout)
+            if worker.is_alive():
+                return False
+        if self.failure is not None:
+            raise self.failure
+        return not self.is_running()
 
 
 def create_module(interpreter):
     server = Server(interpreter)
-    funcs = {name: getattr(server, name) for name in ('route', 'response', 'app', 'run', 'stop', 'port')}
+    funcs = {name: getattr(server, name) for name in ('route', 'response', 'app', 'run', 'stop', 'port',
+                                                    'serve_background', 'wait', 'is_running', 'error')}
     for method in METHODS:
-        funcs[method.lower()] = lambda path, handler, method=method: server.route(method, path, handler)
+        funcs[method.lower()] = partial(server.route, method)
     return BSModule({'__bs_module__': True, 'name': 'server', 'funcs': funcs})

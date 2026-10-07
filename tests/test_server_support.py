@@ -48,6 +48,7 @@ class ServerSupportTests(unittest.TestCase):
     def tearDown(self):
         for server in self.servers:
             server.stop()
+            server.wait(10)
         for thread in self.threads:
             thread.join(10)
             self.assertFalse(thread.is_alive(), 'Server did not stop')
@@ -306,3 +307,67 @@ server.get("/health", "health")
                 main.execute_lines(['add server'])
         self.assertEqual(raised.exception.type, 'ImportError')
         self.assertIn('brittainscript[server]', raised.exception.message)
+
+    def test_background_start_is_ready_and_bs_client_can_call_it(self):
+        server, _ = self.configure('''func health(request):
+    return {"ok": true}
+end
+server.get("/health", "health")
+''')
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            main.execute_lines('''add http
+port = server.serve_background("127.0.0.1", 0)
+response = http.get("http://127.0.0.1:" + tostr(port) + "/health")
+push(response["json"]["ok"])
+push(server.is_running())
+server.stop()
+push(server.wait(10))
+'''.splitlines())
+        self.assertEqual(output.getvalue(), 'True\nTrue\nTrue\n')
+        self.assertIsNone(server.port())
+        self.assertFalse(server.is_running())
+
+    def test_background_bind_failure_duplicate_start_and_restart(self):
+        server, _ = self.configure('''func health(request):
+    return true
+end
+server.get("/health", "health")
+''')
+        with patch('waitress.server.create_server', side_effect=OSError('bind failed')):
+            with self.assertRaises(BSError) as raised:
+                main.execute_lines(['server.serve_background("127.0.0.1", 0)'])
+        self.assertEqual(raised.exception.type, 'OSError')
+        self.assertFalse(server.is_running())
+        for _ in range(2):
+            port = server.serve_background('127.0.0.1', 0)
+            self.assertGreater(port, 0)
+            with self.assertRaises(RuntimeError):
+                server.serve_background('127.0.0.1', 0)
+            self.assertFalse(server.wait(0))
+            server.stop()
+            self.assertTrue(server.wait(10))
+        for timeout in [-1, True, float('inf')]:
+            with self.subTest(timeout=timeout), self.assertRaises(ValueError):
+                server.wait(timeout)
+
+    def test_background_reactor_failure_can_be_observed(self):
+        server, _ = self.configure('''func health(request):
+    return true
+end
+server.get("/health", "health")
+''')
+        import waitress.wasyncore
+        log = io.StringIO()
+        with patch.object(waitress.wasyncore, 'loop', side_effect=OSError('reactor failed')), contextlib.redirect_stderr(log):
+            server.serve_background('127.0.0.1', 0)
+            with self.assertRaises(BSError) as raised:
+                server.wait(10)
+        self.assertEqual(raised.exception.message, 'reactor failed')
+        self.assertEqual(server.error().type, 'OSError')
+        self.assertIn('reactor failed', log.getvalue())
+        self.assertFalse(server.is_running())
+        # Clear the expected error for teardown and confirm restart works.
+        server.serve_background('127.0.0.1', 0)
+        server.stop()
+        self.assertTrue(server.wait(10))
