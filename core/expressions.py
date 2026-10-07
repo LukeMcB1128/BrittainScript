@@ -3,9 +3,11 @@
 from functools import wraps
 from threading import RLock
 try:
-    from core.diagnostics import BSError, report
+    from core.diagnostics import BSError, report, expression_offset
+    from core.strings import ExpressionText, CompiledPart, StringTemplate
 except ModuleNotFoundError:
-    from diagnostics import BSError, report
+    from diagnostics import BSError, report, expression_offset
+    from strings import ExpressionText, CompiledPart, StringTemplate
 
 
 def evaluate(value):
@@ -36,6 +38,37 @@ def validate_calls(value, argument=False):
     return True
 
 
+def compile_templates(value, parser):
+    if isinstance(value, Reduction):
+        value.values = [compile_templates(child, parser) for child in value.values]
+    elif isinstance(value, StringTemplate):
+        import lexer
+        parts = []
+        for part in value.parts:
+            if isinstance(part, ExpressionText):
+                with expression_offset(part.offset):
+                    tree = parser.compile(part.text, lexer=lexer.lexer.clone())
+                    if contains_assignment(tree):
+                        report('Assignments are not allowed in interpolation', kind='SyntaxError')
+                parts.append(CompiledPart(tree, part.offset))
+            else:
+                parts.append(part)
+        return StringTemplate(tuple(parts))
+    elif isinstance(value, list):
+        return [compile_templates(child, parser) for child in value]
+    elif isinstance(value, tuple):
+        return tuple(compile_templates(child, parser) for child in value)
+    return value
+
+
+def contains_assignment(value):
+    if isinstance(value, Reduction):
+        return value.action.__name__ == 'p_statement_assign' or any(contains_assignment(child) for child in value.values)
+    if isinstance(value, (list, tuple)):
+        return any(contains_assignment(child) for child in value)
+    return False
+
+
 class EvaluationSlice:
     """The reduction interface used by the existing expression operations."""
 
@@ -64,6 +97,16 @@ class Reduction:
     def evaluate(self):
         try:
             name = self.action.__name__
+            if name == 'p_expression_interpolated':
+                parts = []
+                for part in self.values[1].parts:
+                    if isinstance(part, CompiledPart):
+                        with expression_offset(part.offset):
+                            value = evaluate(part.tree)
+                        parts.append('null' if value is None else str(value))
+                    else:
+                        parts.append(part)
+                return ''.join(parts)
             if name == 'p_expression_and':
                 return bool(evaluate(self.values[1])) and bool(evaluate(self.values[3]))
             if name == 'p_expression_or':
@@ -103,6 +146,7 @@ class ExpressionParser:
     def compile(self, *args, **kwargs):
         with self.lock:
             tree = self.grammar.parse(*args, **kwargs)
+        tree = compile_templates(tree, self)
         return tree if validate_calls(tree) else None
 
     def parse(self, *args, **kwargs):

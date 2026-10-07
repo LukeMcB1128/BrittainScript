@@ -4,6 +4,7 @@
   "scopeName": "source.bs",
   "patterns": [
     { "include": "#comments" },
+    { "include": "#interpolated-strings" },
     { "include": "#strings" },
     { "include": "#keywords" },
     { "include": "#builtins" },
@@ -14,6 +15,31 @@
     { "include": "#identifiers" }
   ],
   "repository": {
+    "interpolated-strings": {
+      "name": "string.quoted.double.interpolated.bs",
+      "begin": "\\b[fF]\"",
+      "end": "\"",
+      "patterns": [
+        { "name": "constant.character.escape.bs", "match": "\\\\." },
+        {
+          "name": "meta.interpolation.bs",
+          "begin": "\\$\\{",
+          "end": "\\}",
+          "patterns": [
+            { "include": "#interpolation-braces" },
+            { "include": "$self" }
+          ]
+        }
+      ]
+    },
+    "interpolation-braces": {
+      "begin": "\\{",
+      "end": "\\}",
+      "patterns": [
+        { "include": "#interpolation-braces" },
+        { "include": "$self" }
+      ]
+    },
     "comments": {
       "name": "comment.line.number-sign.bs",
       "match": "#.*$"
@@ -33,7 +59,7 @@
       "patterns": [
         {
           "name": "keyword.control.bs",
-          "match": "\\b(cond|elif|else|while|for|in|break|continue|end|return|try|catch|finally|raise|as)\\b"
+          "match": "\\b(cond|if|elif|else|while|for|in|break|continue|end|return|try|catch|finally|raise|as|local|discard)\\b"
         },
         {
           "name": "keyword.declaration.bs",

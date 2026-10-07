@@ -267,6 +267,10 @@ def p_expression_string(p):
     'expression : STRING'
     p[0] = p[1]
 
+def p_expression_interpolated(p):
+    'expression : ISTRING'
+    p[0] = p[1]
+
 def p_statement_assign(p):
     'expression : NAME EQ expression'
     set_name(p[1], p[3])

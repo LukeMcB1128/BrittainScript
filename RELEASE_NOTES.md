@@ -15,3 +15,7 @@ available through `cause`, and `args` keeps its original Python value.
 GUI callback errors now report the error and leave the event loop running.
 Use `gui.onError("handler")` for custom reporting. Use `gui.stopOnError(true)`
 to stop on an unhandled callback error and raise it from `gui.run()` as before.
+
+`if` is now an alias for `cond`, including nested blocks and REPL input.
+Explicit interpolated strings use `f"..."` with `${expression}`. Ordinary strings
+keep their previous behavior. Use `\${...}` for literal text inside an interpolated string.

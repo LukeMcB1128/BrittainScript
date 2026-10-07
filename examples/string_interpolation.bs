@@ -1,0 +1,7 @@
+note = {"id": 7, "text": "café"}
+if note["text"] != "":
+    push(f"Added note ${note["id"]}: ${note["text"]}.")
+else:
+    push("Empty note")
+end
+push(f"Value: ${null}; literal: \${unchanged}")

@@ -1,8 +1,10 @@
 import ply.lex as lex
 try:
     from core.diagnostics import report
+    from core.strings import decode_string, scan_template, StringSyntaxError
 except ModuleNotFoundError:
     from diagnostics import report
+    from strings import decode_string, scan_template, StringSyntaxError
 
 tokens = (
     'NUMBER',
@@ -24,6 +26,7 @@ tokens = (
     'COLON',
     'DOT',
     'STRING',
+    'ISTRING',
     # keywords — resolved from ID
     'SQUAREROOT',
     'SINE',
@@ -70,6 +73,7 @@ reserved = {
     'false':   'FALSE',
     'null':    'NULL',
     'cond':    'COND',
+    'if':      'COND',
     'space':   'RANGE',
 }
 
@@ -127,6 +131,17 @@ def follows_dot(t):
     preceding = t.lexer.lexdata[:t.lexpos].rstrip(' \t')
     return preceding.endswith('.')
 
+def t_ISTRING(t):
+    r'[fF]"'
+    try:
+        t.value, t.lexer.lexpos = scan_template(t.lexer.lexdata, t.lexpos)
+    except StringSyntaxError as error:
+        report(str(error), kind='SyntaxError', offset=error.offset)
+        t.lexer.lexpos = len(t.lexer.lexdata)
+        return None
+    return t
+
+
 def t_NAME(t):
     r'[a-zA-Z_][a-zA-Z0-9_]*'
     if follows_dot(t):
@@ -140,7 +155,7 @@ def t_STRING(t):
     # escape sequences are decoded, but characters outside ascii have to survive
     # intact -- encoding to utf-8 first turned "café" into "cafÃ©"
     body = t.value[1:-1]
-    t.value = body.encode('latin-1', 'backslashreplace').decode('unicode_escape')
+    t.value = decode_string(body)
     return t
 
 def t_COMMENT(t):

@@ -27,7 +27,7 @@ python3 run.py path/to/program.bs
 python3 run.py
 ```
 
-The REPL exits on `exit` or `quit`. When entering a `cond`, `while`, `for`, `func`, or `try` block, it prompts for subsequent lines with `...>`; finish with `end`.
+The REPL exits on `exit` or `quit`. When entering a `cond`, `if`, `while`, `for`, `func`, or `try` block, it prompts for subsequent lines with `...>`; finish with `end`.
 
 ## First program
 
@@ -124,6 +124,26 @@ push(scores[:2])
 
 The mutating list methods return `null`. Invalid indexing, an empty `pop`, and a missing `remove` raise errors. Other Python methods work as a fallback, including `"a,b".split(",")`, `text.replace(...)`, `items.sort()`, and `items.index(value)`.
 
+### String interpolation
+
+Use `f"..."` with `${expression}` to insert values into text:
+
+```bs
+note = {"id": 7, "text": "café"}
+push(f"Added note ${note["id"]}: ${note["text"]}.")
+push(f"Next ID: ${note["id"] + 1}")
+```
+
+Fields accept BS expressions, including indexes, calls, and dictionaries.
+They are converted as with `tostr`; `null` becomes `"null"`.
+Fields run from left to right. Short-circuit logic can skip the whole string.
+All field syntax is checked before any expression in the containing statement runs.
+Assignments and format specifiers are not supported inside fields.
+
+Ordinary strings keep `${...}` as literal text. Inside an interpolated string,
+use `\${...}` for literal text. Normal string escapes and Unicode still work.
+The `f` prefix is required so existing JSON, templates, and other strings do not change.
+
 ### Dictionaries
 
 Use `{key: value}` for a dictionary. `{}` creates an empty dictionary.
@@ -178,6 +198,8 @@ push(5 >= 3 and ready) # True
 Blocks normally close with `end`. Use indentation for readability. A source-file block can also close on dedent, but `end` is clearer and is required for an unambiguous REPL session. A final colon is conventional but optional.
 
 ### Conditions
+
+`if` is an alias for `cond`. Both use the same `elif`, `else`, and `end` syntax.
 
 ```bs
 score = 83
@@ -298,10 +320,17 @@ Python exception objects from the bridge can also be raised.
 | `problem.file` | Source file, or `<input>` or `<repl>`. |
 | `problem.line`, `problem.column` | Source location, starting at 1. |
 | `problem.stack` | List of BS function call frames, from outer to inner. |
+| `problem.args` | The original Python exception arguments. |
+| `problem.cause` | The original Python exception, or `null` for a BS error. |
 
 Each frame has `function`, `file`, `line`, and `column` fields. Frames identify
 the call sites. The error location identifies the failed operation. A bare raise
 preserves this information.
+
+Caught Python errors also expose their original attributes. For example,
+`problem.code` reads an HTTP status, and `problem.errno` reads a system error
+number. BS fields take precedence. Use `problem.cause` to access the original
+Python exception directly.
 
 Uncaught errors go to stderr with their type, source location, and BS call stack.
 The `bs` command and `run.py` return status `1`. Successful runs return `0`.
@@ -658,11 +687,6 @@ operations must stay on the GUI thread. Call the API through `http` from GUI
 callbacks. An unexpected background server error is printed to stderr and kept
 by `server.error()`; `server.wait()` raises it after the thread stops.
 Call `wait` outside request handlers. Shutdown also applies to background servers.
-
-Caught Python errors also expose their original attributes. For example,
-`problem.code` reads an HTTP status, and `problem.errno` reads a system error
-number. BS fields take precedence. Use `problem.cause` to access the original
-Python exception directly. `problem.args` keeps the original exception arguments.
 
 ## Python interoperability
 

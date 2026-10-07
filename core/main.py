@@ -7,9 +7,11 @@ from contextvars import ContextVar
 try:
     import core.diagnostics as diagnostics
     import core.runtime as runtime
+    from core.strings import code_mask
 except ModuleNotFoundError:
     import diagnostics
     import runtime
+    from strings import code_mask
 report = diagnostics.report
 import lexer as lexer_module
 import parser as parser_module
@@ -39,46 +41,15 @@ class ReturnSignal(Exception):
         self.value = value
 
 def strip_inline_comment(line):
-    in_string = False
-    escaped = False
-    result = []
-    for char in line:
-        if escaped:
-            result.append(char)
-            escaped = False
-            continue
-        if char == '\\' and in_string:
-            result.append(char)
-            escaped = True
-            continue
-        if char == '"':
-            in_string = not in_string
-            result.append(char)
-            continue
-        if char == '#' and not in_string:
-            break
-        result.append(char)
-    return ''.join(result).strip()
+    comment = code_mask(line).find('#')
+    return line[:comment].strip() if comment >= 0 else line.strip()
 
 def indentation(line):
     return len(line) - len(line.lstrip(' \t'))
 
 def split_assignment(line):
-    in_string = False
-    escaped = False
     depth = 0
-    for index, char in enumerate(line):
-        if escaped:
-            escaped = False
-            continue
-        if char == '\\' and in_string:
-            escaped = True
-            continue
-        if char == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
+    for index, char in enumerate(code_mask(line)):
         if char in '([{':
             depth += 1
             continue
@@ -104,21 +75,8 @@ INPLACE_OPERATORS = {
 }
 
 def split_augmented_assignment(line):
-    in_string = False
-    escaped = False
     depth = 0
-    for index, char in enumerate(line):
-        if escaped:
-            escaped = False
-            continue
-        if char == '\\' and in_string:
-            escaped = True
-            continue
-        if char == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
+    for index, char in enumerate(code_mask(line)):
         if char in '([{':
             depth += 1
             continue
@@ -171,9 +129,9 @@ def execute_line(line):
         print(parser_module.display(result))
 
 def block_keyword(line):
-    for keyword in ('cond', 'while', 'for', 'func', 'try'):
+    for keyword in ('cond', 'if', 'while', 'for', 'func', 'try'):
         if line in (keyword, keyword + ':') or line.startswith(keyword + ' ') or line.startswith(keyword + '('):
-            return keyword
+            return 'cond' if keyword == 'if' else keyword
     return None
 
 def is_block_start(line):
@@ -254,7 +212,8 @@ def execute_cond(line, branches):
         source = header if header is not None else line
         with diagnostics.source_location(source):
             if header is None:
-                condition_text = parse_colon_expression(line, 'cond')
+                keyword = 'if' if re.match(r'if(?:\s|\(|:|$)', line) else 'cond'
+                condition_text = parse_colon_expression(line, keyword)
             elif branch_keyword(header) == 'else':
                 execute_lines(body)
                 return
