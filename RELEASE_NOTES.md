@@ -6,6 +6,8 @@ New HTML desktop apps, written in BrittainScript:
   The library serves the page, opens a browser app window, and sends only the
   changed parts of each new render. Bound inputs, timers, key handlers, toasts
   and a light and dark theme are built in. See `examples/ui_demo.bs`.
+- `ui.canvas`: SVG drawing with lines, shapes, arcs, text and click coordinates.
+  See `examples/ui_paint.bs`.
 - `add web`: an HTTP/1.1 server written in BrittainScript.
 - `add net`: socket primitives that use only the Python standard library.
 

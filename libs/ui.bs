@@ -29,7 +29,7 @@ _uiDict = type({})
 _uiList = type([])
 _uiBool = type(true)
 _uiVoid = ["input", "br", "hr", "img", "meta", "link"]
-_uiEvents = ["data-bs-click", "data-bs-change", "data-bs-input", "data-bs-enter"]
+_uiEvents = ["data-bs-click", "data-bs-change", "data-bs-input", "data-bs-enter", "data-bs-point"]
 _ui = {"title": "BrittainScript", "width": 1000, "height": 720, "accent": "#5b5bf6", "css": [], "timers": [], "keys": [], "keyHandler": null, "commands": [], "state": null, "view": null, "tree": null, "version": 0, "token": "", "port": 0, "running": false, "byeAt": null, "handlers": {}, "bound": []}
 
 # ---------------------------------------------------------------- app setup
@@ -290,6 +290,100 @@ func empty(message):
     return _box("div", "bs-empty", [message])
 end
 
+# ---------------------------------------------------------------- canvas (SVG drawing)
+# Coordinates are canvas units: (0, 0) is the top left, x grows right, y grows down.
+# Colors are CSS colors, including theme variables such as "var(--accent)".
+# Fill shapes: rect, circle, ellipse, polygon. Stroke shapes: line, polyline, arc, path.
+
+func canvas(width, height, shapes):
+    return el("svg", {"class": "bs-canvas", "viewBox": f"0 0 ${width} ${height}", "width": width, "height": height, "xmlns": "http://www.w3.org/2000/svg"}, shapes)
+end
+
+func _shape(tag, attrs, rules):
+    attrs["style"] = rules
+    return el(tag, attrs, [])
+end
+
+func _num(value):
+    local rounded
+    rounded = round(value * 100)
+    if rounded % 100 == 0:
+        return rounded // 100
+    end
+    return rounded / 100
+end
+
+func _points(points):
+    local parts, point
+    parts = []
+    for point in points:
+        parts.add(tostr(_num(point[0])) + "," + tostr(_num(point[1])))
+    end
+    return " ".join(parts)
+end
+
+func line(x1, y1, x2, y2, color):
+    return _shape("line", {"x1": x1, "y1": y1, "x2": x2, "y2": y2}, f"stroke: ${color}; stroke-width: 2; stroke-linecap: round")
+end
+
+func rect(x, y, width, height, color):
+    return _shape("rect", {"x": x, "y": y, "width": width, "height": height}, f"fill: ${color}")
+end
+
+func circle(x, y, radius, color):
+    return _shape("circle", {"cx": x, "cy": y, "r": radius}, f"fill: ${color}")
+end
+
+func ellipse(x, y, radiusX, radiusY, color):
+    return _shape("ellipse", {"cx": x, "cy": y, "rx": radiusX, "ry": radiusY}, f"fill: ${color}")
+end
+
+# points is a list of [x, y] pairs
+func polyline(points, color):
+    return _shape("polyline", {"points": _points(points)}, f"fill: none; stroke: ${color}; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round")
+end
+
+func polygon(points, color):
+    return _shape("polygon", {"points": _points(points)}, f"fill: ${color}")
+end
+
+# an SVG path, e.g. "M 10 10 L 50 50"
+func path(commands, color):
+    return _shape("path", {"d": commands}, f"fill: none; stroke: ${color}; stroke-width: 2; stroke-linecap: round")
+end
+
+# a circular arc from startDegrees to endDegrees, clockwise from 12 o'clock
+func arc(x, y, radius, startDegrees, endDegrees, color):
+    local sweep, endAngle, large, x1, y1, x2, y2
+    sweep = endDegrees - startDegrees
+    if sweep >= 360:
+        sweep = 359.99
+    end
+    if sweep <= 0:
+        return _shape("path", {"d": ""}, "fill: none")
+    end
+    endAngle = startDegrees + sweep
+    large = 0
+    if sweep > 180:
+        large = 1
+    end
+    x1 = _num(x + radius * sin(startDegrees))
+    y1 = _num(y - radius * cos(startDegrees))
+    x2 = _num(x + radius * sin(endAngle))
+    y2 = _num(y - radius * cos(endAngle))
+    return path(f"M ${x1} ${y1} A ${radius} ${radius} 0 ${large} 1 ${x2} ${y2}", color)
+end
+
+# text drawn on a canvas, centered on (x, y)
+func drawText(x, y, value, color):
+    return el("text", {"x": x, "y": y, "text-anchor": "middle", "dominant-baseline": "central", "style": f"fill: ${color}"}, [value])
+end
+
+# draw several shapes as one unit, e.g. to move or key them together
+func group(shapes):
+    return el("g", null, shapes)
+end
+
 # ---------------------------------------------------------------- modifiers (each returns the element)
 
 func attr(node, name, value):
@@ -329,6 +423,52 @@ end
 
 func small(node):
     return cls(node, "small")
+end
+
+# canvas shapes
+func fill(node, color):
+    return style(node, "fill: " + color)
+end
+
+func stroke(node, color, width):
+    return style(node, f"stroke: ${color}; stroke-width: ${width}")
+end
+
+func opacity(node, value):
+    return style(node, f"opacity: ${value}")
+end
+
+func rounded(node, radius):
+    node["attrs"]["rx"] = radius
+    node["attrs"]["ry"] = radius
+    return node
+end
+
+func fontSize(node, size):
+    return style(node, f"font-size: ${size}px")
+end
+
+func _transform(node, step):
+    if "transform" in node["attrs"]:
+        node["attrs"]["transform"] = node["attrs"]["transform"] + " " + step
+    else:
+        node["attrs"]["transform"] = step
+    end
+    return node
+end
+
+func move(node, dx, dy):
+    return _transform(node, f"translate(${dx} ${dy})")
+end
+
+# rotate clockwise around (x, y)
+func rotate(node, degrees, x, y):
+    return _transform(node, f"rotate(${degrees} ${x} ${y})")
+end
+
+# a click anywhere on a canvas calls handler with event["x"] and event["y"] in canvas units
+func onPoint(node, handler):
+    return attr(node, "data-bs-point", handler)
 end
 
 func disabled(node, flag):
@@ -661,6 +801,7 @@ func _uiTheme():
     c.add(".bs-stat{display:flex;flex-direction:column;gap:2px}.bs-stat-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.bs-stat-value{font-size:28px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}")
     c.add(".bs-list{list-style:none;margin:0;padding:0}.bs-list>li{padding:10px 2px;border-bottom:1px solid var(--border)}.bs-list>li:last-child{border-bottom:0}")
     c.add(".bs-table{width:100%;border-collapse:collapse;font-size:14px}.bs-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}.bs-table th,.bs-table td{padding:10px 8px;border-bottom:1px solid var(--border)}")
+    c.add(".bs-canvas{display:block;max-width:100%;height:auto;overflow:visible;font-size:14px;user-select:none}.bs-canvas[data-bs-point]{cursor:crosshair}.bs-canvas [data-bs-click]{cursor:pointer}")
     c.add(".bs-empty{border:1.5px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--muted)}")
     c.add("#bs-toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:10}")
     c.add(".bs-toast{background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;box-shadow:var(--shadow);animation:bs-in .2s ease;transition:opacity .3s,transform .3s;max-width:360px}.bs-toast.error{background:var(--danger);color:#fff}.bs-toast.success{background:var(--success);color:#fff}.bs-toast.out{opacity:0;transform:translateY(6px)}")
@@ -676,24 +817,26 @@ func _uiClient():
     j = []
     j.add("(function(){var B=window.BS,root=document.getElementById('bs-root'),queue=Promise.resolve(),busy=0,typing=null;")
     j.add("function at(path){var n=root;for(var i=0;i<path.length;i++){n=n.childNodes[path[i]];}return n;}")
-    j.add("function frag(html){var t=document.createElement('template');t.innerHTML=html;return t.content;}")
+    # markup going into an SVG parent must be parsed as SVG, or shapes would not draw
+    j.add("function frag(html,parent){var t=document.createElement('template');if(parent&&parent.namespaceURI==='http://www.w3.org/2000/svg'){t.innerHTML='<svg>'+html+'</svg>';var f=document.createDocumentFragment(),s=t.content.firstChild;while(s.firstChild){f.appendChild(s.firstChild);}return f;}t.innerHTML=html;return t.content;}")
     # values() also records what was sent as each field's baseline, matching the server
     j.add("function values(){var v={};root.querySelectorAll('[data-bs-bind]').forEach(function(el){var k=el.getAttribute('data-bs-bind');if(el.type==='checkbox'){v[k]=el.checked;}else if(el.type==='range'){v[k]=Number(el.value);}else{v[k]=el.value;}el.setAttribute('data-bs-value',String(v[k]));});return v;}")
     j.add("function sync(){root.querySelectorAll('[data-bs-bind]').forEach(function(el){var v=el.getAttribute('data-bs-value')||'',force=el.__bsForce;el.__bsForce=false;if(el===document.activeElement&&!force){return;}if(el.type==='checkbox'){el.checked=(v==='true');}else if(el.value!==v){el.value=v;}});}")
     j.add("function toast(text,kind){var box=document.getElementById('bs-toasts'),t=document.createElement('div');t.className='bs-toast '+(kind||'');t.textContent=text;box.appendChild(t);setTimeout(function(){t.classList.add('out');},kind==='error'?5000:2600);setTimeout(function(){t.remove();},kind==='error'?5400:3000);}")
-    j.add("function apply(p){var el;if(p.op==='text'){at(p.path).data=p.text;}else if(p.op==='replace'){at(p.path).replaceWith(frag(p.html));}")
+    j.add("function apply(p){var el;if(p.op==='text'){at(p.path).data=p.text;}else if(p.op==='replace'){el=at(p.path);el.replaceWith(frag(p.html,el.parentNode));}")
     j.add("else if(p.op==='attrs'){el=at(p.path);for(var k in p.set){el.setAttribute(k,p.set[k]);}p.remove.forEach(function(k){el.removeAttribute(k);});if('data-bs-value' in p.set){el.__bsForce=true;}}")
-    j.add("else if(p.op==='append'){at(p.path).appendChild(frag(p.html));}else if(p.op==='trim'){el=at(p.path);while(el.childNodes.length>p.count){el.removeChild(el.lastChild);}}")
+    j.add("else if(p.op==='append'){el=at(p.path);el.appendChild(frag(p.html,el));}else if(p.op==='trim'){el=at(p.path);while(el.childNodes.length>p.count){el.removeChild(el.lastChild);}}")
     j.add("else if(p.op==='toast'){toast(p.text,p.kind);}else if(p.op==='title'){document.title=p.text;}")
     j.add("else if(p.op==='focus'){root.querySelectorAll('[data-bs-bind]').forEach(function(f){if(f.getAttribute('data-bs-bind')===p.key){f.focus();}});}")
     j.add("else if(p.op==='quit'){B.closed=true;window.close();document.body.innerHTML='<p style=\"font:15px system-ui;padding:40px;color:gray\">This app has finished. You can close this window.</p>';}}")
-    j.add("function send(handler,el,extra){if(B.closed){return;}var body={handler:handler,arg:null,key:null,values:values(),version:B.version};")
+    j.add("function send(handler,el,extra){if(B.closed){return;}var body={handler:handler,arg:null,key:null,x:null,y:null,values:values(),version:B.version};")
     j.add("if(el&&el.closest){var a=el.closest('[data-bs-arg]');if(a){body.arg=JSON.parse(a.getAttribute('data-bs-arg'));}}if(extra){for(var k in extra){body[k]=extra[k];}}busy++;")
     j.add("queue=queue.then(function(){body.version=B.version;return fetch('/bs/event',{method:'POST',headers:{'Content-Type':'application/json','X-BS-Token':B.token},body:JSON.stringify(body)});})")
     j.add(".then(function(r){if(!r.ok){throw new Error('HTTP '+r.status);}return r.json();}).then(function(res){B.version=res.version;res.patches.forEach(apply);sync();})")
     j.add(".catch(function(e){toast('Lost contact with the app ('+e.message+')','error');}).then(function(){busy--;});}")
     j.add("function target(e,name){return e.target&&e.target.closest?e.target.closest('['+name+']'):null;}")
-    j.add("document.addEventListener('click',function(e){var el=target(e,'data-bs-click');if(el&&!el.disabled){e.preventDefault();send(el.getAttribute('data-bs-click'),el);}});")
+    j.add("function point(e){var c=e.target&&e.target.closest?e.target.closest('svg.bs-canvas'):null,m=c&&c.getScreenCTM();if(!m){return null;}var p=c.createSVGPoint();p.x=e.clientX;p.y=e.clientY;p=p.matrixTransform(m.inverse());return {x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10};}")
+    j.add("document.addEventListener('click',function(e){var el=target(e,'data-bs-click'),pt=point(e);if(el&&!el.disabled){e.preventDefault();send(el.getAttribute('data-bs-click'),el,pt);return;}el=target(e,'data-bs-point');if(el){send(el.getAttribute('data-bs-point'),el,pt);}});")
     j.add("document.addEventListener('change',function(e){var el=target(e,'data-bs-change');if(el){send(el.getAttribute('data-bs-change'),el);}else if(e.target.matches&&e.target.matches('[data-bs-bind]')&&e.target.type!=='text'&&e.target.tagName!=='TEXTAREA'&&e.target.type!=='password'){send('',e.target);}});")
     j.add("document.addEventListener('input',function(e){var el=target(e,'data-bs-input');if(el){clearTimeout(typing);typing=setTimeout(function(){send(el.getAttribute('data-bs-input'),el);},180);}});")
     j.add("document.addEventListener('keydown',function(e){var el=target(e,'data-bs-enter');if(el&&e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();send(el.getAttribute('data-bs-enter'),el);return;}")

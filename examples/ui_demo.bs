@@ -26,6 +26,13 @@ func countDone(tasks):
     return total
 end
 
+# a ring that empties as the session runs, drawn on a canvas
+func timerRing(left, total):
+    local done
+    done = 360 * (total - left) / total
+    return ui.canvas(160, 160, [ui.fill(ui.stroke(ui.circle(80, 80, 66, "none"), "var(--border)", 10), "none"), ui.stroke(ui.arc(80, 80, 66, done, 360, "var(--accent)"), "var(--accent)", 10), ui.fontSize(ui.style(ui.drawText(80, 80, clockText(left), "var(--fg)"), "font-weight: 700; font-variant-numeric: tabular-nums"), 28)])
+end
+
 func taskRow(task):
     local box, title, remove
     box = ui.arg(ui.small(ui.ghost(ui.button("○", "toggle"))), task["id"])
@@ -63,7 +70,7 @@ func view(s):
     elif s["paused"]:
         label = "Resume"
     end
-    timer = ui.card([ui.h2("Focus timer"), ui.stat("Remaining", clockText(left)), ui.progress(s["minutes"] * 60 - left, s["minutes"] * 60), ui.row([ui.primary(ui.button(label, "toggleTimer")), ui.button("Reset", "resetTimer")]), ui.muted(f"Session length: ${s["minutes"]} minutes"), ui.slider("minutes", 5, 60)])
+    timer = ui.card([ui.h2("Focus timer"), ui.row([timerRing(left, s["minutes"] * 60), ui.style(ui.col([ui.row([ui.primary(ui.button(label, "toggleTimer")), ui.button("Reset", "resetTimer")]), ui.muted(f"Session length: ${s["minutes"]} minutes"), ui.slider("minutes", 5, 60)]), "flex: 1")])])
     return ui.page([ui.col([ui.h1("Focus Board"), ui.muted("Built with BrittainScript. HTML, CSS and the event loop are all .bs code.")]), ui.grid([ui.card([ui.stat("Tasks", len(s["tasks"]))]), ui.card([ui.stat("Finished", done)]), ui.card([ui.stat("Open", len(s["tasks"]) - done)])]), tasksCard, timer])
 end
 

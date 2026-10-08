@@ -59,6 +59,15 @@ end
 push(invoke("handler", [21]))
 '''), '42\n')
 
+    def test_invoke_prefers_user_functions_over_builtins(self):
+        # A ui handler named "clear" used to run the terminal-clearing built-in.
+        self.assertEqual(self.run_bs('''func clear(x):
+    return "mine " + x
+end
+push(invoke("clear", ["ok"]))
+push(invoke("len", ["abc"]))
+'''), 'mine ok\n3\n')
+
     def test_bad_arguments_raise(self):
         for source in ('ord("ab")', 'chr("a")', 'invoke("f", 1)', 'invoke("missing_function_xyz", [])'):
             with self.subTest(source=source), self.assertRaises(BSError):
@@ -213,6 +222,44 @@ new = ui._uiNorm(ui.list([ui.key(ui.text("b"), 2)]))
 patches = []
 ui._uiDiff(old, new, [0], patches)''')
         self.assertEqual([patch['op'] for patch in parser.names['patches']], ['replace', 'trim'])
+
+
+class UiCanvasTests(BSTestCase):
+    def setUp(self):
+        super().setUp()
+        self.run_bs('add ui')
+
+    def bs_value(self, expression):
+        self.run_bs('test_value = ' + expression)
+        return parser.names['test_value']
+
+    def test_canvas_renders_svg_shapes(self):
+        html = self.bs_value('ui._uiHtml(ui._uiNorm(ui.onPoint(ui.canvas(200, 100, [ui.rounded(ui.rect(0, 0, 200, 100, "var(--surface)"), 8), ui.stroke(ui.circle(50, 50, 10, "red"), "blue", 3), ui.polyline([[0, 0], [10.256, 5]], "green"), ui.move(ui.drawText(100, 50, "a < b", "black"), 5, 0)]), "paint")))')
+        self.assertTrue(html.startswith('<svg class="bs-canvas" viewBox="0 0 200 100" width="200" height="100" xmlns="http://www.w3.org/2000/svg" data-bs-point="paint">'))
+        self.assertIn('<rect x="0" y="0" width="200" height="100" style="fill: var(--surface)" rx="8" ry="8"></rect>', html)
+        self.assertIn('<circle cx="50" cy="50" r="10" style="fill: red; stroke: blue; stroke-width: 3"></circle>', html)
+        self.assertIn('points="0,0 10.26,5"', html)
+        self.assertIn('transform="translate(5 0)">a &lt; b</text>', html)
+
+    def test_arc_paths(self):
+        self.assertEqual(self.bs_value('ui.arc(80, 80, 66, 0, 90, "red")["attrs"]["d"]'), 'M 80 14 A 66 66 0 0 1 146 80')
+        self.assertEqual(self.bs_value('ui.arc(80, 80, 66, 135, 360, "red")["attrs"]["d"]'), 'M 126.67 126.67 A 66 66 0 1 1 80 14')
+        self.assertEqual(self.bs_value('ui.arc(80, 80, 66, 90, 90, "red")["attrs"]["d"]'), '')
+
+    def test_canvas_point_handler_receives_coordinates(self):
+        self.run_bs('''state = {"dots": []}
+func view(s):
+    return ui.onPoint(ui.canvas(100, 100, s["dots"]), "paint")
+end
+func paint(s, event):
+    s["dots"].add(ui.circle(event["x"], event["y"], 4, "red"))
+end
+_ui["state"] = state
+_ui["view"] = "view"
+page = ui._uiDocument()
+reply = ui._uiEvent("{\\"handler\\": \\"paint\\", \\"x\\": 12.5, \\"y\\": 40, \\"values\\": {}, \\"version\\": 1}")''')
+        reply = json.loads(parser.names['reply'])
+        self.assertEqual(reply['patches'], [{'op': 'append', 'path': [0], 'html': '<circle cx="12.5" cy="40" r="4" style="fill: red"></circle>'}])
 
 
 class UiEventTests(BSTestCase):

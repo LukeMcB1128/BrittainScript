@@ -490,7 +490,7 @@ These functions do not need `add`.
 | `tostr(value)` | Convert to text; `null` becomes `"null"`. |
 | `chr(code)` | One-character string for an integer Unicode code point. |
 | `ord(text)` | Integer code point of a one-character string. |
-| `invoke(name, args)` | Call the BS function named by the string `name` with the list `args`; return its result. Libraries use it to call handlers passed by name. |
+| `invoke(name, args)` | Call the BS function named by the string `name` with the list `args`; return its result. A `func` with the same name as a built-in, such as `clear`, takes priority. Libraries use it to call handlers passed by name. |
 | `error(message, type="RuntimeError")` | Create an error value. Both arguments must be strings. |
 | `list(iterable)` | Create a list; omit the argument for an empty list. |
 | `dict(source)` | Copy a mapping or key/value pairs; omit the argument for an empty dictionary. |
@@ -1023,6 +1023,7 @@ can be called. `event` is a dictionary:
 | `"handler"` | The handler name. |
 | `"arg"` | The value set with `ui.arg(element, value)`, or `null`. |
 | `"key"` | The key name for `ui.onKey` handlers, such as `"Escape"`; otherwise `null`. |
+| `"x"`, `"y"` | Canvas coordinates of a click on a canvas; otherwise `null`. |
 | `"values"` | The current values of all bound inputs. |
 
 An error in a handler or in `view` prints the BS diagnostic in the terminal and
@@ -1075,6 +1076,61 @@ as the user types.
 `kids` is a list of elements, strings or numbers. A single value also works.
 Nested lists are flattened and `null` is skipped, so a view can build a list of
 items in a loop and pass it as one child. Text is always escaped.
+
+### Canvas
+
+`ui.canvas(width, height, shapes)` draws shapes with SVG. Coordinates are
+canvas units: `(0, 0)` is the top left, `x` grows to the right and `y` grows
+down. The canvas scales down to fit narrow windows, and click coordinates stay
+in canvas units. Canvases redraw like any other element, so only changed
+shapes are sent to the window.
+
+```bs
+func view(s):
+    local shapes, dot
+    shapes = [ui.rounded(ui.rect(0, 0, 400, 240, "var(--surface)"), 12)]
+    for dot in s["dots"]:
+        shapes.add(ui.circle(dot[0], dot[1], 8, "var(--accent)"))
+    end
+    return ui.page([ui.onPoint(ui.canvas(400, 240, shapes), "paint")])
+end
+
+func paint(s, event):
+    s["dots"].add([event["x"], event["y"]])
+end
+```
+
+Colors are CSS colors, including theme variables such as `"var(--accent)"`.
+`rect`, `circle`, `ellipse` and `polygon` are filled. `line`, `polyline`, `arc`
+and `path` are outlined with a 2-pixel stroke.
+
+| Function | Shape |
+| --- | --- |
+| `ui.canvas(width, height, shapes)` | Drawing area. |
+| `ui.line(x1, y1, x2, y2, color)` | Line. |
+| `ui.rect(x, y, width, height, color)` | Rectangle from its top-left corner. |
+| `ui.circle(x, y, radius, color)` | Circle around a center. |
+| `ui.ellipse(x, y, radiusX, radiusY, color)` | Ellipse around a center. |
+| `ui.polyline(points, color)` | Open line through a list of `[x, y]` points. |
+| `ui.polygon(points, color)` | Filled shape through a list of `[x, y]` points. |
+| `ui.arc(x, y, radius, startDegrees, endDegrees, color)` | Arc measured clockwise from 12 o'clock. Use it for progress rings. |
+| `ui.path(commands, color)` | SVG path data, such as `"M 0 0 L 50 50"`. |
+| `ui.drawText(x, y, text, color)` | Text centered on a point. |
+| `ui.group(shapes)` | Several shapes that move or rotate together. |
+
+| Modifier | Effect |
+| --- | --- |
+| `ui.fill(shape, color)` | Fill color; `"none"` for an outline only. |
+| `ui.stroke(shape, color, width)` | Outline color and width. |
+| `ui.opacity(shape, value)` | Opacity from `0` to `1`. |
+| `ui.rounded(rect, radius)` | Round a rectangle's corners. |
+| `ui.fontSize(node, size)` | Text size in pixels. |
+| `ui.move(shape, dx, dy)` | Shift a shape or group. |
+| `ui.rotate(shape, degrees, x, y)` | Rotate clockwise around a point. |
+| `ui.onPoint(canvas, handler)` | Call a handler for clicks on the canvas, with `event["x"]` and `event["y"]`. |
+
+`ui.onClick` also works on a shape. A click on a shape with its own handler
+calls only that handler, and the event still includes `x` and `y`.
 
 ### Modifiers
 
@@ -1437,6 +1493,7 @@ There is no bundled SQL library. A Python driver can be imported with `pyimport`
 - [`examples/string_interpolation.bs`](../examples/string_interpolation.bs): `if` and interpolated strings.
 - [`examples/note_vault.bs`](../examples/note_vault.bs): a GUI and API in one process with persistent notes; requires the server extra and Tkinter.
 - [`examples/ui_demo.bs`](../examples/ui_demo.bs): a task board and focus timer built with the `ui` library.
+- [`examples/ui_paint.bs`](../examples/ui_paint.bs): click-to-paint canvas drawing with the `ui` library.
 - [`examples/torch_demo.bs`](../examples/torch_demo.bs): PyTorch autograd via the bridge (requires PyTorch).
 
 The Python programs under [`tests/py_corpus/`](../tests/py_corpus) are the

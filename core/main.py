@@ -369,6 +369,17 @@ def call_callback_function(name, args):
     finally:
         current_environments().pop()
 
+def call_named_function(name, args):
+    # invoke() names a BS function, so a user function wins over a built-in
+    # of the same name (a handler called "clear" must not clear the terminal).
+    current_environments().append(None)
+    try:
+        if name in current_functions():
+            return call_user_function(name, args)
+        return parser_module.call_function(name, args)
+    finally:
+        current_environments().pop()
+
 def import_module(lib_name):
     if lib_name == 'store':
         import store_backend
@@ -404,7 +415,7 @@ def import_module(lib_name):
 parser_module.set_function_caller(call_user_function)
 parser_module.set_module_caller(call_module_function)
 parser_module.gui_backend.set_callback_invoker(call_callback_function)
-parser_module.set_callback_caller(call_callback_function)
+parser_module.set_callback_caller(call_named_function)
 
 def catch_spec(header):
     match = re.fullmatch(r'catch(?:\s+([A-Za-z_][A-Za-z0-9_]*))?(?:\s+as\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:?', header)
