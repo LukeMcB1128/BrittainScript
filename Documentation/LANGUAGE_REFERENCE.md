@@ -1223,6 +1223,7 @@ web.serve(server, "handle")
 | `web.redirect(request, location)` | Send a 302 redirect. |
 | `web.notFound(request)` | Send a 404 response. |
 | `web.header(request, name)` | Read a request header by name, or `null`. |
+| `web.readRequest(conn)` | Read one request from a `net` connection handle; return a request, or `null` if the client closed the connection. Used by `web.next`. |
 | `web.parseQuery(text)` | Decode a query string into a dictionary. |
 | `web.urlDecode(text)` | Decode `%XX` escapes as UTF-8. |
 
@@ -1338,7 +1339,7 @@ The bundled BS libraries call the functions below. You can also call them withou
 | `guiconfirm(title, message)` | `gui.confirm(title, message)` |
 | `guiprompt(title, message)` | `gui.prompt(title, message)` |
 
-`gui.circle` is a BS wrapper around `guidrawoval`; there is no separate circle backend function. File backend functions are listed in [File functions](#file-functions). `http`, `store`, and `server` expose their public API through `add`, without separate global backend function names.
+`gui.circle` is a BS wrapper around `guidrawoval`; there is no separate circle backend function. File backend functions are listed in [File functions](#file-functions). `http`, `store`, `server`, and `net` expose their public API through `add`, without separate global backend function names. `web` and `ui` are BS libraries built on `net`.
 
 ## Python interoperability
 
