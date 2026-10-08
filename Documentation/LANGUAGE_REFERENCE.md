@@ -13,6 +13,7 @@ Function tables show all public built-ins and bundled library functions. In a si
 - [Built-in functions](#built-in-functions)
 - [Bundled libraries: math, convert, io, datetime, terminal, gui](#bundled-libraries)
 - [JSON](#json-library), [persistent stores](#persistent-store-library), [HTTP client](#http-client-library), and [HTTP server](#http-server-library)
+- [HTML apps (`ui`)](#html-app-library-ui), [web server (`web`)](#web-server-library-web), and [sockets (`net`)](#socket-library-net)
 - [Direct backend functions](#direct-backend-functions)
 - [Python interoperability](#python-interoperability)
 - [Python translation](#translating-python-py2bs)
@@ -487,6 +488,9 @@ These functions do not need `add`.
 | `len(value)` | Length of a compatible value. |
 | `tonum(value)` | Convert to an integer, or a float if its text contains a decimal point. Invalid input raises an error. |
 | `tostr(value)` | Convert to text; `null` becomes `"null"`. |
+| `chr(code)` | One-character string for an integer Unicode code point. |
+| `ord(text)` | Integer code point of a one-character string. |
+| `invoke(name, args)` | Call the BS function named by the string `name` with the list `args`; return its result. Libraries use it to call handlers passed by name. |
 | `error(message, type="RuntimeError")` | Create an error value. Both arguments must be strings. |
 | `list(iterable)` | Create a list; omit the argument for an empty list. |
 | `dict(source)` | Copy a mapping or key/value pairs; omit the argument for an empty dictionary. |
@@ -527,7 +531,7 @@ These operations use the platform's default text encoding. They do not add newli
 
 ## Bundled libraries
 
-Load a bundled module with `add name`, then call its functions. BS modules live in `libs/` next to the interpreter, not beside the source file. The native `server`, `http`, and `store` modules use Python backends.
+Load a bundled module with `add name`, then call its functions. BS modules live in `libs/` next to the interpreter, not beside the source file. The native `server`, `http`, `store`, and `net` modules use Python backends. `web` and `ui` are written in BrittainScript.
 
 ```bs
 add math
@@ -976,6 +980,228 @@ callbacks. An unexpected background server error is printed to stderr and kept
 by `server.error()`; `server.wait()` raises it after the thread stops.
 A wait timeout must be a non-negative, finite number of seconds. A timeout does not stop the server. Call `stop` to request shutdown, then `wait` to wait for it. Call `wait` outside request handlers and store transaction callbacks.
 
+## HTML app library (`ui`)
+
+`add ui` builds desktop apps with HTML and CSS. The library is written in
+BrittainScript: it serves the page through [`web`](#web-server-library-web),
+renders elements, diffs them and handles events. No extra packages are needed.
+
+```bs
+add ui
+
+state = {"count": 0, "name": ""}
+
+func view(s):
+    return ui.page([ui.h1(f"Clicked ${s["count"]} times"), ui.input("name", "Your name"), ui.p("Hello " + s["name"]), ui.primary(ui.button("Click me", "clicked"))])
+end
+
+func clicked(s, event):
+    s["count"] += 1
+end
+
+ui.app("Counter", state, "view")
+```
+
+`ui.app(title, state, view)` starts a local server on `127.0.0.1` and opens the
+page. With Chrome, Edge, Chromium or Brave installed, the page opens in an app
+window without tabs or an address bar. Otherwise it opens in the default
+browser. The call blocks until the window closes, `ui.quit()` runs, or Ctrl+C,
+and then returns the final state.
+
+How a frame is drawn:
+
+1. `view(state)` returns a tree of elements. Elements are dictionaries made by the functions below.
+2. A click or other event calls the named handler with `(state, event)`. A handler changes `state` in place, or returns a new state dictionary.
+3. `ui` calls `view(state)` again, compares the new tree with the previous one, and sends only the changed text, attributes and elements to the window.
+
+Handlers are function names as strings, like other BS callbacks. Only handlers
+that appear on screen, or that are registered with `ui.every` and `ui.onKey`,
+can be called. `event` is a dictionary:
+
+| Key | Value |
+| --- | --- |
+| `"handler"` | The handler name. |
+| `"arg"` | The value set with `ui.arg(element, value)`, or `null`. |
+| `"key"` | The key name for `ui.onKey` handlers, such as `"Escape"`; otherwise `null`. |
+| `"values"` | The current values of all bound inputs. |
+
+An error in a handler or in `view` prints the BS diagnostic in the terminal and
+shows an error toast in the window. The app keeps running.
+
+### Bound inputs
+
+Input functions take a state key. The field shows `state[key]`, and every
+event first copies the field's current value into `state[key]`. A handler can
+read the typed text from state, or set the key to change the field, for example
+`s["draft"] = ""` to clear it. Text that the user is still typing is never
+overwritten by unrelated updates, such as a timer.
+
+Checkboxes, sliders and select menus redraw the page when they change, so
+`view` can depend on them directly. Use `ui.live(field)` to redraw a text field
+as the user types.
+
+### Elements
+
+| Function | Element |
+| --- | --- |
+| `ui.page(kids)` | Centered page column. Use it as the root. |
+| `ui.row(kids)` | Horizontal, wrapping row with spacing. |
+| `ui.col(kids)` | Vertical column with spacing. |
+| `ui.grid(kids)` | Responsive grid of equal columns. |
+| `ui.card(kids)` | Raised panel. |
+| `ui.spacer()` | Fills the free space in a row. |
+| `ui.divider()` | Horizontal rule. |
+| `ui.h1(text)`, `ui.h2(text)`, `ui.h3(text)` | Headings. |
+| `ui.p(text)` | Paragraph. |
+| `ui.muted(text)` | Small secondary text. |
+| `ui.text(text)` | Inline text. |
+| `ui.code(text)` | Inline code. |
+| `ui.badge(text)` | Small rounded label. |
+| `ui.link(label, url)` | Link that opens in the browser. |
+| `ui.button(label, handler)` | Button that calls `handler`. |
+| `ui.input(key, placeholder)` | One-line text field bound to `state[key]`. |
+| `ui.password(key, placeholder)` | Password field bound to `state[key]`. |
+| `ui.textarea(key, rows)` | Multi-line text field bound to `state[key]`. |
+| `ui.checkbox(key, label)` | Checkbox bound to a boolean `state[key]`. |
+| `ui.slider(key, low, high)` | Range slider bound to a number `state[key]`. |
+| `ui.select(key, options)` | Drop-down menu bound to `state[key]`; `options` is a list. |
+| `ui.progress(value, maximum)` | Progress bar. |
+| `ui.stat(label, value)` | Large number with a caption. |
+| `ui.list(items)` | List; each item can be text or an element. |
+| `ui.table(headers, rows)` | Table; `rows` is a list of lists. |
+| `ui.empty(message)` | Placeholder for an empty area. |
+| `ui.el(tag, attrs, kids)` | Any HTML element. `attrs` is a dictionary or `null`. |
+
+`kids` is a list of elements, strings or numbers. A single value also works.
+Nested lists are flattened and `null` is skipped, so a view can build a list of
+items in a loop and pass it as one child. Text is always escaped.
+
+### Modifiers
+
+Each modifier changes the element and returns it, so modifiers can be nested:
+`ui.small(ui.danger(ui.button("Delete", "remove")))`.
+
+| Function | Effect |
+| --- | --- |
+| `ui.primary(el)`, `ui.danger(el)`, `ui.ghost(el)`, `ui.small(el)` | Button styles. |
+| `ui.cls(el, names)` | Add CSS classes. |
+| `ui.style(el, rules)` | Add inline CSS, such as `"color: red"`. |
+| `ui.attr(el, name, value)` | Set an HTML attribute. `true` adds a bare attribute; `false` or `null` removes it. |
+| `ui.disabled(el, flag)` | Disable a control when `flag` is `true`. |
+| `ui.arg(el, value)` | Pass a JSON value to the handler as `event["arg"]`. |
+| `ui.key(el, value)` | Give a list item a stable identity. |
+| `ui.onClick(el, handler)` | Call a handler on click. |
+| `ui.onChange(el, handler)` | Call a handler when a control changes. |
+| `ui.onEnter(el, handler)` | Call a handler when Enter is pressed in a text field. |
+| `ui.live(el)` | Redraw while the user types in this field. |
+
+### App settings and commands
+
+Call these before `ui.app`:
+
+| Function | Effect |
+| --- | --- |
+| `ui.size(width, height)` | Initial app window size in pixels. |
+| `ui.accent(color)` | Accent color, such as `"#0a84ff"`. |
+| `ui.css(text)` | Add CSS rules after the built-in theme. |
+| `ui.every(milliseconds, handler)` | Call a handler repeatedly while the window is open. |
+| `ui.onKey(handler, keys)` | Call a handler for keys such as `["Escape", " ", "ArrowUp"]`. Keys typed into a text field are ignored, except Escape. |
+
+Call these inside handlers:
+
+| Function | Effect |
+| --- | --- |
+| `ui.toast(message)` | Show a short message. |
+| `ui.notify(message, kind)` | Show a message; `kind` is `"info"`, `"success"` or `"error"`. |
+| `ui.setTitle(text)` | Change the window title. |
+| `ui.focus(key)` | Move keyboard focus to the field bound to `key`. |
+| `ui.quit()` | Close the window and return from `ui.app`. |
+
+The theme follows the system light or dark mode. The built-in classes start
+with `bs-`, for example `.bs-card` and `.bs-btn`, and the colors are CSS
+variables such as `--accent`, `--bg`, `--surface` and `--muted`.
+
+Set the environment variable `BS_UI_BROWSER=tab` to open a normal browser tab,
+or `BS_UI_BROWSER=none` to open nothing and print the URL only. Browsers slow
+down timers in hidden windows, so a timer app should not rely on exact tick
+counts while minimized.
+
+The server accepts only `127.0.0.1` and `localhost` host names. Each window gets
+a random token, and events without it are refused. Only handlers on screen can
+be called. The library keeps its own state in global variables whose names
+start with `_ui`; do not reuse those names.
+
+## Web server library (`web`)
+
+`add web` is an HTTP/1.1 server written in BrittainScript on top of `net`.
+It needs no extra packages. It handles one request at a time, and each reply
+closes its connection. Use the [`server`](#http-server-library) library for
+multithreaded APIs.
+
+```bs
+add web
+
+func handle(request):
+    if request["path"] == "/":
+        web.html(request, "<h1>Hello from BrittainScript</h1>")
+    else:
+        web.notFound(request)
+    end
+end
+
+server = web.listen("127.0.0.1", 8080)
+web.serve(server, "handle")
+```
+
+| Function | Result or action |
+| --- | --- |
+| `web.listen(host, port)` | Open a listening socket and return its handle. Port `0` picks a free port. |
+| `web.port(server)` | Return the bound port. |
+| `web.next(server, timeout)` | Wait up to `timeout` seconds and return the next request, or `null`. |
+| `web.serve(server, handler)` | Call `handler(request)` for each request until `web.stop(server)`. |
+| `web.stop(server)` | Make `web.serve` return after the current request. |
+| `web.close(server)` | Close the listening socket. |
+| `web.reply(request, status, contentType, body, headers)` | Send a response. `headers` is a dictionary or `null`. |
+| `web.html(request, body)`, `web.text(request, body)` | Send HTML or plain text with status 200. |
+| `web.json(request, value)` | Send a value as JSON with status 200. |
+| `web.redirect(request, location)` | Send a 302 redirect. |
+| `web.notFound(request)` | Send a 404 response. |
+| `web.header(request, name)` | Read a request header by name, or `null`. |
+| `web.parseQuery(text)` | Decode a query string into a dictionary. |
+| `web.urlDecode(text)` | Decode `%XX` escapes as UTF-8. |
+
+A request is a dictionary with `"method"`, `"path"` (decoded), `"target"` (the
+raw path and query), `"query"` (a dictionary of the first value for each key),
+`"headers"` (lowercase names), `"body"` (UTF-8 text) and `"done"` (`true` after
+a reply). Each request gets exactly one reply. `web.serve` replies `500` when the
+handler raises an error, and `204` when the handler sends nothing.
+Malformed requests get a `400` reply. Headers are limited to 64 KiB and bodies to 1 MiB.
+Chunked request bodies are not supported.
+
+## Socket library (`net`)
+
+`add net` holds the primitives that `web` and `ui` are built on. They use only
+the Python standard library. Sockets are integer handles.
+
+Network data uses *raw strings*: each character is one byte, so `len(raw)` is
+the byte count. Use `net.encode(text)` before sending text and `net.decode(raw)`
+after receiving it.
+
+| Function | Result or action |
+| --- | --- |
+| `net.listen(host, port)` | Listen for TCP connections and return a server handle. |
+| `net.port(handle)` | Return the bound port. |
+| `net.wait(server, timeout)` | Return a connection handle that has data to read, or `null` after `timeout` seconds. Connections that stay idle are kept waiting and closed after 30 seconds. |
+| `net.recv(conn, size)` | Read up to `size` bytes as a raw string; `""` means the peer closed. Waits up to 5 seconds. |
+| `net.send(conn, raw)` | Send a raw string; return the byte count. |
+| `net.close(handle)` | Close a socket; return whether it was open. |
+| `net.encode(text)` | UTF-8 encode text into a raw string. |
+| `net.decode(raw)` | Decode a raw string as UTF-8; invalid bytes are replaced. |
+| `net.clock()` | Monotonic time in seconds, for measuring intervals. |
+| `net.sleep(seconds)` | Pause. |
+| `net.token()` | Random 32-character hexadecimal token. |
+| `net.openApp(url, width, height)` | Open a URL in a browser app window; return `true`, or `false` when it fell back to a normal tab. |
+
 ## Direct backend functions
 
 The bundled BS libraries call the functions below. You can also call them without `add`. Their arguments, results, and errors follow the corresponding library function. Use the library names for clearer application code.
@@ -1210,6 +1436,7 @@ There is no bundled SQL library. A Python driver can be imported with `pyimport`
 - [`examples/persistent_store.bs`](../examples/persistent_store.bs): a visit counter saved in `vault.json`.
 - [`examples/string_interpolation.bs`](../examples/string_interpolation.bs): `if` and interpolated strings.
 - [`examples/note_vault.bs`](../examples/note_vault.bs): a GUI and API in one process with persistent notes; requires the server extra and Tkinter.
+- [`examples/ui_demo.bs`](../examples/ui_demo.bs): a task board and focus timer built with the `ui` library.
 - [`examples/torch_demo.bs`](../examples/torch_demo.bs): PyTorch autograd via the bridge (requires PyTorch).
 
 The Python programs under [`tests/py_corpus/`](../tests/py_corpus) are the
@@ -1242,4 +1469,6 @@ Implementation files:
 | `core/http_backend.py` | Send HTTP requests. |
 | `core/server_backend.py` | Route and serve HTTP requests. |
 | `core/gui_backend.py` | Connect GUI functions to Tkinter. |
+| `core/net_backend.py` | Socket primitives for `web` and `ui`. |
+| `libs/web.bs`, `libs/ui.bs` | HTTP server and HTML app framework, written in BrittainScript. |
 | `py2bs/` | Validate, translate, and check Python programs. |

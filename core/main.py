@@ -379,6 +379,9 @@ def import_module(lib_name):
     if lib_name == 'server':
         import server_backend
         return server_backend.create_module(sys.modules[__name__])
+    if lib_name == 'net':
+        import net_backend
+        return net_backend.create_module()
     libs_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
     lib_path = os.path.join(libs_dir, lib_name + '.bs')
     if not os.path.exists(lib_path):
@@ -401,6 +404,7 @@ def import_module(lib_name):
 parser_module.set_function_caller(call_user_function)
 parser_module.set_module_caller(call_module_function)
 parser_module.gui_backend.set_callback_invoker(call_callback_function)
+parser_module.set_callback_caller(call_callback_function)
 
 def catch_spec(header):
     match = re.fullmatch(r'catch(?:\s+([A-Za-z_][A-Za-z0-9_]*))?(?:\s+as\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:?', header)

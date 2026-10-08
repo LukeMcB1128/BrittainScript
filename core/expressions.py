@@ -146,18 +146,36 @@ def deferred(action):
 class ExpressionParser:
     """Keep parser.parse() compatible while separating parsing and execution."""
 
+    CACHE_LIMIT = 20000
+
     def __init__(self, grammar):
         self.grammar = grammar
         self.lock = RLock()
+        # Trees never change after compilation (every grammar action is
+        # deferred), so a line that runs again reuses its tree instead of
+        # going back through the lexer and PLY. Failed parses are not cached,
+        # so their diagnostics repeat.
+        self.cache = {}
 
     def compile(self, *args, **kwargs):
+        text = str(args[0]) if args and isinstance(args[0], str) else None
+        if text is not None:
+            tree = self.cache.get(text)
+            if tree is not None:
+                return tree
         with self.lock:
             tree = self.grammar.parse(*args, **kwargs)
         try:
             tree = compile_templates(tree, self)
         except InvalidTemplate:
             return None
-        return tree if validate_calls(tree) else None
+        if not validate_calls(tree):
+            return None
+        if text is not None and tree is not None:
+            if len(self.cache) >= self.CACHE_LIMIT:
+                self.cache.clear()
+            self.cache[text] = tree
+        return tree
 
     def parse(self, *args, **kwargs):
         return evaluate(self.compile(*args, **kwargs))

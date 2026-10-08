@@ -1,0 +1,705 @@
+# ui.bs -- HTML desktop apps written in BrittainScript
+#
+# usage:
+#   add ui
+#   state = {"count": 0}
+#   func view(s):
+#       return ui.page([ui.h1(f"Clicked ${s["count"]} times"), ui.button("Click", "clicked")])
+#   end
+#   func clicked(s, event):
+#       s["count"] += 1
+#   end
+#   ui.app("Counter", state, "view")
+#
+# How it works: view(state) returns a tree of elements (plain dictionaries).
+# ui.app serves it as HTML through web.bs and opens an app window. Each
+# browser event calls your handler, renders view(state) again, diffs the new
+# tree against the old one and sends only the changed parts to the window.
+#
+# Handlers are function names as strings and receive (state, event).
+# event["arg"] holds the value from ui.arg(element, value); event["key"]
+# holds the key for ui.onKey. Bound inputs (ui.input("name", ...)) read and
+# write state["name"] automatically.
+
+add net
+add web
+
+_uiStr = type("")
+_uiDict = type({})
+_uiList = type([])
+_uiBool = type(true)
+_uiVoid = ["input", "br", "hr", "img", "meta", "link"]
+_uiEvents = ["data-bs-click", "data-bs-change", "data-bs-input", "data-bs-enter"]
+_ui = {"title": "BrittainScript", "width": 1000, "height": 720, "accent": "#5b5bf6", "css": [], "timers": [], "keys": [], "keyHandler": null, "commands": [], "state": null, "view": null, "tree": null, "version": 0, "token": "", "port": 0, "running": false, "byeAt": null, "handlers": {}, "bound": []}
+
+# ---------------------------------------------------------------- app setup
+
+func app(title, state, view):
+    local server, url, request
+    _ui["title"] = title
+    _ui["state"] = state
+    _ui["view"] = view
+    _ui["token"] = net.token()
+    server = web.listen("127.0.0.1", 0)
+    _ui["port"] = web.port(server)
+    url = f"http://127.0.0.1:${_ui["port"]}/"
+    push(f"[ui] ${title} is running at ${url} (press Ctrl+C to stop)")
+    _ui["running"] = true
+    discard net.openApp(url, _ui["width"], _ui["height"])
+    try:
+        while _ui["running"]:
+            request = web.next(server, 0.25)
+            if request != null:
+                _uiHandle(request)
+            end
+            if _ui["byeAt"] != null and net.clock() - _ui["byeAt"] > 2:
+                _ui["running"] = false
+            end
+        end
+    finally:
+        discard web.close(server)
+    end
+    return _ui["state"]
+end
+
+func size(width, height):
+    _ui["width"] = width
+    _ui["height"] = height
+    return null
+end
+
+func accent(color):
+    _ui["accent"] = color
+    return null
+end
+
+func css(text):
+    _ui["css"].add(text)
+    return null
+end
+
+# call handler(state, event) every milliseconds while the window is open
+func every(milliseconds, handler):
+    _ui["timers"].add({"ms": milliseconds, "handler": handler})
+    return null
+end
+
+# call handler(state, event) when one of keys is pressed, e.g. ["Escape", "ArrowUp"]
+func onKey(handler, keys):
+    _ui["keyHandler"] = handler
+    _ui["keys"] = keys
+    return null
+end
+
+# ---------------------------------------------------------------- commands (use inside handlers)
+
+func toast(message):
+    return notify(message, "info")
+end
+
+# kind is "info", "success" or "error"
+func notify(message, kind):
+    _ui["commands"].add({"op": "toast", "text": tostr(message), "kind": kind})
+    return null
+end
+
+func setTitle(text):
+    _ui["commands"].add({"op": "title", "text": tostr(text)})
+    return null
+end
+
+# move keyboard focus to the input bound to key
+func focus(key):
+    _ui["commands"].add({"op": "focus", "key": key})
+    return null
+end
+
+func quit():
+    _ui["commands"].add({"op": "quit"})
+    _ui["running"] = false
+    return null
+end
+
+# ---------------------------------------------------------------- elements
+
+func el(tag, attrs, kids):
+    local copy
+    copy = {}
+    if attrs != null:
+        copy = dict(attrs)
+    end
+    if kids == null:
+        kids = []
+    elif type(kids) != _uiList:
+        kids = [kids]
+    end
+    return {"tag": tag, "attrs": copy, "kids": kids, "key": null}
+end
+
+func _box(tag, classes, kids):
+    return el(tag, {"class": classes}, kids)
+end
+
+# layout
+func page(kids):
+    return _box("main", "bs-page", kids)
+end
+
+func row(kids):
+    return _box("div", "bs-row", kids)
+end
+
+func col(kids):
+    return _box("div", "bs-col", kids)
+end
+
+func grid(kids):
+    return _box("div", "bs-grid", kids)
+end
+
+func card(kids):
+    return _box("section", "bs-card", kids)
+end
+
+func spacer():
+    return _box("div", "bs-spacer", [])
+end
+
+func divider():
+    return _box("hr", "bs-divider", [])
+end
+
+# text
+func h1(value):
+    return el("h1", null, [value])
+end
+
+func h2(value):
+    return el("h2", null, [value])
+end
+
+func h3(value):
+    return el("h3", null, [value])
+end
+
+func p(value):
+    return _box("p", "bs-p", [value])
+end
+
+func muted(value):
+    return _box("p", "bs-muted", [value])
+end
+
+func text(value):
+    return el("span", null, [value])
+end
+
+func code(value):
+    return el("code", null, [value])
+end
+
+func badge(value):
+    return _box("span", "bs-badge", [value])
+end
+
+func link(label, url):
+    return el("a", {"href": url, "target": "_blank", "rel": "noopener"}, [label])
+end
+
+# controls
+func button(label, handler):
+    return el("button", {"class": "bs-btn", "type": "button", "data-bs-click": handler}, [label])
+end
+
+# a text field bound to state[key]
+func input(key, placeholder):
+    return el("input", {"class": "bs-input", "type": "text", "data-bs-bind": key, "placeholder": placeholder, "autocomplete": "off", "spellcheck": "false"}, [])
+end
+
+func password(key, placeholder):
+    return el("input", {"class": "bs-input", "type": "password", "data-bs-bind": key, "placeholder": placeholder}, [])
+end
+
+func textarea(key, rows):
+    return el("textarea", {"class": "bs-input", "data-bs-bind": key, "rows": rows}, [])
+end
+
+func checkbox(key, label):
+    return _box("label", "bs-check", [el("input", {"type": "checkbox", "data-bs-bind": key}, []), el("span", null, [label])])
+end
+
+func slider(key, low, high):
+    return el("input", {"class": "bs-slider", "type": "range", "min": low, "max": high, "data-bs-bind": key}, [])
+end
+
+func select(key, options):
+    local kids, option
+    kids = []
+    for option in options:
+        kids.add(el("option", {"value": tostr(option)}, [option]))
+    end
+    return el("select", {"class": "bs-input", "data-bs-bind": key}, kids)
+end
+
+# display
+func progress(value, maximum):
+    local percent
+    percent = 0
+    if maximum > 0:
+        percent = round(value * 1000 / maximum) / 10
+    end
+    if percent > 100:
+        percent = 100
+    elif percent < 0:
+        percent = 0
+    end
+    return _box("div", "bs-progress", [el("div", {"class": "bs-progress-bar", "style": f"width: ${percent}%"}, [])])
+end
+
+func stat(label, value):
+    return _box("div", "bs-stat", [_box("span", "bs-stat-label", [label]), _box("span", "bs-stat-value", [value])])
+end
+
+func list(items):
+    local kids, item
+    kids = []
+    for item in items:
+        kids.add(el("li", null, [item]))
+    end
+    return _box("ul", "bs-list", kids)
+end
+
+func table(headers, rows):
+    local heads, body, cells, cell, line
+    heads = []
+    for cell in headers:
+        heads.add(el("th", null, [cell]))
+    end
+    body = []
+    for line in rows:
+        cells = []
+        for cell in line:
+            cells.add(el("td", null, [cell]))
+        end
+        body.add(el("tr", null, cells))
+    end
+    return _box("table", "bs-table", [el("thead", null, [el("tr", null, heads)]), el("tbody", null, body)])
+end
+
+func empty(message):
+    return _box("div", "bs-empty", [message])
+end
+
+# ---------------------------------------------------------------- modifiers (each returns the element)
+
+func attr(node, name, value):
+    node["attrs"][name] = value
+    return node
+end
+
+func cls(node, names):
+    if "class" in node["attrs"]:
+        node["attrs"]["class"] = node["attrs"]["class"] + " " + names
+    else:
+        node["attrs"]["class"] = names
+    end
+    return node
+end
+
+func style(node, rules):
+    if "style" in node["attrs"]:
+        node["attrs"]["style"] = node["attrs"]["style"] + "; " + rules
+    else:
+        node["attrs"]["style"] = rules
+    end
+    return node
+end
+
+func primary(node):
+    return cls(node, "primary")
+end
+
+func danger(node):
+    return cls(node, "danger")
+end
+
+func ghost(node):
+    return cls(node, "ghost")
+end
+
+func small(node):
+    return cls(node, "small")
+end
+
+func disabled(node, flag):
+    node["attrs"]["disabled"] = flag == true
+    return node
+end
+
+# value passed to the handler as event["arg"]
+func arg(node, value):
+    node["attrs"]["data-bs-arg"] = jsonstringify(value, null)
+    return node
+end
+
+# identity for list items, so reordering replaces only what changed
+func key(node, value):
+    node["key"] = tostr(value)
+    return node
+end
+
+func onClick(node, handler):
+    return attr(node, "data-bs-click", handler)
+end
+
+func onChange(node, handler):
+    return attr(node, "data-bs-change", handler)
+end
+
+# Enter pressed inside a text field
+func onEnter(node, handler):
+    return attr(node, "data-bs-enter", handler)
+end
+
+# re-render while typing (debounced); bound state updates as you type
+func live(node):
+    return attr(node, "data-bs-input", "")
+end
+
+# ---------------------------------------------------------------- rendering
+
+func _uiRender():
+    local tree, timer
+    _ui["handlers"] = {"": true}
+    _ui["bound"] = []
+    for timer in _ui["timers"]:
+        _ui["handlers"][timer["handler"]] = true
+    end
+    if _ui["keyHandler"] != null:
+        _ui["handlers"][_ui["keyHandler"]] = true
+    end
+    tree = invoke(_ui["view"], [_ui["state"]])
+    if type(tree) != _uiDict:
+        tree = el("div", null, [tree])
+    end
+    return _uiNorm(tree)
+end
+
+# copy a tree into canonical form: merged text, bound values, known handlers
+func _uiNorm(node):
+    local attrs, bind, name, kids, checkbox
+    attrs = node["attrs"]
+    if "data-bs-bind" in attrs:
+        bind = attrs["data-bs-bind"]
+        attrs = dict(attrs)
+        checkbox = attrs.get("type", "") == "checkbox"
+        attrs["data-bs-value"] = _uiFormat(_ui["state"].get(bind, null), checkbox)
+        _ui["bound"].add([bind, attrs, checkbox])
+    end
+    for name in _uiEvents:
+        if name in attrs:
+            _ui["handlers"][attrs[name]] = true
+        end
+    end
+    kids = []
+    _uiFlatten(node["kids"], kids)
+    return {"tag": node["tag"], "attrs": attrs, "kids": kids, "key": node.get("key", null)}
+end
+
+func _uiFlatten(items, out):
+    local item, value, last
+    for item in items:
+        if item == null:
+            continue
+        end
+        if type(item) == _uiList:
+            _uiFlatten(item, out)
+        elif type(item) == _uiDict:
+            out.add(_uiNorm(item))
+        else:
+            value = tostr(item)
+            if value != "":
+                last = len(out) - 1
+                if last >= 0 and type(out[last]) == _uiStr:
+                    out[last] = out[last] + value
+                else:
+                    out.add(value)
+                end
+            end
+        end
+    end
+    return null
+end
+
+func _uiFormat(value, checkbox):
+    if checkbox:
+        if value == true:
+            return "true"
+        end
+        return "false"
+    end
+    if value == null:
+        return ""
+    end
+    return tostr(value)
+end
+
+func _uiEscape(value):
+    return value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+end
+
+func _uiHtml(node):
+    local parts, name, value, kid, tag
+    if type(node) == _uiStr:
+        return _uiEscape(node)
+    end
+    tag = node["tag"]
+    parts = ["<", tag]
+    for name in node["attrs"]:
+        value = node["attrs"][name]
+        if type(value) == _uiBool:
+            if value:
+                parts.add(" " + name)
+            end
+        elif value != null:
+            parts.add(" " + name + "=\"" + _uiEscape(tostr(value)) + "\"")
+        end
+    end
+    parts.add(">")
+    if tag in _uiVoid:
+        return "".join(parts)
+    end
+    for kid in node["kids"]:
+        parts.add(_uiHtml(kid))
+    end
+    parts.add("</" + tag + ">")
+    return "".join(parts)
+end
+
+# compare two normalized trees and add DOM patches for the differences
+func _uiDiff(old, new, path, patches):
+    local sets, removes, name, value, oldKids, newKids, shared, i, extra
+    if type(old) == _uiStr or type(new) == _uiStr:
+        if type(old) == _uiStr and type(new) == _uiStr:
+            if old != new:
+                patches.add({"op": "text", "path": path, "text": new})
+            end
+        else:
+            patches.add({"op": "replace", "path": path, "html": _uiHtml(new)})
+        end
+        return null
+    end
+    if old["tag"] != new["tag"] or old["key"] != new["key"]:
+        patches.add({"op": "replace", "path": path, "html": _uiHtml(new)})
+        return null
+    end
+    sets = {}
+    removes = []
+    for name in new["attrs"]:
+        value = new["attrs"][name]
+        if name not in old["attrs"] or old["attrs"][name] != value or type(old["attrs"][name]) != type(value):
+            if value == null or (type(value) == _uiBool and not value):
+                removes.add(name)
+            elif type(value) == _uiBool:
+                sets[name] = ""
+            else:
+                sets[name] = tostr(value)
+            end
+        end
+    end
+    for name in old["attrs"]:
+        if name not in new["attrs"]:
+            removes.add(name)
+        end
+    end
+    if len(sets) > 0 or len(removes) > 0:
+        patches.add({"op": "attrs", "path": path, "set": sets, "remove": removes})
+    end
+    oldKids = old["kids"]
+    newKids = new["kids"]
+    shared = len(oldKids)
+    if len(newKids) < shared:
+        shared = len(newKids)
+    end
+    for i in space(shared):
+        _uiDiff(oldKids[i], newKids[i], path + [i], patches)
+    end
+    if len(newKids) > shared:
+        extra = []
+        for i in space(shared, len(newKids)):
+            extra.add(_uiHtml(newKids[i]))
+        end
+        patches.add({"op": "append", "path": path, "html": "".join(extra)})
+    elif len(oldKids) > shared:
+        patches.add({"op": "trim", "path": path, "count": shared})
+    end
+    return null
+end
+
+# ---------------------------------------------------------------- server side
+
+func _uiHandle(request):
+    local host, path, method
+    host = request["headers"].get("host", "")
+    if host != "127.0.0.1:" + tostr(_ui["port"]) and host != "localhost:" + tostr(_ui["port"]):
+        discard web.reply(request, 403, "text/plain", "Forbidden", null)
+        return null
+    end
+    path = request["path"]
+    method = request["method"]
+    try:
+        if path == "/" and method == "GET":
+            _ui["byeAt"] = null
+            discard web.html(request, _uiDocument())
+        elif path == "/bs/event" and method == "POST":
+            if request["headers"].get("x-bs-token", "") != _ui["token"]:
+                discard web.reply(request, 403, "text/plain", "Forbidden", null)
+                return null
+            end
+            _ui["byeAt"] = null
+            discard web.reply(request, 200, "application/json", _uiEvent(request["body"]), null)
+        elif path == "/bs/bye" and method == "POST":
+            if request["query"].get("t", "") == _ui["token"]:
+                _ui["byeAt"] = net.clock()
+            end
+            discard web.reply(request, 204, "text/plain", "", null)
+        else:
+            discard web.notFound(request)
+        end
+    catch as problem:
+        push(problem.format())
+        if not request["done"]:
+            discard web.reply(request, 500, "text/plain; charset=utf-8", problem.type + ": " + problem.message, null)
+        end
+    end
+    return null
+end
+
+func _uiEvent(body):
+    local event, values, entry, handler, result, tree, patches
+    event = jsonparse(body)
+    values = event.get("values", {})
+    _ui["commands"] = []
+    # what the window shows now becomes the baseline, so typing is never undone
+    for entry in _ui["bound"]:
+        if entry[0] in values:
+            _ui["state"][entry[0]] = values[entry[0]]
+            entry[1]["data-bs-value"] = _uiFormat(values[entry[0]], entry[2])
+        end
+    end
+    handler = event.get("handler", "")
+    if handler not in _ui["handlers"]:
+        notify("No handler named " + tostr(handler) + " is on screen", "error")
+        handler = ""
+    end
+    if handler != "":
+        try:
+            result = invoke(handler, [_ui["state"], event])
+            if type(result) == _uiDict:
+                _ui["state"] = result
+            end
+        catch as problem:
+            push(problem.format())
+            notify(problem.type + ": " + problem.message, "error")
+        end
+    end
+    try:
+        tree = _uiRender()
+    catch as problem:
+        push(problem.format())
+        notify("view failed: " + problem.type + ": " + problem.message, "error")
+        return jsonstringify({"version": event.get("version", 0), "patches": _ui["commands"]}, null)
+    end
+    if event.get("version", 0) == _ui["version"] and _ui["tree"] != null:
+        patches = []
+        _uiDiff(_ui["tree"], tree, [0], patches)
+    else:
+        patches = [{"op": "replace", "path": [0], "html": _uiHtml(tree)}]
+    end
+    _ui["tree"] = tree
+    _ui["version"] += 1
+    return jsonstringify({"version": _ui["version"], "patches": patches + _ui["commands"]}, null)
+end
+
+func _uiDocument():
+    local tree, config, head
+    tree = _uiRender()
+    _ui["tree"] = tree
+    _ui["version"] += 1
+    config = jsonstringify({"token": _ui["token"], "version": _ui["version"], "timers": _ui["timers"], "keys": _ui["keys"], "keyHandler": _ui["keyHandler"]}, null).replace("</", "<\\/")
+    head = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>" + _uiEscape(_ui["title"]) + "</title>"
+    head += "<style>" + _uiTheme() + "\n".join(_ui["css"]) + "</style></head>"
+    return head + "<body><div id=\"bs-root\">" + _uiHtml(tree) + "</div><div id=\"bs-toasts\" aria-live=\"polite\"></div><script>window.BS=" + config + ";" + _uiClient() + "</script></body></html>"
+end
+
+# ---------------------------------------------------------------- theme
+
+func _uiTheme():
+    local c
+    c = []
+    c.add(f":root{--accent:${_ui["accent"]};--bg:#f6f7fb;--surface:#ffffff;--fg:#141826;--muted:#687087;--border:#e3e6ef;--soft:color-mix(in srgb,var(--accent) 12%,transparent);--danger:#e5484d;--success:#2f9e6b;--radius:14px;--shadow:0 1px 2px rgba(20,24,38,.04),0 4px 16px rgba(20,24,38,.06);color-scheme:light}")
+    c.add("@media (prefers-color-scheme:dark){:root{--bg:#0f1117;--surface:#171a23;--fg:#e8eaf2;--muted:#9097ab;--border:#272b38;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}}")
+    c.add("*{box-sizing:border-box}html,body{margin:0;min-height:100%}")
+    c.add("body{background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,'Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}")
+    c.add(".bs-page{max-width:960px;margin:0 auto;padding:40px 24px 64px;display:flex;flex-direction:column;gap:20px}")
+    c.add("h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.2}h1{font-size:30px;font-weight:750}h2{font-size:20px;font-weight:700}h3{font-size:16px;font-weight:650}")
+    c.add(".bs-p{margin:0}.bs-muted{margin:0;color:var(--muted);font-size:14px}code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);padding:2px 6px;border-radius:6px}a{color:var(--accent)}")
+    c.add(".bs-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.bs-col{display:flex;flex-direction:column;gap:12px}.bs-spacer{flex:1}")
+    c.add(".bs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}")
+    c.add(".bs-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}")
+    c.add(".bs-divider{border:0;border-top:1px solid var(--border);margin:4px 0;width:100%}")
+    c.add(".bs-btn{font:inherit;font-weight:600;font-size:14px;padding:9px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--fg);cursor:pointer;transition:background .15s,border-color .15s,transform .05s,box-shadow .15s;white-space:nowrap}")
+    c.add(".bs-btn:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}.bs-btn:active{transform:translateY(1px)}.bs-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--soft)}.bs-btn:disabled{opacity:.5;cursor:default}")
+    c.add(".bs-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 12px color-mix(in srgb,var(--accent) 30%,transparent)}.bs-btn.primary:hover{filter:brightness(1.07)}")
+    c.add(".bs-btn.danger{color:var(--danger)}.bs-btn.danger:hover{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,transparent)}")
+    c.add(".bs-btn.ghost{background:transparent;border-color:transparent}.bs-btn.ghost:hover{background:var(--soft)}.bs-btn.small{padding:5px 10px;font-size:13px;border-radius:8px}")
+    c.add(".bs-input{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;min-width:0;transition:border-color .15s,box-shadow .15s}.bs-row>.bs-input{flex:1}textarea.bs-input{resize:vertical;width:100%}")
+    c.add(".bs-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}.bs-input::placeholder{color:var(--muted)}")
+    c.add(".bs-check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}.bs-check input{width:17px;height:17px;accent-color:var(--accent);margin:0}.bs-slider{accent-color:var(--accent);width:100%}")
+    c.add(".bs-badge{display:inline-block;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--accent)}")
+    c.add(".bs-progress{height:8px;border-radius:999px;background:var(--border);overflow:hidden;width:100%}.bs-progress-bar{height:100%;background:var(--accent);border-radius:999px;transition:width .4s ease}")
+    c.add(".bs-stat{display:flex;flex-direction:column;gap:2px}.bs-stat-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.bs-stat-value{font-size:28px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}")
+    c.add(".bs-list{list-style:none;margin:0;padding:0}.bs-list>li{padding:10px 2px;border-bottom:1px solid var(--border)}.bs-list>li:last-child{border-bottom:0}")
+    c.add(".bs-table{width:100%;border-collapse:collapse;font-size:14px}.bs-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}.bs-table th,.bs-table td{padding:10px 8px;border-bottom:1px solid var(--border)}")
+    c.add(".bs-empty{border:1.5px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--muted)}")
+    c.add("#bs-toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:10}")
+    c.add(".bs-toast{background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;box-shadow:var(--shadow);animation:bs-in .2s ease;transition:opacity .3s,transform .3s;max-width:360px}.bs-toast.error{background:var(--danger);color:#fff}.bs-toast.success{background:var(--success);color:#fff}.bs-toast.out{opacity:0;transform:translateY(6px)}")
+    c.add("@keyframes bs-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}")
+    return "\n".join(c)
+end
+
+# ---------------------------------------------------------------- browser side
+# The only JavaScript: send events, apply patches, keep inputs in sync.
+
+func _uiClient():
+    local j
+    j = []
+    j.add("(function(){var B=window.BS,root=document.getElementById('bs-root'),queue=Promise.resolve(),busy=0,typing=null;")
+    j.add("function at(path){var n=root;for(var i=0;i<path.length;i++){n=n.childNodes[path[i]];}return n;}")
+    j.add("function frag(html){var t=document.createElement('template');t.innerHTML=html;return t.content;}")
+    # values() also records what was sent as each field's baseline, matching the server
+    j.add("function values(){var v={};root.querySelectorAll('[data-bs-bind]').forEach(function(el){var k=el.getAttribute('data-bs-bind');if(el.type==='checkbox'){v[k]=el.checked;}else if(el.type==='range'){v[k]=Number(el.value);}else{v[k]=el.value;}el.setAttribute('data-bs-value',String(v[k]));});return v;}")
+    j.add("function sync(){root.querySelectorAll('[data-bs-bind]').forEach(function(el){var v=el.getAttribute('data-bs-value')||'',force=el.__bsForce;el.__bsForce=false;if(el===document.activeElement&&!force){return;}if(el.type==='checkbox'){el.checked=(v==='true');}else if(el.value!==v){el.value=v;}});}")
+    j.add("function toast(text,kind){var box=document.getElementById('bs-toasts'),t=document.createElement('div');t.className='bs-toast '+(kind||'');t.textContent=text;box.appendChild(t);setTimeout(function(){t.classList.add('out');},kind==='error'?5000:2600);setTimeout(function(){t.remove();},kind==='error'?5400:3000);}")
+    j.add("function apply(p){var el;if(p.op==='text'){at(p.path).data=p.text;}else if(p.op==='replace'){at(p.path).replaceWith(frag(p.html));}")
+    j.add("else if(p.op==='attrs'){el=at(p.path);for(var k in p.set){el.setAttribute(k,p.set[k]);}p.remove.forEach(function(k){el.removeAttribute(k);});if('data-bs-value' in p.set){el.__bsForce=true;}}")
+    j.add("else if(p.op==='append'){at(p.path).appendChild(frag(p.html));}else if(p.op==='trim'){el=at(p.path);while(el.childNodes.length>p.count){el.removeChild(el.lastChild);}}")
+    j.add("else if(p.op==='toast'){toast(p.text,p.kind);}else if(p.op==='title'){document.title=p.text;}")
+    j.add("else if(p.op==='focus'){root.querySelectorAll('[data-bs-bind]').forEach(function(f){if(f.getAttribute('data-bs-bind')===p.key){f.focus();}});}")
+    j.add("else if(p.op==='quit'){B.closed=true;window.close();document.body.innerHTML='<p style=\"font:15px system-ui;padding:40px;color:gray\">This app has finished. You can close this window.</p>';}}")
+    j.add("function send(handler,el,extra){if(B.closed){return;}var body={handler:handler,arg:null,key:null,values:values(),version:B.version};")
+    j.add("if(el&&el.closest){var a=el.closest('[data-bs-arg]');if(a){body.arg=JSON.parse(a.getAttribute('data-bs-arg'));}}if(extra){for(var k in extra){body[k]=extra[k];}}busy++;")
+    j.add("queue=queue.then(function(){body.version=B.version;return fetch('/bs/event',{method:'POST',headers:{'Content-Type':'application/json','X-BS-Token':B.token},body:JSON.stringify(body)});})")
+    j.add(".then(function(r){if(!r.ok){throw new Error('HTTP '+r.status);}return r.json();}).then(function(res){B.version=res.version;res.patches.forEach(apply);sync();})")
+    j.add(".catch(function(e){toast('Lost contact with the app ('+e.message+')','error');}).then(function(){busy--;});}")
+    j.add("function target(e,name){return e.target&&e.target.closest?e.target.closest('['+name+']'):null;}")
+    j.add("document.addEventListener('click',function(e){var el=target(e,'data-bs-click');if(el&&!el.disabled){e.preventDefault();send(el.getAttribute('data-bs-click'),el);}});")
+    j.add("document.addEventListener('change',function(e){var el=target(e,'data-bs-change');if(el){send(el.getAttribute('data-bs-change'),el);}else if(e.target.matches&&e.target.matches('[data-bs-bind]')&&e.target.type!=='text'&&e.target.tagName!=='TEXTAREA'&&e.target.type!=='password'){send('',e.target);}});")
+    j.add("document.addEventListener('input',function(e){var el=target(e,'data-bs-input');if(el){clearTimeout(typing);typing=setTimeout(function(){send(el.getAttribute('data-bs-input'),el);},180);}});")
+    j.add("document.addEventListener('keydown',function(e){var el=target(e,'data-bs-enter');if(el&&e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();send(el.getAttribute('data-bs-enter'),el);return;}")
+    j.add("if(B.keyHandler&&B.keys.indexOf(e.key)>=0){var field=/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);if(!field||e.key==='Escape'){e.preventDefault();send(B.keyHandler,null,{key:e.key});}}});")
+    j.add("B.timers.forEach(function(t){setInterval(function(){if(busy===0){send(t.handler,null);}},t.ms);});")
+    j.add("window.addEventListener('pagehide',function(){if(!B.closed){navigator.sendBeacon('/bs/bye?t='+B.token);}});")
+    j.add("sync();})();")
+    return "\n".join(j)
+end

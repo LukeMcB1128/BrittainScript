@@ -1,6 +1,7 @@
 """Scan explicit interpolated strings without changing ordinary string values."""
 
 from dataclasses import dataclass
+from functools import lru_cache
 
 
 @dataclass(frozen=True)
@@ -98,6 +99,12 @@ def scan_template(source, start):
 
 def code_mask(source):
     """Keep source positions, but mask strings for statement/comment scanning."""
+    return _code_mask(str(source))
+
+
+@lru_cache(maxsize=16384)
+def _code_mask(source):
+    # Pure in the line text, and block scanning masks the same lines repeatedly.
     chars = list(source)
     index = 0
     while index < len(source):

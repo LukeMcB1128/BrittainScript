@@ -1,3 +1,21 @@
+# Unreleased
+
+New HTML desktop apps, written in BrittainScript:
+
+- `add ui`: build an app from a `view(state)` function that returns elements.
+  The library serves the page, opens a browser app window, and sends only the
+  changed parts of each new render. Bound inputs, timers, key handlers, toasts
+  and a light and dark theme are built in. See `examples/ui_demo.bs`.
+- `add web`: an HTTP/1.1 server written in BrittainScript.
+- `add net`: socket primitives that use only the Python standard library.
+
+New built-in functions: `chr(code)`, `ord(text)`, and `invoke(name, args)`,
+which calls a BS function by name.
+
+Repeated lines run faster: the interpreter now reuses the parsed form of an
+expression it has already seen instead of parsing it again. In local benchmarks,
+loops, recursive calls and string building ran 1.8 to 3.9 times faster.
+
 # 0.6.2
 
 Scripts now print only through explicit output functions such as `push()`.

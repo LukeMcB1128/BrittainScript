@@ -24,6 +24,7 @@ names = {}
 scopes = [names]
 function_caller = None
 module_caller = None
+callback_caller = None
 UNBOUND = object()
 NAME_TARGET = object()
 
@@ -166,6 +167,10 @@ def set_function_caller(caller):
 def set_module_caller(caller):
     global module_caller
     module_caller = caller
+
+def set_callback_caller(caller):
+    global callback_caller
+    callback_caller = caller
 
 def p_expression_number(p):
     'expression : NUMBER'
@@ -434,6 +439,25 @@ def _call_function(name, args):
             report("Error: tostr() expects 1 argument")
             return None
         return str(display(args[0]))
+    if name == 'chr':
+        if len(args) != 1 or type(args[0]) is not int:
+            report("Error: chr() expects one integer code point", kind='TypeError')
+            return None
+        return chr(args[0])
+    if name == 'ord':
+        if len(args) != 1 or not isinstance(args[0], str) or len(args[0]) != 1:
+            report("Error: ord() expects a one-character string", kind='TypeError')
+            return None
+        return ord(args[0])
+    if name == 'invoke':
+        # Calls a BS function named by a string, so BS libraries can take callbacks.
+        if len(args) != 2 or not isinstance(args[0], str) or not isinstance(args[1], list):
+            report("Error: invoke() expects a function name and a list of arguments", kind='TypeError')
+            return None
+        if callback_caller is None:
+            report("Error: no callback caller set")
+            return None
+        return callback_caller(args[0], list(args[1]))
     if name == 'input':
         if len(args) > 1:
             report("Error: input() expects 0 or 1 arguments")
