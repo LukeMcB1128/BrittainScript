@@ -6,7 +6,8 @@ Language support for [BrittainScript](https://github.com/LukeMcB1128/BrittainScr
 
 - **Syntax highlighting** for keywords, built-in functions, strings, `f"..."` interpolation, numbers and comments.
 - **Hover documentation.** Hover over a built-in such as `len`, a library function such as `ui.button` or `math.max`, a method such as `.get`, a keyword, or a library name after `add` to see what it does and how to call it. Your own functions show their signature and the `#` comment above their `func` line.
-- **Completions** for library functions after `ui.`, `math.` and the other libraries, for string, list and dictionary methods, for built-ins and keywords, and for library names after `add`.
+- **Your own modules.** After `add helpers`, hovering over `helpers.double` shows that function's comment from `helpers.bs`, and typing `helpers.` lists its functions. `add utils.strings` works the same way for `utils/strings.bs`.
+- **Completions** for library functions after `ui.`, `math.` and the other libraries, for string, list and dictionary methods, for built-ins and keywords, and for library and module names after `add`.
 - **Run button** in the editor title bar, which runs the current file with `bs` in a terminal.
 
 Document your own functions with a comment directly above them, and the hover shows it:

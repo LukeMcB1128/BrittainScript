@@ -1,4 +1,6 @@
 const vscode = require('vscode');
+const fs = require('fs');
+const path = require('path');
 
 // Generated from Documentation/LANGUAGE_REFERENCE.md and libs/*.bs by
 // tools/build_vscode_docs.py. Rebuild it after changing either.
@@ -51,30 +53,76 @@ function entryMarkdown(entries, footer) {
     return md;
 }
 
+// the name each `add` binds, mapped to what was added: "strings" -> "utils.strings"
 function importedModules(document) {
-    const modules = new Set();
+    const modules = new Map();
     for (let i = 0; i < document.lineCount; i++) {
-        const match = document.lineAt(i).text.match(/^\s*add\s+(\w+)/);
-        if (match) modules.add(match[1]);
+        const match = document.lineAt(i).text.match(/^\s*add\s+([A-Za-z_][\w.]*)/);
+        if (match) modules.set(match[1].split('.').pop(), match[1]);
     }
     return modules;
 }
 
-// func definitions in this file, with the # comment lines directly above them
-function userFunctions(document) {
+// func definitions in some lines, with the # comment lines directly above them
+function functionsIn(lines) {
     const functions = {};
-    for (let i = 0; i < document.lineCount; i++) {
-        const match = document.lineAt(i).text.match(/^\s*func\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/);
+    for (let i = 0; i < lines.length; i++) {
+        const match = lines[i].match(/^\s*func\s+([A-Za-z_]\w*)\s*\(([^)]*)\)/);
         if (!match) continue;
         const comment = [];
         for (let back = i - 1; back >= 0; back--) {
-            const line = document.lineAt(back).text.trim();
+            const line = lines[back].trim();
             if (!line.startsWith('#')) break;
             comment.unshift(line.replace(/^#\s?/, ''));
         }
-        functions[match[1]] = { signature: `func ${match[1]}(${match[2].trim()})`, doc: comment.join(' '), line: i + 1 };
+        const params = match[2].trim();
+        functions[match[1]] = { signature: `func ${match[1]}(${params})`, params, doc: comment.join(' '), line: i + 1 };
     }
     return functions;
+}
+
+function userFunctions(document) {
+    const lines = [];
+    for (let i = 0; i < document.lineCount; i++) lines.push(document.lineAt(i).text);
+    return functionsIn(lines);
+}
+
+// the file `add dotted` loads from beside this document, as the interpreter looks for it
+function localModulePath(document, dotted) {
+    if (!document.uri || document.uri.scheme !== 'file') return null;
+    const file = path.join(path.dirname(document.uri.fsPath), ...dotted.split('.')) + '.bs';
+    return fs.existsSync(file) ? file : null;
+}
+
+function bundledModule(name) {
+    return { functions: DOCS.modules[name], label: `*${name} library*`, summary: `**${name}** library\n\n${DOCS.libraries[name] || ''}` };
+}
+
+// what `receiver.` refers to: a local module file wins over a bundled library
+function resolveModule(document, receiver) {
+    const dotted = importedModules(document).get(receiver);
+    if (dotted) {
+        const file = localModulePath(document, dotted);
+        if (file) {
+            let text;
+            try { text = fs.readFileSync(file, 'utf8'); } catch (error) { return null; }
+            const functions = {};
+            for (const [name, fn] of Object.entries(functionsIn(text.split(/\r?\n/)))) {
+                functions[name] = [{ signature: `${receiver}.${name}(${fn.params})`, doc: fn.doc || '*No comment above this function.*' }];
+            }
+            const shown = path.relative(path.dirname(document.uri.fsPath), file);
+            return { functions, label: `*${shown}*`, summary: `**${receiver}**: your module \`${shown}\`` };
+        }
+        return DOCS.modules[dotted] ? bundledModule(dotted) : null;
+    }
+    return DOCS.modules[receiver] && DOCS.libraries[receiver] ? bundledModule(receiver) : null;
+}
+
+function moduleSummary(module) {
+    const md = new vscode.MarkdownString(module.summary + '\n\n');
+    const names = Object.keys(module.functions || {}).sort();
+    if (names.length) md.appendMarkdown(names.map(f => '`' + f + '`').join(' · '));
+    return md;
 }
 
 function inferType(document, varName, beforeLine) {
@@ -93,14 +141,6 @@ function inferType(document, varName, beforeLine) {
     return null;
 }
 
-function moduleSummary(name) {
-    const functions = Object.keys(DOCS.modules[name] || {}).sort();
-    const md = new vscode.MarkdownString();
-    md.appendMarkdown(`**${name}** library\n\n${DOCS.libraries[name] || ''}\n\n`);
-    if (functions.length) md.appendMarkdown(functions.map(f => '`' + f + '`').join(' · '));
-    return md;
-}
-
 function provideHover(document, position) {
     const range = document.getWordRangeAtPosition(position, /[A-Za-z_]\w*/);
     if (!range) return;
@@ -109,13 +149,19 @@ function provideHover(document, position) {
     const before = line.slice(0, range.start.character);
     if (/#/.test(before.replace(/"(?:\\.|[^"\\])*"/g, '""'))) return;  // inside a comment
 
+    const added = line.match(/^\s*add\s+([A-Za-z_][\w.]*)/);
+    if (added && range.start.character >= line.indexOf(added[1])) {
+        const module = resolveModule(document, added[1].split('.').pop());
+        return module ? new vscode.Hover(moduleSummary(module), range) : undefined;
+    }
+
     // receiver.word: a library function or a method
     const dot = before.match(/([A-Za-z_]\w*)\s*\.\s*$/);
     if (dot) {
         const receiver = dot[1];
-        const module = DOCS.modules[receiver];
-        if (module && (importedModules(document).has(receiver) || DOCS.libraries[receiver])) {
-            if (module[word]) return new vscode.Hover(entryMarkdown(module[word], `*${receiver} library*`), range);
+        const module = resolveModule(document, receiver);
+        if (module) {
+            if (module.functions[word]) return new vscode.Hover(entryMarkdown(module.functions[word], module.label), range);
             return;
         }
         const methods = DOCS.methods[word];
@@ -130,7 +176,6 @@ function provideHover(document, position) {
         return new vscode.Hover(md, range);
     }
 
-    if (/^\s*add\s+$/.test(before) && DOCS.libraries[word]) return new vscode.Hover(moduleSummary(word), range);
     if (KEYWORDS[word] && !/^\s*\($/.test(line.slice(range.end.character, range.end.character + 1))) {
         return new vscode.Hover(new vscode.MarkdownString(`**${word}**\n\n${KEYWORDS[word]}`), range);
     }
@@ -140,7 +185,10 @@ function provideHover(document, position) {
     if (own) {
         return new vscode.Hover(entryMarkdown([{ signature: own.signature, doc: own.doc || '*No comment above this function.*' }], `*Defined on line ${own.line}*`), range);
     }
-    if (DOCS.libraries[word] && importedModules(document).has(word)) return new vscode.Hover(moduleSummary(word), range);
+    if (importedModules(document).has(word)) {
+        const module = resolveModule(document, word);
+        if (module) return new vscode.Hover(moduleSummary(module), range);
+    }
 }
 
 function completionItem(label, kind, entry, snippet) {
@@ -160,8 +208,9 @@ function provideCompletions(document, position) {
     const dot = prefix.match(/([A-Za-z_]\w*)\.(\w*)$/);
     if (dot) {
         const receiver = dot[1];
-        if (DOCS.modules[receiver] && (importedModules(document).has(receiver) || DOCS.libraries[receiver])) {
-            return Object.entries(DOCS.modules[receiver]).map(([name, entries]) => completionItem(name, Kind.Function, entries[0], true));
+        const module = resolveModule(document, receiver);
+        if (module) {
+            return Object.entries(module.functions).map(([name, entries]) => completionItem(name, Kind.Function, entries[0], true));
         }
         const type = inferType(document, receiver, position.line);
         const items = [];
@@ -173,11 +222,24 @@ function provideCompletions(document, position) {
     }
 
     if (/^\s*add\s+\w*$/.test(prefix)) {
-        return Object.keys(DOCS.libraries).map(name => {
+        const items = Object.keys(DOCS.libraries).map(name => {
             const item = new vscode.CompletionItem(name, Kind.Module);
             item.documentation = new vscode.MarkdownString(DOCS.libraries[name]);
             return item;
         });
+        // .bs files beside this one can be added too
+        if (document.uri && document.uri.scheme === 'file') {
+            const folder = path.dirname(document.uri.fsPath);
+            let files = [];
+            try { files = fs.readdirSync(folder); } catch (error) { files = []; }
+            for (const file of files) {
+                if (!file.endsWith('.bs') || path.join(folder, file) === document.uri.fsPath) continue;
+                const item = new vscode.CompletionItem(file.slice(0, -3), Kind.File);
+                item.detail = 'Your module ' + file;
+                items.push(item);
+            }
+        }
+        return items;
     }
 
     const items = Object.entries(DOCS.builtins)
@@ -191,7 +253,7 @@ function provideCompletions(document, position) {
         item.documentation = new vscode.MarkdownString(KEYWORDS[word]);
         items.push(item);
     }
-    for (const name of importedModules(document)) {
+    for (const name of importedModules(document).keys()) {
         items.push(new vscode.CompletionItem(name, Kind.Module));
     }
     return items;
