@@ -1,0 +1,147 @@
+# ui_demo.bs -- a task board built with the ui library (HTML, written in BrittainScript)
+# run with: python3 run.py examples/ui_demo.bs
+
+add ui
+
+state = {"tasks": [{"id": 1, "title": "Sketch the new GUI", "done": true}, {"id": 2, "title": "Write web.bs in BrittainScript", "done": true}, {"id": 3, "title": "Ship the ui library", "done": false}], "nextId": 4, "draft": "", "hideDone": false, "minutes": 25, "left": 1500, "running": false, "paused": false}
+
+func clockText(seconds):
+    local minutes, rest
+    minutes = seconds // 60
+    rest = seconds % 60
+    cond rest < 10:
+        return f"${minutes}:0${rest}"
+    end
+    return f"${minutes}:${rest}"
+end
+
+func countDone(tasks):
+    local total, task
+    total = 0
+    for task in tasks:
+        cond task["done"]:
+            total += 1
+        end
+    end
+    return total
+end
+
+# a ring that empties as the session runs, drawn on a canvas
+func timerRing(left, total):
+    local done
+    done = 360 * (total - left) / total
+    return ui.canvas(160, 160, [ui.fill(ui.stroke(ui.circle(80, 80, 66, "none"), "var(--border)", 10), "none"), ui.stroke(ui.arc(80, 80, 66, done, 360, "var(--accent)"), "var(--accent)", 10), ui.fontSize(ui.style(ui.drawText(80, 80, clockText(left), "var(--fg)"), "font-weight: 700; font-variant-numeric: tabular-nums"), 28)])
+end
+
+func taskRow(task):
+    local box, title, remove
+    box = ui.arg(ui.small(ui.ghost(ui.button("○", "toggle"))), task["id"])
+    title = ui.text(task["title"])
+    cond task["done"]:
+        box = ui.arg(ui.small(ui.ghost(ui.button("✓", "toggle"))), task["id"])
+        title = ui.style(ui.text(task["title"]), "text-decoration: line-through; color: var(--muted)")
+    end
+    remove = ui.arg(ui.small(ui.danger(ui.button("Delete", "remove"))), task["id"])
+    return ui.key(ui.row([box, title, ui.spacer(), remove]), task["id"])
+end
+
+func view(s):
+    local done, visible, task, items, timer, tasksCard, adder, label, left
+    done = countDone(s["tasks"])
+    items = []
+    for task in s["tasks"]:
+        cond not (s["hideDone"] and task["done"]):
+            items.add(taskRow(task))
+        end
+    end
+    visible = ui.list(items)
+    cond len(items) == 0:
+        visible = ui.empty("Nothing here. Add a task above.")
+    end
+    adder = ui.row([ui.onEnter(ui.input("draft", "What needs doing?"), "addTask"), ui.primary(ui.button("Add task", "addTask"))])
+    tasksCard = ui.card([ui.row([ui.h2("Tasks"), ui.badge(f"${done} / ${len(s["tasks"])} done"), ui.spacer(), ui.checkbox("hideDone", "Hide finished")]), adder, ui.progress(done, len(s["tasks"])), visible])
+    left = s["left"]
+    label = "Start"
+    cond not s["running"] and not s["paused"]:
+        left = s["minutes"] * 60
+    end
+    cond s["running"]:
+        label = "Pause"
+    elif s["paused"]:
+        label = "Resume"
+    end
+    timer = ui.card([ui.h2("Focus timer"), ui.row([timerRing(left, s["minutes"] * 60), ui.style(ui.col([ui.row([ui.primary(ui.button(label, "toggleTimer")), ui.button("Reset", "resetTimer")]), ui.muted(f"Session length: ${s["minutes"]} minutes"), ui.slider("minutes", 5, 60)]), "flex: 1")])])
+    return ui.page([ui.col([ui.h1("Focus Board"), ui.muted("Built with BrittainScript. HTML, CSS and the event loop are all .bs code.")]), ui.grid([ui.card([ui.stat("Tasks", len(s["tasks"]))]), ui.card([ui.stat("Finished", done)]), ui.card([ui.stat("Open", len(s["tasks"]) - done)])]), tasksCard, timer])
+end
+
+func addTask(s, event):
+    local title
+    title = s["draft"].trim()
+    cond title == "":
+        ui.notify("Type a task first", "error")
+        return null
+    end
+    s["tasks"].add({"id": s["nextId"], "title": title, "done": false})
+    s["nextId"] += 1
+    s["draft"] = ""
+    ui.focus("draft")
+end
+
+func findTask(s, id):
+    local task
+    for task in s["tasks"]:
+        cond task["id"] == id:
+            return task
+        end
+    end
+    return null
+end
+
+func toggle(s, event):
+    local task
+    task = findTask(s, event["arg"])
+    task["done"] = not task["done"]
+    cond task["done"]:
+        ui.notify("Nice work!", "success")
+    end
+end
+
+func remove(s, event):
+    s["tasks"].remove(findTask(s, event["arg"]))
+end
+
+func toggleTimer(s, event):
+    s["paused"] = s["running"]
+    s["running"] = not s["running"]
+end
+
+func resetTimer(s, event):
+    s["running"] = false
+    s["paused"] = false
+    s["left"] = s["minutes"] * 60
+end
+
+func tick(s, event):
+    cond not s["running"]:
+        cond not s["paused"]:
+            s["left"] = s["minutes"] * 60
+        end
+        return null
+    end
+    s["left"] -= 1
+    cond s["left"] <= 0:
+        resetTimer(s, event)
+        ui.notify("Session complete. Take a break!", "success")
+    end
+end
+
+func keys(s, event):
+    cond event["key"] == " ":
+        toggleTimer(s, event)
+    end
+end
+
+ui.size(900, 820)
+ui.every(1000, "tick")
+ui.onKey("keys", [" "])
+ui.app("Focus Board", state, "view")

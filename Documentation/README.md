@@ -246,13 +246,18 @@ np = pyimport("numpy")
 json = pyimport("json")
 ```
 
-If the module cannot be imported, `pyimport` prints an error and returns
-nothing:
+If the module cannot be imported, `pyimport` raises a catchable error:
 
 ```
-missing = pyimport("not_a_real_module")
-=> Error: cannot import 'not_a_real_module': No module named 'not_a_real_module'
+try:
+    missing = pyimport("not_a_real_module")
+catch ImportError as problem:
+    push(problem.message)
+end
 ```
+
+Use `try`, `catch`, `finally`, and `raise` for error handling.
+See [Error handling](LANGUAGE_REFERENCE.md#error-handling) for the full syntax.
 
 ### Calling Python methods
 

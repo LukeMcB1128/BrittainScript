@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "core"))
 import main
 import parser
+from core.diagnostics import BSError
 
 
 def run(source):
@@ -172,7 +173,8 @@ class NestingTests(ScriptTestCase):
 
 class BranchErrorTests(ScriptTestCase):
     def test_elif_after_else_is_rejected(self):
-        self.assertIn("elif after else", "\n".join(run("""
+        with self.assertRaisesRegex(BSError, 'elif after else'):
+            run("""
             cond false:
                 push("a")
             else:
@@ -180,32 +182,35 @@ class BranchErrorTests(ScriptTestCase):
             elif true:
                 push("c")
             end
-        """)))
+            """)
 
     def test_else_with_a_condition_is_rejected(self):
-        self.assertIn("else does not take a condition", "\n".join(run("""
+        with self.assertRaisesRegex(BSError, 'else does not take a condition'):
+            run("""
             cond false:
                 push("a")
             else true:
                 push("b")
             end
-        """)))
+            """)
 
     def test_elif_without_a_condition_is_rejected(self):
-        self.assertIn("expected a condition", "\n".join(run("""
+        with self.assertRaisesRegex(BSError, 'expected a condition'):
+            run("""
             cond false:
                 push("a")
             elif:
                 push("b")
             end
-        """)))
+            """)
 
     def test_stray_else_is_reported(self):
-        self.assertIn("unexpected else", "\n".join(run("""
+        with self.assertRaisesRegex(BSError, 'unexpected else'):
+            run("""
             push("before")
             else:
                 push("stray")
-        """)))
+            """)
 
 
 class NullTests(ScriptTestCase):

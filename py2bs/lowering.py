@@ -35,6 +35,8 @@ def collect_local_names(function_node):
             names.update(alias.asname or alias.name.split('.')[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             names.update(alias.asname or alias.name for alias in node.names)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            names.add(node.name)
     return names
 
 

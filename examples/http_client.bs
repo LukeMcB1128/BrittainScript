@@ -1,0 +1,10 @@
+add http
+try:
+    response = http.get("http://127.0.0.1:8000/health")
+    push(response["status"])
+    push(response["json"])
+    response = http.post("http://127.0.0.1:8000/echo", {"message": "Hello"})
+    push(response["json"])
+catch as problem:
+    push(problem.type + ": " + problem.message)
+end

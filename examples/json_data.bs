@@ -1,0 +1,10 @@
+add json
+record = json.parse("{\"name\":\"Luke\",\"active\":true,\"score\":10}")
+record["score"] += 1
+push(json.stringify(record))
+push(json.pretty(record, 2))
+try:
+    discard json.parse("{")
+catch ValueError as problem:
+    push("Invalid JSON: " + problem.type)
+end

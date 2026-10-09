@@ -1,0 +1,24 @@
+add server
+
+func health(request):
+    return {"status": "ok"}
+end
+
+func greet(request):
+    name = request["params"]["name"]
+    return {"message": "Hello, " + name + "!"}
+end
+
+func echo(request):
+    data = request["json"]
+    cond data == null:
+        return server.response({"error": "Send a JSON request body"}, 400)
+    end
+    return server.response({"received": data}, 201)
+end
+
+discard server.get("/health", "health")
+discard server.get("/hello/<name>", "greet")
+discard server.post("/echo", "echo")
+push("Server: http://127.0.0.1:8000")
+discard server.run("127.0.0.1", 8000)

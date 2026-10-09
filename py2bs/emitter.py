@@ -14,6 +14,7 @@ from .frontend import (
     CALLABLE_BUILTINS,
     COMPARISON_OPERATORS,
     ITERABLE_ONLY_BUILTINS,
+    EXCEPTION_TYPES,
     is_range_call,
 )
 
@@ -67,6 +68,29 @@ class Emitter(ast.NodeVisitor):
             self.emit('return')
         else:
             self.emit(f'return {self.expression(node.value)}')
+
+    def visit_Try(self, node):
+        self.emit('try:')
+        self.depth += 1
+        self.emit_body(node.body)
+        self.depth -= 1
+        for handler in node.handlers:
+            kind = ' ' + handler.type.id if handler.type else ''
+            binding = ' as ' + handler.name if handler.name else ''
+            self.emit(f'catch{kind}{binding}:')
+            self.depth += 1
+            self.emit_body(handler.body)
+            self.depth -= 1
+        for keyword, body in (('else', node.orelse), ('finally', node.finalbody)):
+            if body:
+                self.emit(keyword + ':')
+                self.depth += 1
+                self.emit_body(body)
+                self.depth -= 1
+        self.emit('end')
+
+    def visit_Raise(self, node):
+        self.emit('raise' + (' ' + self.expression(node.exc) if node.exc else ''))
 
     def visit_Assign(self, node):
         target = self.expression(node.targets[0])
@@ -172,10 +196,17 @@ class Emitter(ast.NodeVisitor):
         self.unsupported(node, f'constant {type(value).__name__}')
 
     def expression_Name(self, node):
+        if node.id in EXCEPTION_TYPES:
+            return f'pyimport("builtins").{node.id}'
         return node.id
 
     def expression_List(self, node):
         return '[' + ', '.join(self.expression(item) for item in node.elts) + ']'
+
+    def expression_Dict(self, node):
+        pairs = [f'{self.expression(key)}: {self.expression(value)}'
+                 for key, value in zip(node.keys, node.values)]
+        return '{' + ', '.join(pairs) + '}'
 
     def expression_BinOp(self, node):
         operator = BINARY_OPERATORS.get(type(node.op))
@@ -229,6 +260,9 @@ class Emitter(ast.NodeVisitor):
             arguments = ', '.join(self.expression(argument) for argument in node.args)
             return f'{receiver}.{node.func.attr}({arguments})'
         name = node.func.id
+        if name in EXCEPTION_TYPES:
+            arguments = ', '.join(self.expression(argument) for argument in node.args)
+            return f'pyimport("builtins").{name}({arguments})'
         if name == 'print':
             return self.emit_print(node)
         translated = CALLABLE_BUILTINS.get(name, name)

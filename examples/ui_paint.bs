@@ -1,0 +1,66 @@
+# ui_paint.bs -- click to paint on a canvas, built with the ui library
+# run with: python3 run.py examples/ui_paint.bs
+
+add ui
+
+state = {"dots": [], "color": "violet", "size": 14, "shape": "circle", "name": ""}
+palette = {"violet": "#7c5cff", "coral": "#ff6b6b", "teal": "#14b8a6", "amber": "#f59e0b", "ink": "#1f2937"}
+
+func dot(item):
+    local color, size
+    color = palette[item["color"]]
+    size = item["size"]
+    if item["shape"] == "square":
+        return ui.rounded(ui.rect(item["x"] - size, item["y"] - size, size * 2, size * 2, color), 4)
+    elif item["shape"] == "ring":
+        return ui.fill(ui.stroke(ui.circle(item["x"], item["y"], size, color), color, 4), "none")
+    end
+    return ui.circle(item["x"], item["y"], size, color)
+end
+
+func view(s):
+    local shapes, item, board, swatches, name, greeting, rings
+    shapes = [ui.stroke(ui.rect(0, 0, 640, 360, "var(--surface)"), "#7f9db9", 2)]
+    if len(s["dots"]) == 0:
+        shapes.add(ui.fontSize(ui.drawText(320, 180, "Click anywhere to paint", "var(--muted)"), 18))
+    end
+    for item in s["dots"]:
+        shapes.add(dot(item))
+    end
+    board = ui.onPoint(ui.canvas(640, 360, shapes), "paint")
+    swatches = []
+    for name in palette:
+        rings = [ui.circle(14, 14, 10, palette[name])]
+        if name == s["color"]:
+            rings.add(ui.fill(ui.stroke(ui.circle(14, 14, 13, "none"), "var(--fg)", 2), "none"))
+        end
+        swatches.add(ui.arg(ui.onClick(ui.canvas(28, 28, rings), "pick"), name))
+    end
+    greeting = "Hello, painter"
+    if s["name"].trim() != "":
+        greeting = "Hello, " + s["name"].trim()
+    end
+    return ui.page([ui.col([ui.h1("Paint"), ui.muted(f"${greeting}. ${len(s["dots"])} shapes on the canvas.")]), ui.card([ui.row([ui.row(swatches), ui.spacer(), ui.select("shape", ["circle", "square", "ring"]), ui.button("Undo", "undo"), ui.danger(ui.button("Clear", "clear"))]), ui.row([ui.muted(f"Size ${s["size"]}"), ui.slider("size", 4, 40)]), board]), ui.card([ui.h3("Your name"), ui.live(ui.input("name", "Type to update the greeting"))])])
+end
+
+func paint(s, event):
+    s["dots"].add({"x": event["x"], "y": event["y"], "color": s["color"], "size": s["size"], "shape": s["shape"]})
+end
+
+func pick(s, event):
+    s["color"] = event["arg"]
+end
+
+func undo(s, event):
+    if len(s["dots"]) > 0:
+        s["dots"].pop()
+    end
+end
+
+func clear(s, event):
+    s["dots"] = []
+    ui.toast("Canvas cleared")
+end
+
+ui.size(760, 760)
+ui.app("Paint", state, "view")

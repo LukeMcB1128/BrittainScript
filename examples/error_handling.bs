@@ -1,0 +1,28 @@
+# Convert input and handle both conversion errors and application errors.
+func positive_number(text):
+    value = tonum(text)
+    cond value <= 0:
+        raise error("Value must be positive", "ValidationError")
+    end
+    return value
+end
+
+for text in ["12", "bad", "0"]:
+    try:
+        push(positive_number(text))
+    catch ValueError as problem:
+        push("Conversion failed: " + problem.message)
+    catch ValidationError as problem:
+        push("Validation failed: " + problem.message)
+    finally:
+        push("Input complete")
+    end
+end
+
+# Errors from Python libraries retain their error types.
+json = pyimport("json")
+try:
+    discard json.loads("{")
+catch ValueError as problem:
+    push("JSON failed: " + problem.type)
+end

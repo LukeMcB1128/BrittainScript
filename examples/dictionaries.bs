@@ -1,0 +1,8 @@
+record = {"name": "Luke", "score": 10, "active": true}
+record["score"] += 1
+push(record["name"])
+push(record.get("score"))
+push(record.has("active"))
+for key in record:
+    push(key)
+end

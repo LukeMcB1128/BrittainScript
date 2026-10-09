@@ -1,0 +1,245 @@
+# web.bs -- a small HTTP/1.1 server written in BrittainScript
+# usage: add web, then server = web.listen("127.0.0.1", 8080)
+#        request = web.next(server, 1) ... web.html(request, "<h1>Hi</h1>")
+# or hand every request to one function: web.serve(server, "handle")
+#
+# Built only on the net primitives (sockets), so it needs no extra packages.
+# Each connection carries one request; replies close the connection.
+
+add net
+
+_webReasons = {200: "OK", 201: "Created", 204: "No Content", 301: "Moved Permanently", 302: "Found", 304: "Not Modified", 400: "Bad Request", 403: "Forbidden", 404: "Not Found", 405: "Method Not Allowed", 413: "Payload Too Large", 431: "Request Header Fields Too Large", 500: "Internal Server Error"}
+_webHex = "0123456789abcdef"
+_webMaxHead = 65536
+_webMaxBody = 1048576
+_webStopped = {}
+
+# servers
+func listen(host, port):
+    return net.listen(host, port)
+end
+
+func port(server):
+    return net.port(server)
+end
+
+func close(server):
+    return net.close(server)
+end
+
+func stop(server):
+    _webStopped[server] = true
+    return null
+end
+
+# wait up to timeout seconds for the next request; returns a request or null
+func next(server, timeout):
+    local conn, request
+    conn = net.wait(server, timeout)
+    if conn == null:
+        return null
+    end
+    try:
+        request = readRequest(conn)
+    catch HttpError as problem:
+        _webSend(conn, "GET", problem.message.split(" ")[0], "text/plain; charset=utf-8", problem.message, null)
+        return null
+    catch:
+        discard net.close(conn)
+        return null
+    end
+    if request == null:
+        discard net.close(conn)
+    end
+    return request
+end
+
+# serve until web.stop(server) is called; handler receives each request
+func serve(server, handler):
+    local request
+    _webStopped[server] = false
+    while not _webStopped[server]:
+        request = next(server, 0.5)
+        if request != null:
+            try:
+                discard invoke(handler, [request])
+            catch as problem:
+                push(problem.format())
+                cond not request["done"]:
+                    discard reply(request, 500, "text/plain; charset=utf-8", "Internal Server Error", null)
+                end
+            end
+            cond not request["done"]:
+                discard reply(request, 204, "text/plain", "", null)
+            end
+        end
+    end
+    return true
+end
+
+# requests
+func readRequest(conn):
+    local raw, chunk, split, head, rest, lines, parts, headers, line, colon, length, target, mark, request
+    raw = ""
+    split = 0 - 1
+    while split < 0:
+        chunk = net.recv(conn, 65536)
+        if chunk == "":
+            return null
+        end
+        raw += chunk
+        split = raw.find("\r\n\r\n")
+        if split < 0 and len(raw) > _webMaxHead:
+            raise error("431 Request headers are too large", "HttpError")
+        end
+    end
+    head = raw[:split]
+    rest = raw[split + 4:]
+    lines = head.split("\r\n")
+    parts = lines[0].split(" ")
+    if len(parts) != 3 or not parts[1].startswith("/"):
+        raise error("400 Malformed request line", "HttpError")
+    end
+    headers = {}
+    for line in lines[1:]:
+        colon = line.find(":")
+        if colon > 0:
+            headers[line[:colon].trim().lower()] = line[colon + 1:].trim()
+        end
+    end
+    if "transfer-encoding" in headers:
+        raise error("400 Chunked request bodies are not supported", "HttpError")
+    end
+    length = 0
+    if "content-length" in headers:
+        if not headers["content-length"].isdigit():
+            raise error("400 Invalid Content-Length", "HttpError")
+        end
+        length = tonum(headers["content-length"])
+    end
+    if length > _webMaxBody:
+        raise error("413 Request body is too large", "HttpError")
+    end
+    while len(rest) < length:
+        chunk = net.recv(conn, 65536)
+        if chunk == "":
+            return null
+        end
+        rest += chunk
+    end
+    target = parts[1]
+    mark = target.find("?")
+    request = {"conn": conn, "method": parts[0].upper(), "target": target, "path": target, "query": {}, "headers": headers, "body": net.decode(rest[:length]), "done": false}
+    if mark >= 0:
+        request["path"] = target[:mark]
+        request["query"] = parseQuery(target[mark + 1:])
+    end
+    request["path"] = urlDecode(request["path"])
+    return request
+end
+
+func parseQuery(text):
+    local result, pair, equals
+    result = {}
+    for pair in text.split("&"):
+        if pair != "":
+            equals = pair.find("=")
+            if equals < 0:
+                result[urlDecode(pair.replace("+", " "))] = ""
+            else:
+                result[urlDecode(pair[:equals].replace("+", " "))] = urlDecode(pair[equals + 1:].replace("+", " "))
+            end
+        end
+    end
+    return result
+end
+
+# decode %XX escapes (UTF-8) in a URL part
+func urlDecode(text):
+    local raw, i, c, high, low
+    if not text.contains("%"):
+        return text
+    end
+    raw = ""
+    i = 0
+    while i < len(text):
+        c = text[i]
+        high = 0 - 1
+        low = 0 - 1
+        if c == "%" and i + 2 < len(text):
+            high = _webHex.find(text[i + 1].lower())
+            low = _webHex.find(text[i + 2].lower())
+        end
+        if high >= 0 and low >= 0:
+            raw += chr(high * 16 + low)
+            i += 3
+        else:
+            raw += net.encode(c)
+            i += 1
+        end
+    end
+    return net.decode(raw)
+end
+
+func header(request, name):
+    return request["headers"].get(name.lower(), null)
+end
+
+# responses -- each reply sends once and closes the connection
+func reply(request, status, contentType, body, headers):
+    if request["done"]:
+        raise error("This request already has a reply", "HttpError")
+    end
+    request["done"] = true
+    _webSend(request["conn"], request["method"], status, contentType, body, headers)
+    return true
+end
+
+func html(request, body):
+    return reply(request, 200, "text/html; charset=utf-8", body, null)
+end
+
+func text(request, body):
+    return reply(request, 200, "text/plain; charset=utf-8", body, null)
+end
+
+func json(request, value):
+    return reply(request, 200, "application/json", jsonstringify(value, null), null)
+end
+
+func redirect(request, location):
+    return reply(request, 302, "text/plain; charset=utf-8", "", {"Location": location})
+end
+
+func notFound(request):
+    return reply(request, 404, "text/plain; charset=utf-8", "Not Found", null)
+end
+
+func _webSend(conn, method, status, contentType, body, headers):
+    local raw, head, name
+    status = tonum(tostr(status))
+    raw = net.encode(tostr(body))
+    head = f"HTTP/1.1 ${status} ${_webReasons.get(status, "Status")}\r\n"
+    head += "Content-Type: " + contentType + "\r\n"
+    head += "Content-Length: " + tostr(len(raw)) + "\r\n"
+    head += "Connection: close\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n"
+    if headers != null:
+        for name in headers:
+            if (name + headers[name]).contains("\r") or (name + headers[name]).contains("\n"):
+                raise error("Header names and values cannot contain newlines", "HttpError")
+            end
+            head += name + ": " + headers[name] + "\r\n"
+        end
+    end
+    if method == "HEAD" or status == 204 or status == 304:
+        raw = ""
+    end
+    try:
+        discard net.send(conn, head + "\r\n" + raw)
+    catch OSError:
+        # the browser went away before the reply; nothing to deliver
+    finally:
+        discard net.close(conn)
+    end
+    return null
+end

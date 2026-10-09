@@ -40,6 +40,38 @@ func textbox(win, width, height):
     return guitextbox(win, width, height)
 end
 
+func list(win, items, callback):
+    return guilist(win, items, callback)
+end
+
+func setItems(widget, items):
+    return guisetitems(widget, items)
+end
+
+func getItems(widget):
+    return guigetitems(widget)
+end
+
+func selectedIndex(widget):
+    return guiselectedindex(widget)
+end
+
+func select(widget, index):
+    return guiselect(widget, index)
+end
+
+func setListSize(widget, width, height):
+    return guilistsize(widget, width, height)
+end
+
+func onError(callback):
+    return guionerror(callback)
+end
+
+func stopOnError(enabled):
+    return guistoponerror(enabled)
+end
+
 func checkbox(win, text):
     return guicheckbox(win, text)
 end

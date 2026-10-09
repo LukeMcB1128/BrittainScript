@@ -8,6 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "core"))
 import main
 import parser
+from core.diagnostics import BSError
 
 
 def run(source):
@@ -47,14 +48,17 @@ class CallableVariableTests(unittest.TestCase):
         """), ["func x"])
 
     def test_a_non_callable_variable_reports_an_error(self):
-        self.assertEqual(run("value = 5\npush(value(1))"), ["Error: 'value' is not callable", "null"])
+        with self.assertRaisesRegex(BSError, "'value' is not callable"):
+            run("value = 5\npush(value(1))")
 
     def test_an_unknown_name_still_reports_undefined(self):
-        self.assertEqual(run("push(nosuchthing(1))"), ["Undefined function: nosuchthing", "null"])
+        with self.assertRaisesRegex(BSError, 'Undefined function: nosuchthing'):
+            run("push(nosuchthing(1))")
 
     def test_a_failing_call_reports_the_error(self):
-        output = run('sqrt = pyimport("math").sqrt\npush(sqrt("text"))')
-        self.assertTrue(output[0].startswith("Error calling 'sqrt'"), output)
+        with self.assertRaises(BSError) as raised:
+            run('sqrt = pyimport("math").sqrt\npush(sqrt("text"))')
+        self.assertEqual(raised.exception.type, 'TypeError')
 
     def test_builtins_are_unaffected(self):
         self.assertEqual(run("push(len([1, 2, 3]))"), ["3"])

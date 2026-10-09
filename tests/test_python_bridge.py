@@ -84,7 +84,7 @@ class MethodFallbackTests(unittest.TestCase):
         self.assertIn("Error calling 'split'", output)
 
     def test_module_methods_still_route_to_the_module_caller(self):
-        module = {"__bs_module__": True, "name": "demo", "funcs": {}}
+        module = parser.BSModule({"__bs_module__": True, "name": "demo", "funcs": {}})
         calls = []
         previous = parser.module_caller
         parser.set_module_caller(lambda receiver, name, args: calls.append((name, args)))
@@ -113,7 +113,7 @@ class AttributeAccessTests(unittest.TestCase):
         self.assertIn("no attribute 'notanattribute' on str", output)
 
     def test_module_members_must_be_called(self):
-        parser.set_name("demo", {"__bs_module__": True, "name": "demo", "funcs": {}})
+        parser.set_name("demo", parser.BSModule({"__bs_module__": True, "name": "demo", "funcs": {}}))
         result, output = evaluate_capturing("demo.greet")
         self.assertIsNone(result)
         self.assertIn("'demo' members must be called", output)

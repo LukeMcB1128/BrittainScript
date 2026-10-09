@@ -1,0 +1,28 @@
+# Native JSON interface. Errors propagate to BS catch handlers.
+func parse(text):
+    return jsonparse(text)
+end
+
+func stringify(value):
+    return jsonstringify(value)
+end
+
+func pretty(value, indent):
+    return jsonstringify(value, indent)
+end
+
+func load(path):
+    return jsonload(path)
+end
+
+func save(path, value):
+    return jsonsave(path, value)
+end
+
+func loads(text):
+    return jsonparse(text)
+end
+
+func dumps(value):
+    return jsonstringify(value)
+end

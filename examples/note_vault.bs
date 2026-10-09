@@ -1,0 +1,138 @@
+# A GUI and JSON API in one process. Notes persist in the current directory.
+add gui
+add server
+add http
+add json
+add store
+
+vault = store.open("note_vault.json")
+current_notes = []
+base_url = ""
+
+func append_note(data, note):
+    id = data.get("next_id", 1)
+    notes = data.get("notes", [])
+    notes.append({"id": id, "text": note["text"]})
+    data["notes"] = notes
+    data["next_id"] = id + 1
+    return data
+end
+
+func remove_note(data, id):
+    kept = []
+    found = false
+    for note in data.get("notes", []):
+        if note["id"] == id:
+            found = true
+        else:
+            kept.append(note)
+        end
+    end
+    if not found:
+        raise error("Note not found", "NoteNotFound")
+    end
+    data["notes"] = kept
+    return data
+end
+
+func read_notes(request):
+    return vault.get("notes", [])
+end
+
+func create_note(request):
+    note = request["json"]
+    if type(note) != type({}) or "text" not in note or type(note["text"]) != type("") or note["text"].trim() == "":
+        return server.response({"error": "Supply non-empty text"}, 400)
+    end
+    saved = vault.transaction("append_note", [note])
+    notes = saved["notes"]
+    return server.response(notes[len(notes) - 1], 201)
+end
+
+func delete_note(request):
+    try:
+        vault.transaction("remove_note", [request["params"]["id"]])
+        return server.response(null, 204)
+    catch NoteNotFound as problem:
+        return server.response({"error": problem.message}, 404)
+    end
+end
+
+func refresh():
+    response = http.get(base_url + "/notes")
+    if response["status"] != 200:
+        raise "Could not load notes"
+    end
+    current_notes = response["json"]
+    labels = []
+    for note in current_notes:
+        labels.append(f"${note["id"]}: ${note["text"]}")
+    end
+    gui.setItems(note_list, labels)
+    gui.setText(status, f"Loaded ${len(current_notes)} notes")
+end
+
+func selected(index):
+    gui.setText(status, f"Selected note ${current_notes[index]["id"]}")
+end
+
+func on_add():
+    response = http.post(base_url + "/notes", {"text": gui.getText(entry)})
+    if response["status"] != 201:
+        raise response["json"]["error"]
+    end
+    gui.setText(entry, "")
+    refresh()
+end
+
+func on_delete():
+    index = gui.selectedIndex(note_list)
+    if index == null:
+        gui.setText(status, "Select a note first")
+        return
+    end
+    id = current_notes[index]["id"]
+    response = http.delete(f"${base_url}/notes/${id}")
+    if response["status"] != 204:
+        raise response["json"]["error"]
+    end
+    refresh()
+end
+
+func show_json():
+    gui.alert("Notes JSON", json.pretty(current_notes, 2))
+end
+
+func on_error(problem):
+    gui.setText(status, f"${problem.type}: ${problem.message}")
+end
+
+server.get("/notes", "read_notes")
+server.post("/notes", "create_note")
+server.delete("/notes/<int:id>", "delete_note")
+
+port = server.serve_background("127.0.0.1", 0)
+base_url = f"http://127.0.0.1:${port}"
+try:
+    win = gui.window("Note Vault", 580, 440)
+    entry = gui.entry(win)
+    gui.pack(entry)
+    gui.pack(gui.button(win, "Add", "on_add"))
+    note_list = gui.list(win, [], "selected")
+    gui.setListSize(note_list, 65, 12)
+    gui.pack(note_list)
+    controls = gui.frame(win)
+    gui.pack(controls)
+    gui.grid(gui.button(controls, "Delete selected", "on_delete"), 0, 0)
+    gui.grid(gui.button(controls, "Refresh", "refresh"), 0, 1)
+    gui.grid(gui.button(controls, "Show JSON", "show_json"), 0, 2)
+    status = gui.label(win, "Ready")
+    gui.pack(status)
+    gui.onError("on_error")
+    refresh()
+    gui.run()
+finally:
+    gui.onError(null)
+    server.stop()
+    server.wait(10)
+end

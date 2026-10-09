@@ -3,21 +3,57 @@
     "lineComment": "#"
   },
   "brackets": [
-    ["(", ")"],
-    ["[", "]"]
+    [
+      "(",
+      ")"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "{",
+      "}"
+    ]
   ],
   "autoClosingPairs": [
-    { "open": "(", "close": ")" },
-    { "open": "[", "close": "]" },
-    { "open": "\"", "close": "\"" }
+    {
+      "open": "(",
+      "close": ")"
+    },
+    {
+      "open": "[",
+      "close": "]"
+    },
+    {
+      "open": "\"",
+      "close": "\""
+    },
+    {
+      "open": "{",
+      "close": "}"
+    }
   ],
   "surroundingPairs": [
-    ["(", ")"],
-    ["[", "]"],
-    ["\"", "\""]
+    [
+      "(",
+      ")"
+    ],
+    [
+      "[",
+      "]"
+    ],
+    [
+      "\"",
+      "\""
+    ],
+    [
+      "{",
+      "}"
+    ]
   ],
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(func|cond|while|for)\\b.*:\\s*$",
-    "decreaseIndentPattern": "^\\s*end\\s*$"
+    "increaseIndentPattern": "^\\s*(func|cond|if|while|for|try|catch|finally)\\b.*:\\s*$",
+    "decreaseIndentPattern": "^\\s*(end\\s*|catch\\b.*|finally\\s*:?)$"
   }
 }

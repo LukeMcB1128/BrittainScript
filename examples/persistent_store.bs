@@ -1,0 +1,9 @@
+add store
+vault = store.open("vault.json")
+
+func increment(value):
+    return value + 1
+end
+
+count = vault.update("visits", "increment", 0)
+push("Visits: " + tostr(count))
