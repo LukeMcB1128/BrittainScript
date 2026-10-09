@@ -34,6 +34,7 @@ _ui = {"title": "BrittainScript", "width": 1000, "height": 720, "accent": "#0046
 
 # ---------------------------------------------------------------- app setup
 
+# open a window titled title and run until it closes; view(state) draws each frame; returns the final state
 func app(title, state, view):
     local server, url, request
     _ui["title"] = title
