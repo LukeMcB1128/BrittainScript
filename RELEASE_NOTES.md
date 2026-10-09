@@ -1,4 +1,4 @@
-# Unreleased
+# 0.6.4
 
 The `ui` library has a new default look modelled on Windows XP, replacing the
 previous rounded card design. `ui.theme("none")` keeps only the layout, so an
