@@ -531,14 +531,55 @@ These operations use the platform's default text encoding. They do not add newli
 
 ## Bundled libraries
 
-Load a bundled module with `add name`, then call its functions. BS modules live in `libs/` next to the interpreter, not beside the source file. The native `server`, `http`, `store`, and `net` modules use Python backends. `web` and `ui` are written in BrittainScript.
+Load a module with `add name`, then call its functions. `add` first looks for `name.bs` beside the file that runs it, so you can [split a program into files](#your-own-modules). Otherwise it loads the bundled library from `libs/` next to the interpreter. The native `server`, `http`, `store`, and `net` modules use Python backends. `web` and `ui` are written in BrittainScript.
 
 ```bs
 add math
 push(math.clamp(120, 0, 100))
 ```
 
-To make a BS library, put `name.bs` in the interpreter's `libs/` directory and define its public functions with `func`. `add name` runs that file and makes those functions available as `name.function(...)`. Library variables follow the normal scope rules; the namespace exposes functions, not a separate data object. A later `add name` loads a new namespace. Keep one `server` namespace for a running server.
+A bundled library is loaded again by each `add`. Keep one `server` namespace for a running server.
+
+### Your own modules
+
+Split a program into files and load them with `add`. Each file is a module; its
+`func` definitions become `name.function(...)`.
+
+```bs
+# helpers.bs
+func double(value):
+    return value * 2
+end
+```
+
+```bs
+# main.bs
+add helpers
+push(helpers.double(21)) # 42
+```
+
+| Statement | Loads | Use it as |
+| --- | --- | --- |
+| `add helpers` | `helpers.bs` beside the file that contains the `add` | `helpers.double(...)` |
+| `add utils.strings` | `utils/strings.bs`, relative to that file | `strings.shout(...)` |
+
+- Paths are relative to the file that contains the `add`, not the folder the
+  terminal is in. A module can `add` other modules the same way. In the REPL,
+  `add` looks in the current folder.
+- A local file wins over a bundled library of the same name and prints a
+  warning, so a `math.bs` beside your script replaces the bundled `math`.
+- Each file runs once. A later `add` of the same file, from any module, reuses
+  the loaded module and does not run its top-level code again.
+- Two files that `add` each other raise `ImportError: circular add: a.bs -> b.bs -> a.bs`.
+  Move the shared functions into a third file that both can add.
+
+Modules share the program's global variables. A module's top-level variables
+are globals, and a function that assigns to a name that already exists in
+another file changes that variable. Two habits avoid collisions:
+
+1. Start each module function with `local` and list the names it uses.
+2. Give a module's top-level variables a distinctive prefix, such as
+   `helpersCache` instead of `cache`. The bundled `ui` library uses `_ui` this way.
 
 ### `math`
 
