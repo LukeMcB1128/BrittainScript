@@ -20,7 +20,7 @@ end
 
 func view(s):
     local shapes, item, board, swatches, name, greeting, rings
-    shapes = [ui.rounded(ui.stroke(ui.rect(0, 0, 640, 360, "var(--surface)"), "var(--border)", 2), 16)]
+    shapes = [ui.stroke(ui.rect(0, 0, 640, 360, "var(--surface)"), "#7f9db9", 2)]
     if len(s["dots"]) == 0:
         shapes.add(ui.fontSize(ui.drawText(320, 180, "Click anywhere to paint", "var(--muted)"), 18))
     end

@@ -30,7 +30,7 @@ _uiList = type([])
 _uiBool = type(true)
 _uiVoid = ["input", "br", "hr", "img", "meta", "link"]
 _uiEvents = ["data-bs-click", "data-bs-change", "data-bs-input", "data-bs-enter", "data-bs-point"]
-_ui = {"title": "BrittainScript", "width": 1000, "height": 720, "accent": "#5b5bf6", "css": [], "timers": [], "keys": [], "keyHandler": null, "commands": [], "state": null, "view": null, "tree": null, "version": 0, "token": "", "port": 0, "running": false, "byeAt": null, "handlers": {}, "bound": []}
+_ui = {"title": "BrittainScript", "width": 1000, "height": 720, "accent": "#0046d5", "theme": "classic", "css": [], "sheets": [], "timers": [], "keys": [], "keyHandler": null, "commands": [], "state": null, "view": null, "tree": null, "version": 0, "token": "", "port": 0, "running": false, "byeAt": null, "handlers": {}, "bound": []}
 
 # ---------------------------------------------------------------- app setup
 
@@ -70,6 +70,34 @@ end
 
 func accent(color):
     _ui["accent"] = color
+    return null
+end
+
+# "classic" (the default) or "none" for layout only, to style everything yourself
+func theme(name):
+    if name != "classic" and name != "none":
+        raise error("Unknown theme " + tostr(name) + "; use \"classic\" or \"none\"", "ValueError")
+    end
+    _ui["theme"] = name
+    return null
+end
+
+# load a CSS file, looked up next to your script first; it is re-read on every window reload
+func stylesheet(path):
+    local os, sys, candidate
+    os = pyimport("os")
+    sys = pyimport("sys")
+    if len(sys.argv) > 1:
+        candidate = os.path.join(os.path.dirname(os.path.abspath(sys.argv[1])), path)
+        if fileexists(candidate):
+            _ui["sheets"].add(candidate)
+            return null
+        end
+    end
+    if not fileexists(path):
+        raise error("Stylesheet not found: " + path, "FileNotFoundError")
+    end
+    _ui["sheets"].add(os.path.abspath(path))
     return null
 end
 
@@ -768,44 +796,84 @@ func _uiDocument():
     _ui["version"] += 1
     config = jsonstringify({"token": _ui["token"], "version": _ui["version"], "timers": _ui["timers"], "keys": _ui["keys"], "keyHandler": _ui["keyHandler"]}, null).replace("</", "<\\/")
     head = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>" + _uiEscape(_ui["title"]) + "</title>"
-    head += "<style>" + _uiTheme() + "\n".join(_ui["css"]) + "</style></head>"
+    head += "<style>" + _uiTheme() + "\n" + "\n".join(_ui["css"]) + "\n" + _uiSheets() + "</style></head>"
     return head + "<body><div id=\"bs-root\">" + _uiHtml(tree) + "</div><div id=\"bs-toasts\" aria-live=\"polite\"></div><script>window.BS=" + config + ";" + _uiClient() + "</script></body></html>"
 end
 
 # ---------------------------------------------------------------- theme
 
+func _uiSheets():
+    local parts, sheet
+    parts = []
+    for sheet in _ui["sheets"]:
+        parts.add(readfile(sheet).replace("</", "<\\/"))
+    end
+    return "\n".join(parts)
+end
+
 func _uiTheme():
+    if _ui["theme"] == "none":
+        return _uiBase(":root{--accent:#0b57d0;--bg:#ffffff;--surface:#ffffff;--fg:#000000;--muted:#666666;--border:#bbbbbb;--danger:#c00000;--success:#008000;--radius:4px;color-scheme:light}")
+    end
+    return _uiBase(f":root{--accent:${_ui["accent"]};--bg:#ece9d8;--surface:#ffffff;--fg:#000000;--muted:#716f64;--border:#aca899;--danger:#c00000;--success:#21a121;--radius:3px;color-scheme:light}") + "\n" + _uiClassic()
+end
+
+# layout every theme needs: rows, columns, spacing and the toast area
+func _uiBase(variables):
+    local c
+    c = [variables]
+    c.add("*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{background:var(--bg);color:var(--fg)}")
+    c.add(".bs-page{padding:12px 14px 20px;display:flex;flex-direction:column;gap:10px}")
+    c.add(".bs-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.bs-col{display:flex;flex-direction:column;gap:8px}.bs-spacer{flex:1}")
+    c.add(".bs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.bs-card{display:flex;flex-direction:column;gap:8px;min-width:0}")
+    c.add(".bs-row>.bs-input{flex:1;min-width:0}textarea.bs-input{width:100%}.bs-slider{flex:1}.bs-col>.bs-btn,.bs-card>.bs-btn{align-self:flex-start}")
+    c.add("h1,h2,h3,.bs-p,.bs-muted{margin:0}.bs-muted{color:var(--muted)}.bs-check{display:inline-flex;align-items:center;gap:5px}")
+    c.add(".bs-progress{height:12px;background:var(--border);width:100%}.bs-progress-bar{height:100%;background:var(--accent)}")
+    c.add(".bs-list{list-style:none;margin:0;padding:0}.bs-table{border-collapse:collapse;width:100%}.bs-table th{text-align:left}")
+    c.add(".bs-canvas{display:block;max-width:100%;height:auto;overflow:visible;user-select:none}.bs-canvas[data-bs-point]{cursor:crosshair}.bs-canvas [data-bs-click]{cursor:pointer}")
+    c.add("#bs-toasts{position:fixed;right:14px;bottom:14px;display:flex;flex-direction:column;align-items:flex-end;gap:6px;z-index:10}")
+    c.add(".bs-toast{background:var(--fg);color:var(--bg);padding:6px 10px;max-width:340px;transition:opacity .3s}.bs-toast.out{opacity:0}")
+    return "\n".join(c)
+end
+
+# the default look: Windows XP era controls
+func _uiClassic():
     local c
     c = []
-    c.add(f":root{--accent:${_ui["accent"]};--bg:#f6f7fb;--surface:#ffffff;--fg:#141826;--muted:#687087;--border:#e3e6ef;--soft:color-mix(in srgb,var(--accent) 12%,transparent);--danger:#e5484d;--success:#2f9e6b;--radius:14px;--shadow:0 1px 2px rgba(20,24,38,.04),0 4px 16px rgba(20,24,38,.06);color-scheme:light}")
-    c.add("@media (prefers-color-scheme:dark){:root{--bg:#0f1117;--surface:#171a23;--fg:#e8eaf2;--muted:#9097ab;--border:#272b38;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);color-scheme:dark}}")
-    c.add("*{box-sizing:border-box}html,body{margin:0;min-height:100%}")
-    c.add("body{background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Inter,Roboto,'Helvetica Neue',sans-serif;-webkit-font-smoothing:antialiased}")
-    c.add(".bs-page{max-width:960px;margin:0 auto;padding:40px 24px 64px;display:flex;flex-direction:column;gap:20px}")
-    c.add("h1,h2,h3{margin:0;letter-spacing:-.02em;line-height:1.2}h1{font-size:30px;font-weight:750}h2{font-size:20px;font-weight:700}h3{font-size:16px;font-weight:650}")
-    c.add(".bs-p{margin:0}.bs-muted{margin:0;color:var(--muted);font-size:14px}code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--soft);padding:2px 6px;border-radius:6px}a{color:var(--accent)}")
-    c.add(".bs-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}.bs-col{display:flex;flex-direction:column;gap:12px}.bs-spacer{flex:1}")
-    c.add(".bs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}")
-    c.add(".bs-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}")
-    c.add(".bs-divider{border:0;border-top:1px solid var(--border);margin:4px 0;width:100%}")
-    c.add(".bs-btn{font:inherit;font-weight:600;font-size:14px;padding:9px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--fg);cursor:pointer;transition:background .15s,border-color .15s,transform .05s,box-shadow .15s;white-space:nowrap}")
-    c.add(".bs-btn:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--border))}.bs-btn:active{transform:translateY(1px)}.bs-btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--soft)}.bs-btn:disabled{opacity:.5;cursor:default}")
-    c.add(".bs-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 12px color-mix(in srgb,var(--accent) 30%,transparent)}.bs-btn.primary:hover{filter:brightness(1.07)}")
-    c.add(".bs-btn.danger{color:var(--danger)}.bs-btn.danger:hover{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,transparent)}")
-    c.add(".bs-btn.ghost{background:transparent;border-color:transparent}.bs-btn.ghost:hover{background:var(--soft)}.bs-btn.small{padding:5px 10px;font-size:13px;border-radius:8px}")
-    c.add(".bs-input{font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 12px;min-width:0;transition:border-color .15s,box-shadow .15s}.bs-row>.bs-input{flex:1}textarea.bs-input{resize:vertical;width:100%}")
-    c.add(".bs-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}.bs-input::placeholder{color:var(--muted)}")
-    c.add(".bs-check{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}.bs-check input{width:17px;height:17px;accent-color:var(--accent);margin:0}.bs-slider{accent-color:var(--accent);width:100%}")
-    c.add(".bs-badge{display:inline-block;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;background:var(--soft);color:var(--accent)}")
-    c.add(".bs-progress{height:8px;border-radius:999px;background:var(--border);overflow:hidden;width:100%}.bs-progress-bar{height:100%;background:var(--accent);border-radius:999px;transition:width .4s ease}")
-    c.add(".bs-stat{display:flex;flex-direction:column;gap:2px}.bs-stat-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}.bs-stat-value{font-size:28px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}")
-    c.add(".bs-list{list-style:none;margin:0;padding:0}.bs-list>li{padding:10px 2px;border-bottom:1px solid var(--border)}.bs-list>li:last-child{border-bottom:0}")
-    c.add(".bs-table{width:100%;border-collapse:collapse;font-size:14px}.bs-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}.bs-table th,.bs-table td{padding:10px 8px;border-bottom:1px solid var(--border)}")
-    c.add(".bs-canvas{display:block;max-width:100%;height:auto;overflow:visible;font-size:14px;user-select:none}.bs-canvas[data-bs-point]{cursor:crosshair}.bs-canvas [data-bs-click]{cursor:pointer}")
-    c.add(".bs-empty{border:1.5px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--muted)}")
-    c.add("#bs-toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:10}")
-    c.add(".bs-toast{background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;box-shadow:var(--shadow);animation:bs-in .2s ease;transition:opacity .3s,transform .3s;max-width:360px}.bs-toast.error{background:var(--danger);color:#fff}.bs-toast.success{background:var(--success);color:#fff}.bs-toast.out{opacity:0;transform:translateY(6px)}")
-    c.add("@keyframes bs-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}")
+    c.add("body{font:12px/1.45 Tahoma,Verdana,'Segoe UI',Geneva,sans-serif}")
+    c.add("h1{font:bold 20px/1.2 'Trebuchet MS',Tahoma,sans-serif;color:#003399}h2{font-size:13px;font-weight:bold}h3{font-size:12px;font-weight:bold}")
+    c.add("a{color:var(--accent)}code{font:12px 'Lucida Console',Consolas,monospace;background:#fff;border:1px solid var(--border);padding:0 3px}")
+    # group box: a first heading sits on the border, like a fieldset legend
+    c.add(".bs-card{position:relative;border:1px solid #d0d0bf;border-radius:4px;padding:16px 10px 10px;margin-top:6px}")
+    c.add(".bs-card>h1:first-child,.bs-card>h2:first-child,.bs-card>h3:first-child{position:absolute;top:-8px;left:8px;padding:0 4px;background:var(--bg);font:12px/16px Tahoma,Verdana,sans-serif;color:var(--accent)}")
+    c.add(".bs-divider{border:0;border-top:1px solid var(--border);border-bottom:1px solid #fff;margin:2px 0;width:100%}")
+    # push buttons
+    c.add(".bs-btn{font:12px Tahoma,Verdana,sans-serif;color:#000;min-width:75px;height:23px;padding:0 10px;border:1px solid #003c74;border-radius:3px;background:linear-gradient(180deg,#fff 0%,#ecebe6 86%,#d6d0c5 100%);cursor:default;white-space:nowrap}")
+    c.add(".bs-btn:hover{box-shadow:inset 1px 1px #fff0cf,inset -1px -1px #f8b330,inset 2px 2px #fdd889,inset -2px -2px #fbc761}")
+    c.add(".bs-btn:active{background:linear-gradient(180deg,#cdcac3 0%,#e3e3db 8%,#f2f2f1 92%,#f2f2f1 100%);box-shadow:none}")
+    c.add(".bs-btn.primary{box-shadow:inset 1px 1px #cee7ff,inset -1px -1px #6982ee,inset 2px 2px #bcd4f6,inset -2px -2px #89ade4}.bs-btn.primary:hover{box-shadow:inset 1px 1px #fff0cf,inset -1px -1px #f8b330,inset 2px 2px #fdd889,inset -2px -2px #fbc761}")
+    c.add(".bs-btn:focus-visible{outline:1px dotted #000;outline-offset:-4px}.bs-btn.danger{color:var(--danger)}")
+    c.add(".bs-btn.ghost{background:transparent;border-color:transparent}.bs-btn.ghost:hover{border-color:#003c74;background:linear-gradient(180deg,#fff 0%,#ecebe6 86%,#d6d0c5 100%)}")
+    c.add(".bs-btn.small{min-width:0;height:19px;padding:0 6px;font-size:11px}")
+    c.add(".bs-btn:disabled{color:#aca899;border-color:#c9c7ba;background:#f5f4ea;box-shadow:none}")
+    # fields
+    c.add(".bs-input{font:12px Tahoma,Verdana,sans-serif;color:#000;background:#fff;border:1px solid #7f9db9;border-radius:0;padding:3px 4px;min-height:21px}.bs-input:focus{outline:none}.bs-input::placeholder{color:#aca899}")
+    c.add(".bs-check input{width:13px;height:13px;margin:0;accent-color:var(--success)}.bs-slider{accent-color:var(--accent)}")
+    # progress bar with green blocks
+    c.add(".bs-progress{height:14px;background:#fff;border:1px solid #686868;border-radius:3px;padding:1px}")
+    c.add(".bs-progress-bar{background:repeating-linear-gradient(90deg,transparent 0 8px,#fff 8px 10px),linear-gradient(180deg,#acedad 0%,#7be37b 15%,#3fd13f 45%,#24c824 60%,#5ad95a 85%,#acedad 100%);transition:width .3s}")
+    # Task Manager style readout
+    c.add(".bs-stat{display:flex;flex-direction:column;gap:3px}.bs-stat-label{font-size:11px}")
+    c.add(".bs-stat-value{font:20px/1.2 'Lucida Console',Consolas,monospace;color:#2eff2e;background:#000;border:1px solid;border-color:#808080 #fff #fff #808080;padding:6px 10px;text-align:right;font-variant-numeric:tabular-nums}")
+    # list view, table, badges and empty states sit in white sunken boxes
+    c.add(".bs-list{background:#fff;border:1px solid #7f9db9}.bs-list>li{padding:3px 6px}")
+    c.add(".bs-table{background:#fff;border:1px solid #7f9db9}.bs-table td{padding:2px 6px}")
+    c.add(".bs-table th{font-weight:normal;padding:3px 6px;background:linear-gradient(180deg,#fff 0%,#f2f1ea 60%,#ebeadb 100%);border-right:1px solid #d6d3c2;border-bottom:2px solid #d6d3c2}")
+    c.add(".bs-badge{display:inline-block;font-size:11px;padding:0 4px;background:#fff;border:1px solid var(--border)}")
+    c.add(".bs-empty{background:#fff;border:1px solid var(--border);color:var(--muted);padding:16px;text-align:center}")
+    # balloon tooltips for toasts
+    c.add(".bs-toast{background:#ffffe1;color:#000;border:1px solid #000;border-radius:6px;padding:7px 10px;box-shadow:2px 2px 3px rgba(0,0,0,.3)}")
+    c.add(".bs-toast.error::before{content:'✖ ';color:var(--danger);font-weight:bold}.bs-toast.success::before{content:'✔ ';color:var(--success);font-weight:bold}")
     return "\n".join(c)
 end
 

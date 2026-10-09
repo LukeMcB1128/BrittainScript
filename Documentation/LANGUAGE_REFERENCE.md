@@ -1158,8 +1158,10 @@ Call these before `ui.app`:
 | Function | Effect |
 | --- | --- |
 | `ui.size(width, height)` | Initial app window size in pixels. |
-| `ui.accent(color)` | Accent color, such as `"#0a84ff"`. |
-| `ui.css(text)` | Add CSS rules after the built-in theme. |
+| `ui.theme(name)` | `"classic"` (the default) or `"none"`. See [Styling your app](#styling-your-app). |
+| `ui.stylesheet(path)` | Load a CSS file. See [Styling your app](#styling-your-app). |
+| `ui.css(text)` | Add CSS rules after the theme. |
+| `ui.accent(color)` | Accent color of the classic theme, such as `"#0a84ff"`. |
 | `ui.every(milliseconds, handler)` | Call a handler repeatedly while the window is open. |
 | `ui.onKey(handler, keys)` | Call a handler for keys such as `["Escape", " ", "ArrowUp"]`. Keys typed into a text field are ignored, except Escape. |
 
@@ -1173,9 +1175,75 @@ Call these inside handlers:
 | `ui.focus(key)` | Move keyboard focus to the field bound to `key`. |
 | `ui.quit()` | Close the window and return from `ui.app`. |
 
-The theme follows the system light or dark mode. The built-in classes start
-with `bs-`, for example `.bs-card` and `.bs-btn`, and the colors are CSS
-variables such as `--accent`, `--bg`, `--surface` and `--muted`.
+### Styling your app
+
+An app looks finished without any CSS. The default `classic` theme is modelled
+on Windows XP: Tahoma text on a beige background, raised push buttons, sunken
+white fields and lists, group boxes, a green block progress bar, black
+Task Manager readouts for `ui.stat`, and yellow balloon messages for toasts.
+A card whose first child is a heading shows that heading on its border, like an
+XP group box: `ui.card([ui.h2("Options"), ...])`. The classic theme is always light.
+
+`ui.theme("none")` removes the look and keeps only the layout: rows, columns,
+grids and spacing. Controls then use the browser's plain defaults. This is
+like React, where every app brings its own CSS.
+
+To style an app yourself, put your CSS in a file next to your script and load it:
+
+```bs
+ui.stylesheet("style.css")
+ui.app("My app", state, "view")
+```
+
+The file is found next to your script first, then in the current folder. It is
+read again whenever the window reloads, so edit it, save, and press Cmd+R
+(Ctrl+R on Windows and Linux) to see the change without restarting the app.
+Stylesheets come after the theme and after `ui.css` rules, so their rules win.
+You can load several files; later ones win.
+
+If CSS is new to you, a rule names *what* to style and *how*:
+
+```css
+/* every h1 heading */
+h1 { color: tomato; font-size: 28px; }
+
+/* every element with the class bs-card */
+.bs-card { background: white; padding: 16px; border-radius: 8px; }
+```
+
+These properties cover most changes:
+
+| Property | Example | Changes |
+| --- | --- | --- |
+| `font-family` | `font-family: Georgia, serif;` | Typeface. List fallbacks after a comma. |
+| `font-size` | `font-size: 16px;` | Text size. |
+| `color` | `color: #333;` | Text color. |
+| `background` | `background: #fdf6ec;` | Background color. |
+| `padding` | `padding: 8px 12px;` | Space inside an element (top and bottom, then left and right). |
+| `gap` | `gap: 16px;` | Space between items in a row, column or grid. |
+| `border` | `border: 1px solid #ccc;` | Outline: width, style, color. |
+| `border-radius` | `border-radius: 6px;` | Rounded corners. |
+
+Each `ui` element has a class you can target:
+
+| Class | Made by |
+| --- | --- |
+| `body` | The whole window. |
+| `.bs-page`, `.bs-row`, `.bs-col`, `.bs-grid`, `.bs-card` | `ui.page`, `ui.row`, `ui.col`, `ui.grid`, `ui.card` |
+| `h1`, `h2`, `h3`, `.bs-p`, `.bs-muted`, `.bs-badge` | Text elements |
+| `.bs-btn`, plus `.primary`, `.danger`, `.ghost`, `.small` | `ui.button` and its style modifiers |
+| `.bs-input`, `.bs-check`, `.bs-slider` | Text fields, select menus, checkboxes, sliders |
+| `.bs-list`, `.bs-table`, `.bs-empty` | Lists, tables, empty states |
+| `.bs-progress`, `.bs-progress-bar` | `ui.progress` |
+| `.bs-stat`, `.bs-stat-label`, `.bs-stat-value` | `ui.stat` |
+| `.bs-canvas` | `ui.canvas` |
+| `.bs-toast`, plus `.error`, `.success` | Toast messages |
+
+Add your own class names with `ui.cls(element, "name")` and style them as
+`.name { ... }`. For a single element, `ui.style(element, "color: red")` is
+quicker. Theme colors are CSS variables that shapes and your CSS can use:
+`--accent`, `--bg`, `--surface`, `--fg`, `--muted`, `--border`, `--danger`,
+`--success`. Change one everywhere with `:root { --accent: teal; }`.
 
 Set the environment variable `BS_UI_BROWSER=tab` to open a normal browser tab,
 or `BS_UI_BROWSER=none` to open nothing and print the URL only. Browsers slow

@@ -262,6 +262,53 @@ reply = ui._uiEvent("{\\"handler\\": \\"paint\\", \\"x\\": 12.5, \\"y\\": 40, \\
         self.assertEqual(reply['patches'], [{'op': 'append', 'path': [0], 'html': '<circle cx="12.5" cy="40" r="4" style="fill: red"></circle>'}])
 
 
+class UiStylingTests(BSTestCase):
+    def setUp(self):
+        super().setUp()
+        self.directory = tempfile.TemporaryDirectory()
+        self.sheet = Path(self.directory.name) / 'style.css'
+        self.run_bs('''add ui
+func view(s):
+    return ui.page([ui.h1("Hi")])
+end
+_ui["state"] = {}
+_ui["view"] = "view"''')
+
+    def tearDown(self):
+        # ui keeps its settings in the _ui global; reset them for the next test
+        self.run_bs('_ui["theme"] = "classic"\n_ui["sheets"] = []')
+        self.directory.cleanup()
+        super().tearDown()
+
+    def page(self):
+        self.run_bs('page = ui._uiDocument()')
+        return parser.names['page']
+
+    def test_classic_is_the_default_and_none_keeps_only_layout(self):
+        classic = self.page()
+        self.assertIn('Tahoma', classic)
+        self.assertIn('.bs-row{display:flex', classic)
+        self.run_bs('ui.theme("none")')
+        bare = self.page()
+        self.assertNotIn('Tahoma', bare)
+        self.assertIn('.bs-row{display:flex', bare)
+        with self.assertRaises(BSError):
+            self.run_bs('ui.theme("modern")')
+
+    def test_stylesheet_is_added_last_and_reread_on_each_load(self):
+        self.sheet.write_text('h1 { color: tomato; } /* </style> */')
+        self.run_bs(f'ui.stylesheet({json.dumps(str(self.sheet))})')
+        page = self.page()
+        self.assertIn('h1 { color: tomato; } /* <\\/style> */', page)
+        self.assertGreater(page.index('tomato'), page.index('Tahoma'))
+        self.sheet.write_text('h1 { color: teal; }')
+        self.assertIn('h1 { color: teal; }', self.page())
+
+    def test_missing_stylesheet_raises(self):
+        with self.assertRaises(BSError):
+            self.run_bs('ui.stylesheet("definitely_missing_style.css")')
+
+
 class UiEventTests(BSTestCase):
     APP = '''add ui
 state = {"draft": "", "items": [], "count": 0}

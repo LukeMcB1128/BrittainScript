@@ -1,3 +1,11 @@
+# Unreleased
+
+The `ui` library has a new default look modelled on Windows XP, replacing the
+previous rounded card design. `ui.theme("none")` keeps only the layout, so an
+app can bring all of its own CSS. `ui.stylesheet("style.css")` loads a CSS file
+from next to the script and reads it again on every window reload. The
+reference has a new "Styling your app" section for people new to CSS.
+
 # 0.6.3
 
 New HTML desktop apps, written in BrittainScript:
