@@ -3,16 +3,36 @@
   "name": "BrittainScript",
   "scopeName": "source.bs",
   "patterns": [
-    { "include": "#comments" },
-    { "include": "#interpolated-strings" },
-    { "include": "#strings" },
-    { "include": "#keywords" },
-    { "include": "#builtins" },
-    { "include": "#constants" },
-    { "include": "#numbers" },
-    { "include": "#operators" },
-    { "include": "#function-call" },
-    { "include": "#identifiers" }
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#interpolated-strings"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#builtins"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#function-call"
+    },
+    {
+      "include": "#identifiers"
+    }
   ],
   "repository": {
     "interpolated-strings": {
@@ -20,14 +40,21 @@
       "begin": "\\b[fF]\"",
       "end": "\"",
       "patterns": [
-        { "name": "constant.character.escape.bs", "match": "\\\\." },
+        {
+          "name": "constant.character.escape.bs",
+          "match": "\\\\."
+        },
         {
           "name": "meta.interpolation.bs",
           "begin": "\\$\\{",
           "end": "\\}",
           "patterns": [
-            { "include": "#interpolation-braces" },
-            { "include": "$self" }
+            {
+              "include": "#interpolation-braces"
+            },
+            {
+              "include": "$self"
+            }
           ]
         }
       ]
@@ -36,8 +63,12 @@
       "begin": "\\{",
       "end": "\\}",
       "patterns": [
-        { "include": "#interpolation-braces" },
-        { "include": "$self" }
+        {
+          "include": "#interpolation-braces"
+        },
+        {
+          "include": "$self"
+        }
       ]
     },
     "comments": {
@@ -77,7 +108,7 @@
     },
     "builtins": {
       "name": "support.function.builtin.bs",
-      "match": "\\b(push|input|len|tonum|tostr|type|clear|absolute|round|floor|ceiling|space|sqrroot|sin|cos|tan|pyimport|error)\\b"
+      "match": "\\b(absolute|appendfile|ceiling|chr|clear|cos|createfile|datetime|deletefile|dict|error|fileexists|floor|guiafter|guialert|guibutton|guicanvas|guicheckbox|guiclearcanvas|guiclose|guiconfirm|guidrawline|guidrawoval|guidrawrect|guidrawtext|guientry|guierase|guiframe|guigetitems|guigettext|guigetvalue|guigrid|guiischecked|guilabel|guilist|guilistsize|guimove|guionclick|guionerror|guionkey|guipack|guiplace|guiprompt|guirun|guiselect|guiselectedindex|guisetcolor|guisetfont|guisetitems|guisettext|guisetvalue|guislider|guistoponerror|guitextbox|guititle|guiwindow|input|invoke|jsonload|jsonparse|jsonsave|jsonstringify|len|list|ord|push|pyimport|range|readfile|readlines|round|sin|space|sqrroot|tan|tonum|tostr|type|writefile)\\b(?=\\s*\\()"
     },
     "constants": {
       "patterns": [
@@ -93,7 +124,7 @@
     },
     "numbers": {
       "name": "constant.numeric.bs",
-      "match": "\\b\\d+(\\.\\d+)?\\b"
+      "match": "\\b\\d+(\\.\\d+)?([eE][+-]?\\d+)?\\b"
     },
     "operators": {
       "patterns": [
@@ -103,7 +134,7 @@
         },
         {
           "name": "keyword.operator.assignment.bs",
-          "match": "[+\\-*/%^]=(?!=)"
+          "match": "(//|[+\\-*/%^])=(?!=)"
         },
         {
           "name": "keyword.operator.assignment.bs",
@@ -111,14 +142,16 @@
         },
         {
           "name": "keyword.operator.arithmetic.bs",
-          "match": "[+\\-*/%^@]"
+          "match": "//|[+\\-*/%^@]"
         }
       ]
     },
     "function-call": {
       "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
       "captures": {
-        "1": { "name": "entity.name.function.bs" }
+        "1": {
+          "name": "entity.name.function.bs"
+        }
       }
     },
     "identifiers": {

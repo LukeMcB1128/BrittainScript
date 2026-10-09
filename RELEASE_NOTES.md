@@ -1,3 +1,11 @@
+# 0.6.5
+
+`add name` now loads `name.bs` from beside the file that contains the `add`,
+before it looks in the bundled libraries. `add utils.strings` loads
+`utils/strings.bs`. A local file of the same name replaces a bundled library
+and prints a warning. Each file runs once, and circular adds raise an
+`ImportError`. See "Your own modules" in the language reference.
+
 # 0.6.4
 
 The `ui` library has a new default look modelled on Windows XP, replacing the

@@ -380,7 +380,55 @@ def call_named_function(name, args):
     finally:
         current_environments().pop()
 
-def import_module(lib_name):
+NATIVE_MODULES = ('store', 'http', 'server', 'net')
+LIBS_DIR = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
+MODULE_NAME = re.compile(r'[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*')
+loaded_modules = {}     # absolute path -> module, so each local file runs once
+loading_modules = []    # paths being loaded right now, to catch circular adds
+warned_shadows = set()
+
+
+def find_local_module(lib_name, importer):
+    # "add helpers" looks for helpers.bs beside the importing file;
+    # "add utils.strings" looks for utils/strings.bs. The REPL uses the current folder.
+    if importer and os.path.isfile(importer):
+        base = os.path.dirname(os.path.abspath(importer))
+    else:
+        base = os.getcwd()
+    if os.path.realpath(base) == os.path.realpath(LIBS_DIR):
+        return None  # bundled libraries adding each other stay bundled
+    path = os.path.join(base, *lib_name.split('.')) + '.bs'
+    return os.path.realpath(path) if os.path.isfile(path) else None
+
+
+def load_local_module(path, name):
+    if path in loaded_modules:
+        return loaded_modules[path]
+    if path in loading_modules:
+        cycle = loading_modules[loading_modules.index(path):] + [path]
+        report('Error: circular add: ' + ' -> '.join(os.path.basename(item) for item in cycle), kind='ImportError')
+        return None
+    loading_modules.append(path)
+    try:
+        module = run_library(path, name)
+    finally:
+        loading_modules.pop()
+    loaded_modules[path] = module
+    return module
+
+
+def import_module(lib_name, importer=None):
+    if not MODULE_NAME.fullmatch(lib_name):
+        report(f"Syntax error: invalid library name '{lib_name}'")
+        return None
+    name = lib_name.split('.')[-1]
+    local = find_local_module(lib_name, importer)
+    if local:
+        bundled = lib_name in NATIVE_MODULES or os.path.exists(os.path.join(LIBS_DIR, lib_name + '.bs'))
+        if bundled and local not in warned_shadows:
+            warned_shadows.add(local)
+            print(f"Warning: add {lib_name} loads {local}, not the bundled {lib_name} library", file=sys.stderr)
+        return load_local_module(local, name)
     if lib_name == 'store':
         import store_backend
         return store_backend.create_module(sys.modules[__name__])
@@ -393,11 +441,14 @@ def import_module(lib_name):
     if lib_name == 'net':
         import net_backend
         return net_backend.create_module()
-    libs_dir = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'libs'))
-    lib_path = os.path.join(libs_dir, lib_name + '.bs')
+    lib_path = os.path.join(LIBS_DIR, lib_name + '.bs')
     if not os.path.exists(lib_path):
-        report(f"Error: library '{lib_name}' not found", kind='ImportError')
+        report(f"Error: library '{lib_name}' not found beside this file or in the bundled libraries", kind='ImportError')
         return None
+    return run_library(lib_path, lib_name)
+
+
+def run_library(lib_path, lib_name):
     with open(lib_path, 'r') as f:
         lines = [diagnostics.SourceLine(text, lib_path, index)
                  for index, text in enumerate(f, 1)]
@@ -586,9 +637,9 @@ def execute_statement(lines, i, line):
             report("Syntax error: expected import name")
         else:
             lib_name = parts[1].strip()
-            module = import_module(lib_name)
+            module = import_module(lib_name, getattr(line, 'file', None))
             if module:
-                parser_module.set_name(lib_name, module)
+                parser_module.set_name(lib_name.split('.')[-1], module)
         i += 1
     elif first_word == 'end':
         report("Syntax error: unexpected end")

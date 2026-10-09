@@ -1,0 +1,471 @@
+# ORBIT FOCUS STUDIO
+# A persistent desktop productivity app written entirely in BrittainScript.
+#
+# Features:
+# - task queue with add / complete / delete / navigation
+# - focus timer with pause, reset, and adjustable session length
+# - live canvas dashboard
+# - persistent scratchpad
+# - session statistics and plain-text summary export
+# - keyboard shortcuts
+
+add gui
+add io
+
+taskFile = "orbit_tasks.txt"
+notesFile = "orbit_notes.txt"
+statsFile = "orbit_stats.txt"
+
+tasks = []
+taskIndex = 0
+completedCount = 0
+sessionCount = 0
+timerSeconds = 1500
+timerTotal = 1500
+timerRunning = false
+timerGeneration = 0
+statusMessage = "Ready when you are."
+
+# Colors
+ink = "#17213a"
+muted = "#63708f"
+paper = "#f4f7ff"
+panel = "#ffffff"
+blue = "#526dff"
+cyan = "#37c7c4"
+gold = "#ffbd59"
+red = "#eb6477"
+green = "#4bbf83"
+
+func wholeDivide(value, divisor):
+    result = 0
+    remaining = value
+    while remaining >= divisor:
+        remaining = remaining - divisor
+        result = result + 1
+    end
+    return result
+end
+
+func twoDigits(value):
+    cond value < 10:
+        return "0" + tostr(value)
+    end
+    return tostr(value)
+end
+
+func timerText():
+    minutes = wholeDivide(timerSeconds, 60)
+    seconds = timerSeconds % 60
+    return twoDigits(minutes) + ":" + twoDigits(seconds)
+end
+
+func loadData():
+    cond io.exists(taskFile):
+        tasks = io.readLines(taskFile)
+    end
+    cond io.exists(notesFile):
+        gui.setText(notesBox, io.read(notesFile))
+    end
+    cond io.exists(statsFile):
+        saved = io.readLines(statsFile)
+        cond len(saved) > 0:
+            completedCount = tonum(saved[0])
+        end
+        cond len(saved) > 1:
+            sessionCount = tonum(saved[1])
+        end
+    end
+end
+
+func saveTasks():
+    content = ""
+    i = 0
+    while i < len(tasks):
+        content = content + tasks[i]
+        cond i < len(tasks) - 1:
+            content = content + "\n"
+        end
+        i = i + 1
+    end
+    io.write(taskFile, content)
+end
+
+func saveStats():
+    io.write(statsFile, tostr(completedCount) + "\n" + tostr(sessionCount))
+end
+
+func currentTask():
+    cond len(tasks) == 0:
+        return "No tasks yet — add one above."
+    end
+    cond taskIndex >= len(tasks):
+        taskIndex = len(tasks) - 1
+    end
+    cond taskIndex < 0:
+        taskIndex = 0
+    end
+    return tasks[taskIndex]
+end
+
+func redrawDashboard():
+    gui.clearCanvas(dashboard)
+    gui.rect(dashboard, 0, 0, 330, 238, panel)
+
+    # Focus progress track
+    gui.text(dashboard, 165, 22, "FOCUS ORBIT", muted)
+    gui.circle(dashboard, 165, 91, 56, "#e8ecff")
+    progress = 0
+    cond timerTotal > 0:
+        progress = wholeDivide((timerTotal - timerSeconds) * 100, timerTotal)
+    end
+    radius = 18 + wholeDivide(progress, 3)
+    gui.circle(dashboard, 165, 91, radius, blue)
+    gui.circle(dashboard, 165, 91, 14, panel)
+    gui.text(dashboard, 165, 91, tostr(progress) + "%", ink)
+
+    gui.text(dashboard, 62, 174, "DONE", muted)
+    gui.text(dashboard, 62, 199, tostr(completedCount), green)
+    gui.text(dashboard, 165, 174, "QUEUED", muted)
+    gui.text(dashboard, 165, 199, tostr(len(tasks)), blue)
+    gui.text(dashboard, 268, 174, "SESSIONS", muted)
+    gui.text(dashboard, 268, 199, tostr(sessionCount), gold)
+end
+
+func refresh():
+    gui.setText(taskDisplay, currentTask())
+    cond len(tasks) == 0:
+        gui.setText(taskPosition, "QUEUE EMPTY")
+    end
+    cond len(tasks) > 0:
+        gui.setText(taskPosition, "TASK " + tostr(taskIndex + 1) + " OF " + tostr(len(tasks)))
+    end
+    gui.setText(clockLabel, timerText())
+    gui.setText(statusLabel, statusMessage)
+    redrawDashboard()
+end
+
+func addTask():
+    newTask = gui.getText(taskEntry).trim()
+    cond len(newTask) == 0:
+        statusMessage = "Type a task before adding it."
+        refresh()
+        return 0
+    end
+    tasks.add(newTask)
+    taskIndex = len(tasks) - 1
+    gui.setText(taskEntry, "")
+    statusMessage = "Task added to your orbit."
+    saveTasks()
+    refresh()
+    return 1
+end
+
+func previousTask():
+    cond len(tasks) > 0:
+        taskIndex = taskIndex - 1
+        cond taskIndex < 0:
+            taskIndex = len(tasks) - 1
+        end
+    end
+    statusMessage = "Moved through the queue."
+    refresh()
+end
+
+func nextTask():
+    cond len(tasks) > 0:
+        taskIndex = taskIndex + 1
+        cond taskIndex >= len(tasks):
+            taskIndex = 0
+        end
+    end
+    statusMessage = "Moved through the queue."
+    refresh()
+end
+
+func removeCurrent(markDone):
+    cond len(tasks) == 0:
+        statusMessage = "The queue is already clear."
+        refresh()
+        return 0
+    end
+    remaining = []
+    i = 0
+    while i < len(tasks):
+        cond i != taskIndex:
+            remaining.add(tasks[i])
+        end
+        i = i + 1
+    end
+    tasks = remaining
+    cond markDone:
+        completedCount = completedCount + 1
+        statusMessage = "Completed. Nicely done."
+    end
+    cond not markDone:
+        statusMessage = "Task removed from the queue."
+    end
+    cond taskIndex >= len(tasks) and taskIndex > 0:
+        taskIndex = taskIndex - 1
+    end
+    saveTasks()
+    saveStats()
+    refresh()
+    return 1
+end
+
+func completeTask():
+    return removeCurrent(true)
+end
+
+func deleteTask():
+    cond len(tasks) == 0:
+        return removeCurrent(false)
+    end
+    answer = gui.confirm("Remove task", "Remove this task without completing it?")
+    cond answer:
+        return removeCurrent(false)
+    end
+    return 0
+end
+
+func saveNotes():
+    io.write(notesFile, gui.getText(notesBox))
+    statusMessage = "Scratchpad saved."
+    refresh()
+end
+
+func exportSummary():
+    summary = "ORBIT FOCUS SUMMARY\n\n"
+    summary = summary + "Completed tasks: " + tostr(completedCount) + "\n"
+    summary = summary + "Focus sessions: " + tostr(sessionCount) + "\n"
+    summary = summary + "Tasks remaining: " + tostr(len(tasks)) + "\n\nQUEUE\n"
+    i = 0
+    while i < len(tasks):
+        summary = summary + "- " + tasks[i] + "\n"
+        i = i + 1
+    end
+    summary = summary + "\nNOTES\n" + gui.getText(notesBox) + "\n"
+    io.write("orbit_summary.txt", summary)
+    statusMessage = "Exported orbit_summary.txt"
+    refresh()
+    gui.alert("Export complete", "Your dashboard summary is ready.")
+end
+
+func applyDuration():
+    cond timerRunning:
+        return 0
+    end
+    minutes = gui.getValue(durationSlider)
+    timerTotal = minutes * 60
+    timerSeconds = timerTotal
+    statusMessage = "Timer set to " + tostr(minutes) + " minutes."
+    refresh()
+    return 1
+end
+
+func startTimer():
+    cond timerRunning:
+        statusMessage = "Focus session is already running."
+        refresh()
+        return 0
+    end
+    cond timerSeconds <= 0:
+        applyDuration()
+    end
+    timerRunning = true
+    timerGeneration = timerGeneration + 1
+    statusMessage = "Focus mode active — protect this time."
+    refresh()
+    gui.after(1000, "timerTick")
+    return 1
+end
+
+func pauseTimer():
+    timerRunning = false
+    timerGeneration = timerGeneration + 1
+    statusMessage = "Timer paused. Resume when ready."
+    refresh()
+end
+
+func resetTimer():
+    timerRunning = false
+    timerGeneration = timerGeneration + 1
+    applyDuration()
+    statusMessage = "Timer reset."
+    refresh()
+end
+
+func timerTick():
+    cond not timerRunning:
+        return 0
+    end
+    timerSeconds = timerSeconds - 1
+    cond timerSeconds <= 0:
+        timerSeconds = 0
+        timerRunning = false
+        sessionCount = sessionCount + 1
+        saveStats()
+        statusMessage = "Orbit complete. Take a breath."
+        refresh()
+        gui.alert("Focus session complete", "Beautiful work. Your session has been recorded.")
+        return 1
+    end
+    refresh()
+    gui.after(1000, "timerTick")
+    return 1
+end
+
+func showHelp():
+    gui.alert("Orbit shortcuts", "Enter: add task\nLeft/Right: browse tasks\nSpace: start or pause\nD: complete task\nS: save notes\nEscape: pause timer")
+end
+
+func handleKey(key):
+    cond key == "Return":
+        addTask()
+    end
+    cond key == "Left":
+        previousTask()
+    end
+    cond key == "Right":
+        nextTask()
+    end
+    cond key == "d" or key == "D":
+        completeTask()
+    end
+    cond key == "s" or key == "S":
+        saveNotes()
+    end
+    cond key == "space":
+        cond timerRunning:
+            pauseTimer()
+            return 0
+        end
+        startTimer()
+    end
+    cond key == "Escape":
+        pauseTimer()
+    end
+end
+
+# Window shell
+win = gui.window("Orbit — Focus Studio", 980, 690)
+gui.setColor(win, paper, ink)
+
+brand = gui.label(win, "ORBIT")
+gui.setFont(brand, "Helvetica", 28)
+gui.setColor(brand, paper, blue)
+gui.place(brand, 34, 20)
+
+tagline = gui.label(win, "A calm command center for meaningful work")
+gui.setFont(tagline, "Helvetica", 12)
+gui.setColor(tagline, paper, muted)
+gui.place(tagline, 36, 64)
+
+helpButton = gui.button(win, "?  Shortcuts", "showHelp")
+gui.place(helpButton, 850, 30)
+
+# Task queue
+taskTitle = gui.label(win, "TASK QUEUE")
+gui.setFont(taskTitle, "Helvetica", 12)
+gui.setColor(taskTitle, paper, muted)
+gui.place(taskTitle, 35, 105)
+
+taskEntry = gui.entry(win)
+gui.setFont(taskEntry, "Helvetica", 13)
+gui.place(taskEntry, 35, 135)
+
+addButton = gui.button(win, "+ Add task", "addTask")
+gui.setColor(addButton, blue, "white")
+gui.place(addButton, 250, 132)
+
+taskDisplay = gui.label(win, "No tasks yet — add one above.")
+gui.setFont(taskDisplay, "Helvetica", 16)
+gui.setColor(taskDisplay, panel, ink)
+gui.place(taskDisplay, 35, 185)
+
+taskPosition = gui.label(win, "QUEUE EMPTY")
+gui.setFont(taskPosition, "Helvetica", 9)
+gui.setColor(taskPosition, paper, muted)
+gui.place(taskPosition, 35, 225)
+
+previousButton = gui.button(win, "<", "previousTask")
+gui.place(previousButton, 35, 255)
+nextButton = gui.button(win, ">", "nextTask")
+gui.place(nextButton, 80, 255)
+doneButton = gui.button(win, "Complete", "completeTask")
+gui.setColor(doneButton, green, "white")
+gui.place(doneButton, 135, 255)
+deleteButton = gui.button(win, "Remove", "deleteTask")
+gui.setColor(deleteButton, red, "white")
+gui.place(deleteButton, 225, 255)
+
+# Focus timer
+focusTitle = gui.label(win, "FOCUS TIMER")
+gui.setFont(focusTitle, "Helvetica", 12)
+gui.setColor(focusTitle, paper, muted)
+gui.place(focusTitle, 35, 320)
+
+clockLabel = gui.label(win, "25:00")
+gui.setFont(clockLabel, "Helvetica", 40)
+gui.setColor(clockLabel, paper, ink)
+gui.place(clockLabel, 35, 350)
+
+durationSlider = gui.slider(win, 5, 60)
+gui.setValue(durationSlider, 25)
+gui.place(durationSlider, 35, 420)
+setButton = gui.button(win, "Set minutes", "applyDuration")
+gui.place(setButton, 185, 430)
+
+startButton = gui.button(win, "Start", "startTimer")
+gui.setColor(startButton, blue, "white")
+gui.place(startButton, 35, 480)
+pauseButton = gui.button(win, "Pause", "pauseTimer")
+gui.place(pauseButton, 105, 480)
+resetButton = gui.button(win, "Reset", "resetTimer")
+gui.place(resetButton, 180, 480)
+
+# Dashboard canvas
+dashboardTitle = gui.label(win, "DASHBOARD")
+gui.setFont(dashboardTitle, "Helvetica", 12)
+gui.setColor(dashboardTitle, paper, muted)
+gui.place(dashboardTitle, 365, 105)
+
+dashboard = gui.canvas(win, 330, 238)
+gui.place(dashboard, 365, 135)
+
+# Scratchpad
+notesTitle = gui.label(win, "SCRATCHPAD")
+gui.setFont(notesTitle, "Helvetica", 12)
+gui.setColor(notesTitle, paper, muted)
+gui.place(notesTitle, 725, 105)
+
+notesBox = gui.textbox(win, 28, 19)
+gui.setFont(notesBox, "Helvetica", 11)
+gui.place(notesBox, 725, 135)
+
+saveNotesButton = gui.button(win, "Save notes", "saveNotes")
+gui.setColor(saveNotesButton, cyan, "white")
+gui.place(saveNotesButton, 725, 455)
+exportButton = gui.button(win, "Export summary", "exportSummary")
+gui.place(exportButton, 825, 455)
+
+statusLabel = gui.label(win, statusMessage)
+gui.setFont(statusLabel, "Helvetica", 11)
+gui.setColor(statusLabel, "#e9edff", ink)
+gui.place(statusLabel, 365, 420)
+
+tipLabel = gui.label(win, "Small, deliberate intervals beat heroic bursts.")
+gui.setFont(tipLabel, "Helvetica", 13)
+gui.setColor(tipLabel, paper, muted)
+gui.place(tipLabel, 365, 485)
+
+footer = gui.label(win, "Data stays local: orbit_tasks.txt  •  orbit_notes.txt  •  orbit_stats.txt")
+gui.setFont(footer, "Helvetica", 9)
+gui.setColor(footer, paper, muted)
+gui.place(footer, 365, 635)
+
+gui.onKey(win, "handleKey")
+loadData()
+refresh()
+gui.run()

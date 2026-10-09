@@ -1,0 +1,60 @@
+# gui_demo.bs -- a small demo of the BrittainScript gui library
+# run with: python3 run.py examples/gui_demo.bs
+
+add gui
+
+count = 0
+
+win = gui.window("BrittainScript GUI Demo", 420, 480)
+
+heading = gui.label(win, "Welcome to BrittainScript!")
+gui.setFont(heading, "Helvetica", 20)
+gui.pack(heading)
+
+counter_label = gui.label(win, "Button clicks: 0")
+gui.pack(counter_label)
+
+func on_click():
+    count = count + 1
+    gui.setText(counter_label, "Button clicks: " + tostr(count))
+end
+
+clicker = gui.button(win, "Click me", "on_click")
+gui.pack(clicker)
+
+name_entry = gui.entry(win)
+gui.pack(name_entry)
+
+func on_greet():
+    name = gui.getText(name_entry)
+    cond name == "":
+        gui.alert("Hello", "Type your name first!")
+    end
+    cond name != "":
+        gui.alert("Hello", "Hello, " + name + "!")
+    end
+end
+
+greeter = gui.button(win, "Greet", "on_greet")
+gui.pack(greeter)
+
+# canvas drawing: click to paint circles
+paint = gui.canvas(win, 380, 240)
+gui.pack(paint)
+gui.text(paint, 190, 20, "Click anywhere below to paint", "gray")
+
+func on_paint(x, y):
+    gui.circle(paint, x, y, 12, "purple")
+end
+
+gui.onClick(paint, "on_paint")
+
+func on_clear():
+    gui.clearCanvas(paint)
+    gui.text(paint, 190, 20, "Click anywhere below to paint", "gray")
+end
+
+clear_button = gui.button(win, "Clear canvas", "on_clear")
+gui.pack(clear_button)
+
+gui.run()

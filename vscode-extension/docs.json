@@ -1,0 +1,2191 @@
+{
+ "builtins": {
+  "absolute": [
+   {
+    "doc": "Absolute value.",
+    "signature": "absolute(value)"
+   }
+  ],
+  "appendfile": [
+   {
+    "doc": "Append Python `str(content)`; return `true`. Create the file if absent.",
+    "signature": "appendfile(path, content)"
+   }
+  ],
+  "ceiling": [
+   {
+    "doc": "Smallest integer greater than or equal to the value.",
+    "signature": "ceiling(value)"
+   }
+  ],
+  "chr": [
+   {
+    "doc": "One-character string for an integer Unicode code point.",
+    "signature": "chr(code)"
+   }
+  ],
+  "clear": [
+   {
+    "doc": "Clear the terminal; return `null`.",
+    "signature": "clear()"
+   }
+  ],
+  "cond": [
+   {
+    "doc": "Boolean truth test inside an expression. A statement that starts with `cond` opens a block.",
+    "signature": "cond(value)"
+   }
+  ],
+  "cos": [
+   {
+    "doc": "Trigonometry, with degree input",
+    "signature": "cos(x)"
+   },
+   {
+    "doc": "Cosine, with input in degrees.",
+    "signature": "cos(degrees)"
+   }
+  ],
+  "createfile": [
+   {
+    "doc": "Create an empty file; return `true`. An existing path raises `FileExistsError`.",
+    "signature": "createfile(path)"
+   }
+  ],
+  "datetime": [
+   {
+    "doc": "Date/time operation; see the `datetime` library and direct backend functions.",
+    "signature": "datetime(command, ...)"
+   }
+  ],
+  "deletefile": [
+   {
+    "doc": "Delete a file; return `true`.",
+    "signature": "deletefile(path)"
+   }
+  ],
+  "dict": [
+   {
+    "doc": "Copy a mapping or key/value pairs; omit the argument for an empty dictionary.",
+    "signature": "dict(source)"
+   }
+  ],
+  "error": [
+   {
+    "doc": "Create an error value. Both arguments must be strings.",
+    "signature": "error(message, type=\"RuntimeError\")"
+   }
+  ],
+  "fileexists": [
+   {
+    "doc": "Return whether the path exists, including a directory.",
+    "signature": "fileexists(path)"
+   }
+  ],
+  "floor": [
+   {
+    "doc": "Greatest integer less than or equal to the value.",
+    "signature": "floor(value)"
+   }
+  ],
+  "guiafter": [
+   {
+    "doc": "`gui.after(milliseconds, callback)`",
+    "signature": "guiafter(milliseconds, callback)"
+   }
+  ],
+  "guialert": [
+   {
+    "doc": "`gui.alert(title, message)`",
+    "signature": "guialert(title, message)"
+   }
+  ],
+  "guibutton": [
+   {
+    "doc": "`gui.button(win, text, callback)`",
+    "signature": "guibutton(win, text, callback)"
+   }
+  ],
+  "guicanvas": [
+   {
+    "doc": "`gui.canvas(win, width, height)`",
+    "signature": "guicanvas(win, width, height)"
+   }
+  ],
+  "guicheckbox": [
+   {
+    "doc": "`gui.checkbox(win, text)`",
+    "signature": "guicheckbox(win, text)"
+   }
+  ],
+  "guiclearcanvas": [
+   {
+    "doc": "`gui.clearCanvas(cnv)`",
+    "signature": "guiclearcanvas(cnv)"
+   }
+  ],
+  "guiclose": [
+   {
+    "doc": "`gui.close(win)`",
+    "signature": "guiclose(win)"
+   }
+  ],
+  "guiconfirm": [
+   {
+    "doc": "`gui.confirm(title, message)`",
+    "signature": "guiconfirm(title, message)"
+   }
+  ],
+  "guidrawline": [
+   {
+    "doc": "`gui.line(cnv, x1, y1, x2, y2, color)`",
+    "signature": "guidrawline(cnv, x1, y1, x2, y2, color)"
+   }
+  ],
+  "guidrawoval": [
+   {
+    "doc": "`gui.oval(cnv, x1, y1, x2, y2, color)`",
+    "signature": "guidrawoval(cnv, x1, y1, x2, y2, color)"
+   }
+  ],
+  "guidrawrect": [
+   {
+    "doc": "`gui.rect(cnv, x1, y1, x2, y2, color)`",
+    "signature": "guidrawrect(cnv, x1, y1, x2, y2, color)"
+   }
+  ],
+  "guidrawtext": [
+   {
+    "doc": "`gui.text(cnv, x, y, message, color)`",
+    "signature": "guidrawtext(cnv, x, y, message, color)"
+   }
+  ],
+  "guientry": [
+   {
+    "doc": "`gui.entry(win)`",
+    "signature": "guientry(win)"
+   }
+  ],
+  "guierase": [
+   {
+    "doc": "`gui.erase(cnv, shape)`",
+    "signature": "guierase(cnv, shape)"
+   }
+  ],
+  "guiframe": [
+   {
+    "doc": "`gui.frame(win)`",
+    "signature": "guiframe(win)"
+   }
+  ],
+  "guigetitems": [
+   {
+    "doc": "`gui.getItems(widget)`",
+    "signature": "guigetitems(widget)"
+   }
+  ],
+  "guigettext": [
+   {
+    "doc": "`gui.getText(widget)`",
+    "signature": "guigettext(widget)"
+   }
+  ],
+  "guigetvalue": [
+   {
+    "doc": "`gui.getValue(widget)`",
+    "signature": "guigetvalue(widget)"
+   }
+  ],
+  "guigrid": [
+   {
+    "doc": "`gui.grid(widget, row, col)`",
+    "signature": "guigrid(widget, row, col)"
+   }
+  ],
+  "guiischecked": [
+   {
+    "doc": "`gui.isChecked(widget)`",
+    "signature": "guiischecked(widget)"
+   }
+  ],
+  "guilabel": [
+   {
+    "doc": "`gui.label(win, text)`",
+    "signature": "guilabel(win, text)"
+   }
+  ],
+  "guilist": [
+   {
+    "doc": "`gui.list(win, items, callback)`",
+    "signature": "guilist(win, items, callback)"
+   }
+  ],
+  "guilistsize": [
+   {
+    "doc": "`gui.setListSize(widget, width, height)`",
+    "signature": "guilistsize(widget, width, height)"
+   }
+  ],
+  "guimove": [
+   {
+    "doc": "`gui.move(cnv, shape, dx, dy)`",
+    "signature": "guimove(cnv, shape, dx, dy)"
+   }
+  ],
+  "guionclick": [
+   {
+    "doc": "`gui.onClick(widget, callback)`",
+    "signature": "guionclick(widget, callback)"
+   }
+  ],
+  "guionerror": [
+   {
+    "doc": "`gui.onError(callback)`",
+    "signature": "guionerror(callback)"
+   }
+  ],
+  "guionkey": [
+   {
+    "doc": "`gui.onKey(win, callback)`",
+    "signature": "guionkey(win, callback)"
+   }
+  ],
+  "guipack": [
+   {
+    "doc": "`gui.pack(widget)`",
+    "signature": "guipack(widget)"
+   }
+  ],
+  "guiplace": [
+   {
+    "doc": "`gui.place(widget, x, y)`",
+    "signature": "guiplace(widget, x, y)"
+   }
+  ],
+  "guiprompt": [
+   {
+    "doc": "`gui.prompt(title, message)`",
+    "signature": "guiprompt(title, message)"
+   }
+  ],
+  "guirun": [
+   {
+    "doc": "`gui.run()`",
+    "signature": "guirun()"
+   }
+  ],
+  "guiselect": [
+   {
+    "doc": "`gui.select(widget, index)`",
+    "signature": "guiselect(widget, index)"
+   }
+  ],
+  "guiselectedindex": [
+   {
+    "doc": "`gui.selectedIndex(widget)`",
+    "signature": "guiselectedindex(widget)"
+   }
+  ],
+  "guisetcolor": [
+   {
+    "doc": "`gui.setColor(widget, background, foreground)`",
+    "signature": "guisetcolor(widget, background, foreground)"
+   }
+  ],
+  "guisetfont": [
+   {
+    "doc": "`gui.setFont(widget, fontname, size)`",
+    "signature": "guisetfont(widget, fontname, size)"
+   }
+  ],
+  "guisetitems": [
+   {
+    "doc": "`gui.setItems(widget, items)`",
+    "signature": "guisetitems(widget, items)"
+   }
+  ],
+  "guisettext": [
+   {
+    "doc": "`gui.setText(widget, text)`",
+    "signature": "guisettext(widget, text)"
+   }
+  ],
+  "guisetvalue": [
+   {
+    "doc": "`gui.setValue(widget, value)`",
+    "signature": "guisetvalue(widget, value)"
+   }
+  ],
+  "guislider": [
+   {
+    "doc": "`gui.slider(win, low, high)`",
+    "signature": "guislider(win, low, high)"
+   }
+  ],
+  "guistoponerror": [
+   {
+    "doc": "`gui.stopOnError(enabled)`",
+    "signature": "guistoponerror(enabled)"
+   }
+  ],
+  "guitextbox": [
+   {
+    "doc": "`gui.textbox(win, width, height)`",
+    "signature": "guitextbox(win, width, height)"
+   }
+  ],
+  "guititle": [
+   {
+    "doc": "`gui.title(win, text)`",
+    "signature": "guititle(win, text)"
+   }
+  ],
+  "guiwindow": [
+   {
+    "doc": "`gui.window(title, width, height)`",
+    "signature": "guiwindow(title, width, height)"
+   }
+  ],
+  "if": [
+   {
+    "doc": "Alias for `cond(value)` inside an expression. A statement that starts with `if` opens a block.",
+    "signature": "if(value)"
+   }
+  ],
+  "input": [
+   {
+    "doc": "Read one input line and return a string without its final newline.",
+    "signature": "input(prompt=\"\")"
+   }
+  ],
+  "invoke": [
+   {
+    "doc": "Call the BS function named by the string `name` with the list `args`; return its result. A `func` with the same name as a built-in, such as `clear`, takes priority. Libraries use it to call handlers passed by name.",
+    "signature": "invoke(name, args)"
+   }
+  ],
+  "jsonload": [
+   {
+    "doc": "`json.load(path)`",
+    "signature": "jsonload(path)"
+   }
+  ],
+  "jsonparse": [
+   {
+    "doc": "`json.parse(text)`",
+    "signature": "jsonparse(text)"
+   }
+  ],
+  "jsonsave": [
+   {
+    "doc": "`json.save(path, value)`",
+    "signature": "jsonsave(path, value)"
+   }
+  ],
+  "jsonstringify": [
+   {
+    "doc": "`json.stringify(value)` when indent is `null`; otherwise `json.pretty(value, indent)`.",
+    "signature": "jsonstringify(value, indent=null)"
+   }
+  ],
+  "len": [
+   {
+    "doc": "Length of a compatible value.",
+    "signature": "len(value)"
+   }
+  ],
+  "list": [
+   {
+    "doc": "Create a list; omit the argument for an empty list.",
+    "signature": "list(iterable)"
+   }
+  ],
+  "ord": [
+   {
+    "doc": "Integer code point of a one-character string.",
+    "signature": "ord(text)"
+   }
+  ],
+  "push": [
+   {
+    "doc": "Print one value and a newline; return `null`.",
+    "signature": "push(value)"
+   }
+  ],
+  "pyimport": [
+   {
+    "doc": "Import an installed Python module by its string name.",
+    "signature": "pyimport(name)"
+   }
+  ],
+  "range": [
+   {
+    "doc": "Alias for `space(stop)`.",
+    "signature": "range(stop)"
+   },
+   {
+    "doc": "Alias for the corresponding `space` call.",
+    "signature": "range(start, stop, step=1)"
+   },
+   {
+    "doc": "`space(n)`",
+    "signature": "range(n)"
+   }
+  ],
+  "readfile": [
+   {
+    "doc": "Read the whole file as text.",
+    "signature": "readfile(path)"
+   }
+  ],
+  "readlines": [
+   {
+    "doc": "Return a list of lines with final newline characters removed.",
+    "signature": "readlines(path)"
+   }
+  ],
+  "round": [
+   {
+    "doc": "Nearest integer; exact halves round to the even integer. No precision argument.",
+    "signature": "round(value)"
+   }
+  ],
+  "sin": [
+   {
+    "doc": "Trigonometry, with degree input",
+    "signature": "sin(x)"
+   },
+   {
+    "doc": "Sine, with input in degrees.",
+    "signature": "sin(degrees)"
+   }
+  ],
+  "space": [
+   {
+    "doc": "Integer list from zero to the excluded stop.",
+    "signature": "space(stop)"
+   },
+   {
+    "doc": "Integer list with an excluded stop and a nonzero step.",
+    "signature": "space(start, stop, step=1)"
+   }
+  ],
+  "sqrroot": [
+   {
+    "doc": "Square root",
+    "signature": "sqrroot(x)"
+   },
+   {
+    "doc": "Floating-point square root.",
+    "signature": "sqrroot(value)"
+   }
+  ],
+  "tan": [
+   {
+    "doc": "Trigonometry, with degree input",
+    "signature": "tan(x)"
+   },
+   {
+    "doc": "Tangent, with input in degrees.",
+    "signature": "tan(degrees)"
+   }
+  ],
+  "tonum": [
+   {
+    "doc": "Convert to an integer, or a float if its text contains a decimal point. Invalid input raises an error.",
+    "signature": "tonum(value)"
+   }
+  ],
+  "tostr": [
+   {
+    "doc": "Convert to text; `null` becomes `\"null\"`.",
+    "signature": "tostr(value)"
+   }
+  ],
+  "type": [
+   {
+    "doc": "Underlying Python type object.",
+    "signature": "type(value)"
+   }
+  ],
+  "writefile": [
+   {
+    "doc": "Replace the file contents with Python `str(content)`; return `true`.",
+    "signature": "writefile(path, content)"
+   }
+  ]
+ },
+ "libraries": {
+  "convert": "Unit conversions for length, temperature, energy, pressure and weight.",
+  "datetime": "Current date and time, formatting, parsing and date parts.",
+  "gui": "Tkinter desktop windows, widgets and canvas drawing.",
+  "http": "Send HTTP requests and read status, headers, text and JSON.",
+  "io": "Read, write, append, check and delete files.",
+  "json": "Parse and write JSON text and files.",
+  "math": "Number helpers: max, min, abs, clamp, factorial, pow.",
+  "net": "Socket primitives that web and ui are built on.",
+  "server": "Multithreaded HTTP API server. Needs the server extra.",
+  "store": "Persistent JSON dictionaries saved to a file, with locked updates.",
+  "terminal": "Text helpers for terminal output: padding, rules, panels and meters.",
+  "ui": "HTML desktop apps: view(state) returns elements, events call your handlers.",
+  "web": "A small HTTP/1.1 server written in BrittainScript."
+ },
+ "methods": {
+  "add": [
+   {
+    "doc": "Append to a list",
+    "kind": "list",
+    "signature": "items.add(value)"
+   }
+  ],
+  "append": [
+   {
+    "doc": "Append one item; return `null`.",
+    "kind": "list",
+    "signature": "items.append(value)"
+   }
+  ],
+  "clear": [
+   {
+    "doc": "Remove all items; return `null`.",
+    "kind": "list",
+    "signature": "items.clear()"
+   }
+  ],
+  "contains": [
+   {
+    "doc": "Test/find text (`locate` returns `-1` when absent)",
+    "kind": "string",
+    "signature": "text.contains(value)"
+   }
+  ],
+  "copy": [
+   {
+    "doc": "Return a shallow list copy.",
+    "kind": "list",
+    "signature": "items.copy()"
+   },
+   {
+    "doc": "Shallow dictionary copy.",
+    "kind": "dictionary",
+    "signature": "record.copy()"
+   }
+  ],
+  "count": [
+   {
+    "doc": "Count matches.",
+    "kind": "string",
+    "signature": "text.count(value)"
+   },
+   {
+    "doc": "Count matching items.",
+    "kind": "list",
+    "signature": "items.count(value)"
+   }
+  ],
+  "delete": [
+   {
+    "doc": "Delete a key; return whether it existed.",
+    "kind": "store",
+    "signature": "vault.delete(key)"
+   }
+  ],
+  "endswith": [
+   {
+    "doc": "Boolean suffix test.",
+    "kind": "string",
+    "signature": "text.endswith(suffix)"
+   }
+  ],
+  "extend": [
+   {
+    "doc": "Append the items of an iterable; return `null`.",
+    "kind": "list",
+    "signature": "items.extend(values)"
+   }
+  ],
+  "find": [
+   {
+    "doc": "Return the first match index, or `0 - 1`. Start and stop are optional.",
+    "kind": "string",
+    "signature": "text.find(value, start, stop)"
+   }
+  ],
+  "get": [
+   {
+    "doc": "Value, or the fallback if the key is absent.",
+    "kind": "dictionary",
+    "signature": "record.get(key, fallback=null)"
+   },
+   {
+    "doc": "Read a value; default is `null`.",
+    "kind": "store",
+    "signature": "vault.get(key, default=null)"
+   }
+  ],
+  "has": [
+   {
+    "doc": "Test whether a list contains an item",
+    "kind": "list",
+    "signature": "items.has(value)"
+   },
+   {
+    "doc": "Boolean key-presence test.",
+    "kind": "dictionary",
+    "signature": "record.has(key)"
+   },
+   {
+    "doc": "Test whether a key exists.",
+    "kind": "store",
+    "signature": "vault.has(key)"
+   }
+  ],
+  "index": [
+   {
+    "doc": "Return the first match index; raise `ValueError` if absent.",
+    "kind": "list",
+    "signature": "items.index(value)"
+   }
+  ],
+  "insert": [
+   {
+    "doc": "Insert an item; return `null`.",
+    "kind": "list",
+    "signature": "items.insert(index, value)"
+   }
+  ],
+  "items": [
+   {
+    "doc": "Iterable view of key/value pairs.",
+    "kind": "dictionary",
+    "signature": "record.items()"
+   }
+  ],
+  "join": [
+   {
+    "doc": "Join a sequence of strings.",
+    "kind": "string",
+    "signature": "separator.join(items)"
+   }
+  ],
+  "keys": [
+   {
+    "doc": "Iterable view of keys.",
+    "kind": "dictionary",
+    "signature": "record.keys()"
+   },
+   {
+    "doc": "Return the keys as a list.",
+    "kind": "store",
+    "signature": "vault.keys()"
+   }
+  ],
+  "locate": [
+   {
+    "doc": "Test/find text (`locate` returns `-1` when absent)",
+    "kind": "string",
+    "signature": "text.locate(value)"
+   }
+  ],
+  "lower": [
+   {
+    "doc": "Transform text",
+    "kind": "string",
+    "signature": "text.lower()"
+   }
+  ],
+  "pop": [
+   {
+    "doc": "Remove the last item; return `null`.",
+    "kind": "list",
+    "signature": "items.pop()"
+   },
+   {
+    "doc": "Remove and return the indexed item through the Python method.",
+    "kind": "list",
+    "signature": "items.pop(index)"
+   }
+  ],
+  "remove": [
+   {
+    "doc": "Remove first matching item",
+    "kind": "list",
+    "signature": "items.remove(value)"
+   },
+   {
+    "doc": "Delete the key; return `null`. A missing key raises `KeyError`.",
+    "kind": "dictionary",
+    "signature": "record.remove(key)"
+   }
+  ],
+  "replace": [
+   {
+    "doc": "Replace text. Omit `count` to replace all matches.",
+    "kind": "string",
+    "signature": "text.replace(old, new, count)"
+   }
+  ],
+  "reverse": [
+   {
+    "doc": "Reverse the list in place; return `null`.",
+    "kind": "list",
+    "signature": "items.reverse()"
+   }
+  ],
+  "set": [
+   {
+    "doc": "Save a value; return `true`.",
+    "kind": "store",
+    "signature": "vault.set(key, value)"
+   }
+  ],
+  "setdefault": [
+   {
+    "doc": "Existing value, or insert and return the supplied value.",
+    "kind": "dictionary",
+    "signature": "record.setdefault(key, value=null)"
+   }
+  ],
+  "snapshot": [
+   {
+    "doc": "Read the whole dictionary.",
+    "kind": "store",
+    "signature": "vault.snapshot()"
+   }
+  ],
+  "sort": [
+   {
+    "doc": "Sort the list in place; return `null`.",
+    "kind": "list",
+    "signature": "items.sort()"
+   }
+  ],
+  "split": [
+   {
+    "doc": "Split into a list of strings. With no argument, split on whitespace.",
+    "kind": "string",
+    "signature": "text.split(separator)"
+   }
+  ],
+  "startswith": [
+   {
+    "doc": "Boolean prefix test.",
+    "kind": "string",
+    "signature": "text.startswith(prefix)"
+   }
+  ],
+  "strip": [
+   {
+    "doc": "Remove characters from both ends. With no argument, remove whitespace.",
+    "kind": "string",
+    "signature": "text.strip(chars)"
+   }
+  ],
+  "transaction": [
+   {
+    "doc": "Transform and save the whole dictionary under the lock; return the saved dictionary.",
+    "kind": "store",
+    "signature": "vault.transaction(callback, args=null)"
+   }
+  ],
+  "trim": [
+   {
+    "doc": "Transform text",
+    "kind": "string",
+    "signature": "text.trim()"
+   }
+  ],
+  "update": [
+   {
+    "doc": "Add or replace keys from a mapping or key/value pairs; return `null`.",
+    "kind": "dictionary",
+    "signature": "record.update(other)"
+   },
+   {
+    "doc": "Read, transform, and save one value under the lock; return the saved value.",
+    "kind": "store",
+    "signature": "vault.update(key, callback, default=null, args=null)"
+   }
+  ],
+  "upper": [
+   {
+    "doc": "Transform text",
+    "kind": "string",
+    "signature": "text.upper()"
+   }
+  ],
+  "values": [
+   {
+    "doc": "Iterable view of values.",
+    "kind": "dictionary",
+    "signature": "record.values()"
+   }
+  ]
+ },
+ "modules": {
+  "convert": {
+   "atmToPa": [
+    {
+     "doc": "Atmospheres to pascals, using 101325 pascals per atmosphere.",
+     "signature": "convert.atmToPa(value)"
+    }
+   ],
+   "calToJoule": [
+    {
+     "doc": "Calories to joules, using 4.184 joules per calorie.",
+     "signature": "convert.calToJoule(value)"
+    }
+   ],
+   "celToFahrenheit": [
+    {
+     "doc": "Celsius to Fahrenheit.",
+     "signature": "convert.celToFahrenheit(value)"
+    }
+   ],
+   "celToKelvin": [
+    {
+     "doc": "Celsius to kelvin.",
+     "signature": "convert.celToKelvin(value)"
+    }
+   ],
+   "centimetersToInches": [
+    {
+     "doc": "Centimeters to inches.",
+     "signature": "convert.centimetersToInches(value)"
+    }
+   ],
+   "fahrenheitToCel": [
+    {
+     "doc": "Fahrenheit to Celsius.",
+     "signature": "convert.fahrenheitToCel(value)"
+    }
+   ],
+   "gramsToOz": [
+    {
+     "doc": "Grams to ounces.",
+     "signature": "convert.gramsToOz(value)"
+    }
+   ],
+   "inchesToCentimeters": [
+    {
+     "doc": "Inches to centimeters.",
+     "signature": "convert.inchesToCentimeters(value)"
+    }
+   ],
+   "jouleToCal": [
+    {
+     "doc": "Joules to calories.",
+     "signature": "convert.jouleToCal(value)"
+    }
+   ],
+   "kgToLbs": [
+    {
+     "doc": "Kilograms to pounds.",
+     "signature": "convert.kgToLbs(value)"
+    }
+   ],
+   "lbsToKg": [
+    {
+     "doc": "Pounds to kilograms.",
+     "signature": "convert.lbsToKg(value)"
+    }
+   ],
+   "ozToGrams": [
+    {
+     "doc": "Ounces to grams, using 28.35 grams per ounce.",
+     "signature": "convert.ozToGrams(value)"
+    }
+   ]
+  },
+  "datetime": {
+   "day": [
+    {
+     "doc": "Day of the month, starting at 1.",
+     "signature": "datetime.day(date)"
+    }
+   ],
+   "daysInMonth": [
+    {
+     "doc": "Number of days in the given month.",
+     "signature": "datetime.daysInMonth(yearNum, monthNum)"
+    }
+   ],
+   "format": [
+    {
+     "doc": "Formatted string.",
+     "signature": "datetime.format(date, pattern)"
+    }
+   ],
+   "hour": [
+    {
+     "doc": "Hour, from 0 to 23.",
+     "signature": "datetime.hour(date)"
+    }
+   ],
+   "isLeapYear": [
+    {
+     "doc": "Boolean leap-year test.",
+     "signature": "datetime.isLeapYear(yearNum)"
+    }
+   ],
+   "minute": [
+    {
+     "doc": "Minute, from 0 to 59.",
+     "signature": "datetime.minute(date)"
+    }
+   ],
+   "month": [
+    {
+     "doc": "Month, from 1 to 12.",
+     "signature": "datetime.month(date)"
+    }
+   ],
+   "now": [
+    {
+     "doc": "Current local Python datetime object, without timezone information.",
+     "signature": "datetime.now()"
+    }
+   ],
+   "parse": [
+    {
+     "doc": "Python datetime object parsed from text.",
+     "signature": "datetime.parse(text, pattern)"
+    }
+   ],
+   "second": [
+    {
+     "doc": "Second, from 0 to 59.",
+     "signature": "datetime.second(date)"
+    }
+   ],
+   "weekday": [
+    {
+     "doc": "Day of the week, from Monday `0` to Sunday `6`.",
+     "signature": "datetime.weekday(date)"
+    }
+   ],
+   "year": [
+    {
+     "doc": "Year number.",
+     "signature": "datetime.year(date)"
+    }
+   ]
+  },
+  "gui": {
+   "after": [
+    {
+     "doc": "Schedule one callback after the given delay. Callback receives no arguments.",
+     "signature": "gui.after(milliseconds, callback)"
+    }
+   ],
+   "alert": [
+    {
+     "doc": "Show an information dialog.",
+     "signature": "gui.alert(title, message)"
+    }
+   ],
+   "button": [
+    {
+     "doc": "Create a button; return its handle. Callback receives no arguments.",
+     "signature": "gui.button(win, text, callback)"
+    }
+   ],
+   "canvas": [
+    {
+     "doc": "Create a drawing canvas; return its handle. Width and height are pixels.",
+     "signature": "gui.canvas(win, width, height)"
+    }
+   ],
+   "checkbox": [
+    {
+     "doc": "Create an unchecked checkbox; return its handle.",
+     "signature": "gui.checkbox(win, text)"
+    }
+   ],
+   "circle": [
+    {
+     "doc": "Draw a filled circle with the given center and radius; return its item ID.",
+     "signature": "gui.circle(cnv, x, y, radius, color)"
+    }
+   ],
+   "clearCanvas": [
+    {
+     "doc": "Delete all canvas items.",
+     "signature": "gui.clearCanvas(cnv)"
+    }
+   ],
+   "close": [
+    {
+     "doc": "Destroy the window.",
+     "signature": "gui.close(win)"
+    }
+   ],
+   "confirm": [
+    {
+     "doc": "Show a yes/no dialog; return a boolean.",
+     "signature": "gui.confirm(title, message)"
+    }
+   ],
+   "entry": [
+    {
+     "doc": "Create a single-line input; return its handle.",
+     "signature": "gui.entry(win)"
+    }
+   ],
+   "erase": [
+    {
+     "doc": "Delete one canvas item.",
+     "signature": "gui.erase(cnv, shape)"
+    }
+   ],
+   "frame": [
+    {
+     "doc": "Create a container; return its handle.",
+     "signature": "gui.frame(win)"
+    }
+   ],
+   "getItems": [
+    {
+     "doc": "Return list labels as a list of strings.",
+     "signature": "gui.getItems(widget)"
+    }
+   ],
+   "getText": [
+    {
+     "doc": "Read an entry, textbox, or widget text such as a label.",
+     "signature": "gui.getText(widget)"
+    }
+   ],
+   "getValue": [
+    {
+     "doc": "Read a slider value; also works for an entry that supplies `get()`.",
+     "signature": "gui.getValue(widget)"
+    }
+   ],
+   "grid": [
+    {
+     "doc": "Place a widget at the given row and column, starting at zero.",
+     "signature": "gui.grid(widget, row, col)"
+    }
+   ],
+   "isChecked": [
+    {
+     "doc": "Read a checkbox as a boolean.",
+     "signature": "gui.isChecked(widget)"
+    }
+   ],
+   "label": [
+    {
+     "doc": "Create a text label; return its handle.",
+     "signature": "gui.label(win, text)"
+    }
+   ],
+   "line": [
+    {
+     "doc": "Draw a line between two pixel coordinates; return its canvas item ID.",
+     "signature": "gui.line(cnv, x1, y1, x2, y2, color)"
+    }
+   ],
+   "list": [
+    {
+     "doc": "Create a single-selection list; return its handle. Callback receives the selected index.",
+     "signature": "gui.list(win, items, callback)"
+    }
+   ],
+   "move": [
+    {
+     "doc": "Move a canvas item by the given offsets.",
+     "signature": "gui.move(cnv, shape, dx, dy)"
+    }
+   ],
+   "onClick": [
+    {
+     "doc": "Bind a left-button click. Callback receives pixel coordinates `x, y`.",
+     "signature": "gui.onClick(widget, callback)"
+    }
+   ],
+   "onError": [
+    {
+     "doc": "Register a callback with one error parameter. `null` restores default reporting.",
+     "signature": "gui.onError(callback)"
+    }
+   ],
+   "onKey": [
+    {
+     "doc": "Bind a key event. Callback receives a Tk key name, such as `Return`.",
+     "signature": "gui.onKey(win, callback)"
+    }
+   ],
+   "oval": [
+    {
+     "doc": "Draw a filled oval inside the given bounds; return its item ID.",
+     "signature": "gui.oval(cnv, x1, y1, x2, y2, color)"
+    }
+   ],
+   "pack": [
+    {
+     "doc": "Place a widget with the pack layout.",
+     "signature": "gui.pack(widget)"
+    }
+   ],
+   "place": [
+    {
+     "doc": "Place a widget at pixel coordinates within its parent.",
+     "signature": "gui.place(widget, x, y)"
+    }
+   ],
+   "prompt": [
+    {
+     "doc": "Show a text-input dialog; return a string, or an empty string on cancel.",
+     "signature": "gui.prompt(title, message)"
+    }
+   ],
+   "rect": [
+    {
+     "doc": "Draw a filled rectangle bounded by two corners; return its item ID.",
+     "signature": "gui.rect(cnv, x1, y1, x2, y2, color)"
+    }
+   ],
+   "run": [
+    {
+     "doc": "Run the event loop until it stops.",
+     "signature": "gui.run()"
+    }
+   ],
+   "select": [
+    {
+     "doc": "Select an index without calling its callback. `null` clears selection.",
+     "signature": "gui.select(widget, index)"
+    }
+   ],
+   "selectedIndex": [
+    {
+     "doc": "Return the zero-based selected index, or `null`.",
+     "signature": "gui.selectedIndex(widget)"
+    }
+   ],
+   "setColor": [
+    {
+     "doc": "Set background and foreground colors. Widgets without foreground support use background only.",
+     "signature": "gui.setColor(widget, background, foreground)"
+    }
+   ],
+   "setFont": [
+    {
+     "doc": "Set a widget font by name and size.",
+     "signature": "gui.setFont(widget, fontname, size)"
+    }
+   ],
+   "setItems": [
+    {
+     "doc": "Replace list labels and clear selection.",
+     "signature": "gui.setItems(widget, items)"
+    }
+   ],
+   "setListSize": [
+    {
+     "doc": "Set list width in characters and height in rows; both must be positive integers.",
+     "signature": "gui.setListSize(widget, width, height)"
+    }
+   ],
+   "setText": [
+    {
+     "doc": "Replace an entry, textbox, or widget text.",
+     "signature": "gui.setText(widget, text)"
+    }
+   ],
+   "setValue": [
+    {
+     "doc": "Set a slider value. A checkbox does not use this function.",
+     "signature": "gui.setValue(widget, value)"
+    }
+   ],
+   "slider": [
+    {
+     "doc": "Create a horizontal slider between the given bounds; return its handle.",
+     "signature": "gui.slider(win, low, high)"
+    }
+   ],
+   "stopOnError": [
+    {
+     "doc": "Set whether an unhandled callback error stops the loop. Default is `false`.",
+     "signature": "gui.stopOnError(enabled)"
+    }
+   ],
+   "text": [
+    {
+     "doc": "Draw centered text at pixel coordinates; return its item ID.",
+     "signature": "gui.text(cnv, x, y, message, color)"
+    }
+   ],
+   "textbox": [
+    {
+     "doc": "Create a multiline input; return its handle. Width is characters; height is rows.",
+     "signature": "gui.textbox(win, width, height)"
+    }
+   ],
+   "title": [
+    {
+     "doc": "Change the window title.",
+     "signature": "gui.title(win, text)"
+    }
+   ],
+   "window": [
+    {
+     "doc": "Create a window; return its handle. Width and height are pixels.",
+     "signature": "gui.window(title, width, height)"
+    }
+   ]
+  },
+  "http": {
+   "delete": [
+    {
+     "doc": "DELETE.",
+     "signature": "http.delete(url, headers=null, timeout=10)"
+    }
+   ],
+   "get": [
+    {
+     "doc": "GET.",
+     "signature": "http.get(url, headers=null, timeout=10)"
+    }
+   ],
+   "head": [
+    {
+     "doc": "HEAD, without a response body.",
+     "signature": "http.head(url, headers=null, timeout=10)"
+    }
+   ],
+   "options": [
+    {
+     "doc": "OPTIONS.",
+     "signature": "http.options(url, headers=null, timeout=10)"
+    }
+   ],
+   "patch": [
+    {
+     "doc": "PATCH.",
+     "signature": "http.patch(url, body=null, headers=null, timeout=10)"
+    }
+   ],
+   "post": [
+    {
+     "doc": "POST.",
+     "signature": "http.post(url, body=null, headers=null, timeout=10)"
+    }
+   ],
+   "put": [
+    {
+     "doc": "PUT.",
+     "signature": "http.put(url, body=null, headers=null, timeout=10)"
+    }
+   ],
+   "request": [
+    {
+     "doc": "One of the seven methods above, supplied as a string.",
+     "signature": "http.request(method, url, body=null, headers=null, timeout=10)"
+    }
+   ]
+  },
+  "io": {
+   "append": [
+    {
+     "doc": "Append content; return `true`.",
+     "signature": "io.append(path, content)"
+    }
+   ],
+   "create": [
+    {
+     "doc": "Create an empty file; return `true`. Fail if it exists.",
+     "signature": "io.create(path)"
+    }
+   ],
+   "delete": [
+    {
+     "doc": "Delete a file; return `true`.",
+     "signature": "io.delete(path)"
+    }
+   ],
+   "exists": [
+    {
+     "doc": "Boolean path-presence test.",
+     "signature": "io.exists(path)"
+    }
+   ],
+   "read": [
+    {
+     "doc": "Return the whole file as text.",
+     "signature": "io.read(path)"
+    }
+   ],
+   "readLines": [
+    {
+     "doc": "Return lines without final newline characters.",
+     "signature": "io.readLines(path)"
+    }
+   ],
+   "write": [
+    {
+     "doc": "Replace file contents; return `true`.",
+     "signature": "io.write(path, content)"
+    }
+   ]
+  },
+  "json": {
+   "dumps": [
+    {
+     "doc": "Alias for `json.stringify(value)`.",
+     "signature": "json.dumps(value)"
+    }
+   ],
+   "load": [
+    {
+     "doc": "Read and parse a UTF-8 file.",
+     "signature": "json.load(path)"
+    }
+   ],
+   "loads": [
+    {
+     "doc": "Alias for `json.parse(text)`.",
+     "signature": "json.loads(text)"
+    }
+   ],
+   "parse": [
+    {
+     "doc": "Parse JSON into BS values.",
+     "signature": "json.parse(text)"
+    }
+   ],
+   "pretty": [
+    {
+     "doc": "Encode JSON with the given indentation.",
+     "signature": "json.pretty(value, indent)"
+    }
+   ],
+   "save": [
+    {
+     "doc": "Write a UTF-8 file; return `true`.",
+     "signature": "json.save(path, value)"
+    }
+   ],
+   "stringify": [
+    {
+     "doc": "Encode compact JSON.",
+     "signature": "json.stringify(value)"
+    }
+   ]
+  },
+  "math": {
+   "abs": [
+    {
+     "doc": "Absolute value.",
+     "signature": "math.abs(value)"
+    }
+   ],
+   "clamp": [
+    {
+     "doc": "Limit a value to the inclusive bounds; use `low <= high`.",
+     "signature": "math.clamp(value, low, high)"
+    }
+   ],
+   "factorial": [
+    {
+     "doc": "Factorial; use a non-negative integer.",
+     "signature": "math.factorial(n)"
+    }
+   ],
+   "max": [
+    {
+     "doc": "Greater value.",
+     "signature": "math.max(a, b)"
+    }
+   ],
+   "min": [
+    {
+     "doc": "Smaller value.",
+     "signature": "math.min(a, b)"
+    }
+   ],
+   "pow": [
+    {
+     "doc": "Repeated multiplication; use a non-negative integer exponent.",
+     "signature": "math.pow(base, exp)"
+    }
+   ]
+  },
+  "net": {
+   "clock": [
+    {
+     "doc": "Monotonic time in seconds, for measuring intervals.",
+     "signature": "net.clock()"
+    }
+   ],
+   "close": [
+    {
+     "doc": "Close a socket; return whether it was open.",
+     "signature": "net.close(handle)"
+    }
+   ],
+   "decode": [
+    {
+     "doc": "Decode a raw string as UTF-8; invalid bytes are replaced.",
+     "signature": "net.decode(raw)"
+    }
+   ],
+   "encode": [
+    {
+     "doc": "UTF-8 encode text into a raw string.",
+     "signature": "net.encode(text)"
+    }
+   ],
+   "listen": [
+    {
+     "doc": "Listen for TCP connections and return a server handle.",
+     "signature": "net.listen(host, port)"
+    }
+   ],
+   "openApp": [
+    {
+     "doc": "Open a URL in a browser app window; return `true`, or `false` when it fell back to a normal tab.",
+     "signature": "net.openApp(url, width, height)"
+    }
+   ],
+   "port": [
+    {
+     "doc": "Return the bound port.",
+     "signature": "net.port(handle)"
+    }
+   ],
+   "recv": [
+    {
+     "doc": "Read up to `size` bytes as a raw string; `\"\"` means the peer closed. Waits up to 5 seconds.",
+     "signature": "net.recv(conn, size)"
+    }
+   ],
+   "send": [
+    {
+     "doc": "Send a raw string; return the byte count.",
+     "signature": "net.send(conn, raw)"
+    }
+   ],
+   "sleep": [
+    {
+     "doc": "Pause.",
+     "signature": "net.sleep(seconds)"
+    }
+   ],
+   "token": [
+    {
+     "doc": "Random 32-character hexadecimal token.",
+     "signature": "net.token()"
+    }
+   ],
+   "wait": [
+    {
+     "doc": "Return a connection handle that has data to read, or `null` after `timeout` seconds. Connections that stay idle are kept waiting and closed after 30 seconds.",
+     "signature": "net.wait(server, timeout)"
+    }
+   ]
+  },
+  "server": {
+   "app": [
+    {
+     "doc": "Return a WSGI application for an external host or tests.",
+     "signature": "server.app()"
+    }
+   ],
+   "delete": [
+    {
+     "doc": "Register DELETE requests.",
+     "signature": "server.delete(path, handler)"
+    }
+   ],
+   "error": [
+    {
+     "doc": "Return the last background error, or `null`.",
+     "signature": "server.error()"
+    }
+   ],
+   "get": [
+    {
+     "doc": "Register GET and HEAD requests.",
+     "signature": "server.get(path, handler)"
+    }
+   ],
+   "head": [
+    {
+     "doc": "Register HEAD requests.",
+     "signature": "server.head(path, handler)"
+    }
+   ],
+   "is_running": [
+    {
+     "doc": "Return whether the server is running.",
+     "signature": "server.is_running()"
+    }
+   ],
+   "options": [
+    {
+     "doc": "Register OPTIONS requests.",
+     "signature": "server.options(path, handler)"
+    }
+   ],
+   "patch": [
+    {
+     "doc": "Register PATCH requests.",
+     "signature": "server.patch(path, handler)"
+    }
+   ],
+   "port": [
+    {
+     "doc": "Return the bound port, or `null` if the server is stopped.",
+     "signature": "server.port()"
+    }
+   ],
+   "post": [
+    {
+     "doc": "Register POST requests.",
+     "signature": "server.post(path, handler)"
+    }
+   ],
+   "put": [
+    {
+     "doc": "Register PUT requests.",
+     "signature": "server.put(path, handler)"
+    }
+   ],
+   "response": [
+    {
+     "doc": "Create a response value with status and headers. `null` means no extra headers.",
+     "signature": "server.response(body, status=200, headers=null)"
+    }
+   ],
+   "route": [
+    {
+     "doc": "Register an HTTP method from the list above.",
+     "signature": "server.route(method, path, handler)"
+    }
+   ],
+   "run": [
+    {
+     "doc": "Serve until stopped; return `true` after shutdown.",
+     "signature": "server.run(host=\"127.0.0.1\", port=8000)"
+    }
+   ],
+   "serve_background": [
+    {
+     "doc": "Start a background server; return its integer bound port.",
+     "signature": "server.serve_background(host=\"127.0.0.1\", port=8000)"
+    }
+   ],
+   "stop": [
+    {
+     "doc": "Request shutdown; return `true` if the server is running.",
+     "signature": "server.stop()"
+    }
+   ],
+   "wait": [
+    {
+     "doc": "Wait for background shutdown; return `true` when stopped or `false` on timeout. `null` has no time limit.",
+     "signature": "server.wait(timeout=null)"
+    }
+   ]
+  },
+  "store": {
+   "open": [
+    {
+     "doc": "Open or create a JSON store file and return a store object with get, set, has, delete, keys, snapshot, update and transaction.",
+     "signature": "store.open(path)"
+    }
+   ]
+  },
+  "terminal": {
+   "meter": [
+    {
+     "doc": "A bracketed progress bar with `width` positions, using `#` and `.`.",
+     "signature": "terminal.meter(value, maximum, width)"
+    }
+   ],
+   "padRight": [
+    {
+     "doc": "Add spaces until the text has at least `width` characters. Does not trim longer text.",
+     "signature": "terminal.padRight(text, width)"
+    }
+   ],
+   "panel": [
+    {
+     "doc": "Text padded or trimmed to `width`, between vertical bars.",
+     "signature": "terminal.panel(text, width)"
+    }
+   ],
+   "repeat": [
+    {
+     "doc": "Repeat text `count` times.",
+     "signature": "terminal.repeat(text, count)"
+    }
+   ],
+   "rule": [
+    {
+     "doc": "A line with `width` dashes between `+` characters.",
+     "signature": "terminal.rule(width)"
+    }
+   ],
+   "wholeDivide": [
+    {
+     "doc": "Integer quotient calculated by repeated subtraction.",
+     "signature": "terminal.wholeDivide(value, divisor)"
+    }
+   ]
+  },
+  "ui": {
+   "accent": [
+    {
+     "doc": "Accent color of the classic theme, such as `\"#0a84ff\"`.",
+     "signature": "ui.accent(color)"
+    }
+   ],
+   "app": [
+    {
+     "doc": "Open a window titled title and run until it closes; view(state) draws each frame; returns the final state",
+     "signature": "ui.app(title, state, view)"
+    }
+   ],
+   "arc": [
+    {
+     "doc": "Arc measured clockwise from 12 o'clock. Use it for progress rings.",
+     "signature": "ui.arc(x, y, radius, startDegrees, endDegrees, color)"
+    }
+   ],
+   "arg": [
+    {
+     "doc": "Pass a JSON value to the handler as `event[\"arg\"]`.",
+     "signature": "ui.arg(el, value)"
+    }
+   ],
+   "attr": [
+    {
+     "doc": "Set an HTML attribute. `true` adds a bare attribute; `false` or `null` removes it.",
+     "signature": "ui.attr(el, name, value)"
+    }
+   ],
+   "badge": [
+    {
+     "doc": "Small rounded label.",
+     "signature": "ui.badge(text)"
+    }
+   ],
+   "button": [
+    {
+     "doc": "Button that calls `handler`.",
+     "signature": "ui.button(label, handler)"
+    }
+   ],
+   "canvas": [
+    {
+     "doc": "Drawing area.",
+     "signature": "ui.canvas(width, height, shapes)"
+    }
+   ],
+   "card": [
+    {
+     "doc": "Raised panel.",
+     "signature": "ui.card(kids)"
+    }
+   ],
+   "checkbox": [
+    {
+     "doc": "Checkbox bound to a boolean `state[key]`.",
+     "signature": "ui.checkbox(key, label)"
+    }
+   ],
+   "circle": [
+    {
+     "doc": "Circle around a center.",
+     "signature": "ui.circle(x, y, radius, color)"
+    }
+   ],
+   "cls": [
+    {
+     "doc": "Add CSS classes.",
+     "signature": "ui.cls(el, names)"
+    }
+   ],
+   "code": [
+    {
+     "doc": "Inline code.",
+     "signature": "ui.code(text)"
+    }
+   ],
+   "col": [
+    {
+     "doc": "Vertical column with spacing.",
+     "signature": "ui.col(kids)"
+    }
+   ],
+   "css": [
+    {
+     "doc": "Add CSS rules after the theme.",
+     "signature": "ui.css(text)"
+    }
+   ],
+   "danger": [
+    {
+     "doc": "Button styles.",
+     "signature": "ui.danger(el)"
+    }
+   ],
+   "disabled": [
+    {
+     "doc": "Disable a control when `flag` is `true`.",
+     "signature": "ui.disabled(el, flag)"
+    }
+   ],
+   "divider": [
+    {
+     "doc": "Horizontal rule.",
+     "signature": "ui.divider()"
+    }
+   ],
+   "drawText": [
+    {
+     "doc": "Text centered on a point.",
+     "signature": "ui.drawText(x, y, text, color)"
+    }
+   ],
+   "el": [
+    {
+     "doc": "Any HTML element. `attrs` is a dictionary or `null`.",
+     "signature": "ui.el(tag, attrs, kids)"
+    }
+   ],
+   "ellipse": [
+    {
+     "doc": "Ellipse around a center.",
+     "signature": "ui.ellipse(x, y, radiusX, radiusY, color)"
+    }
+   ],
+   "empty": [
+    {
+     "doc": "Placeholder for an empty area.",
+     "signature": "ui.empty(message)"
+    }
+   ],
+   "every": [
+    {
+     "doc": "Call a handler repeatedly while the window is open.",
+     "signature": "ui.every(milliseconds, handler)"
+    }
+   ],
+   "fill": [
+    {
+     "doc": "Fill color; `\"none\"` for an outline only.",
+     "signature": "ui.fill(shape, color)"
+    }
+   ],
+   "focus": [
+    {
+     "doc": "Move keyboard focus to the field bound to `key`.",
+     "signature": "ui.focus(key)"
+    }
+   ],
+   "fontSize": [
+    {
+     "doc": "Text size in pixels.",
+     "signature": "ui.fontSize(node, size)"
+    }
+   ],
+   "ghost": [
+    {
+     "doc": "Button styles.",
+     "signature": "ui.ghost(el)"
+    }
+   ],
+   "grid": [
+    {
+     "doc": "Responsive grid of equal columns.",
+     "signature": "ui.grid(kids)"
+    }
+   ],
+   "group": [
+    {
+     "doc": "Several shapes that move or rotate together.",
+     "signature": "ui.group(shapes)"
+    }
+   ],
+   "h1": [
+    {
+     "doc": "Headings.",
+     "signature": "ui.h1(text)"
+    }
+   ],
+   "h2": [
+    {
+     "doc": "Headings.",
+     "signature": "ui.h2(text)"
+    }
+   ],
+   "h3": [
+    {
+     "doc": "Headings.",
+     "signature": "ui.h3(text)"
+    }
+   ],
+   "input": [
+    {
+     "doc": "One-line text field bound to `state[key]`.",
+     "signature": "ui.input(key, placeholder)"
+    }
+   ],
+   "key": [
+    {
+     "doc": "Give a list item a stable identity.",
+     "signature": "ui.key(el, value)"
+    }
+   ],
+   "line": [
+    {
+     "doc": "Line.",
+     "signature": "ui.line(x1, y1, x2, y2, color)"
+    }
+   ],
+   "link": [
+    {
+     "doc": "Link that opens in the browser.",
+     "signature": "ui.link(label, url)"
+    }
+   ],
+   "list": [
+    {
+     "doc": "List; each item can be text or an element.",
+     "signature": "ui.list(items)"
+    }
+   ],
+   "live": [
+    {
+     "doc": "Redraw while the user types in this field.",
+     "signature": "ui.live(el)"
+    }
+   ],
+   "move": [
+    {
+     "doc": "Shift a shape or group.",
+     "signature": "ui.move(shape, dx, dy)"
+    }
+   ],
+   "muted": [
+    {
+     "doc": "Small secondary text.",
+     "signature": "ui.muted(text)"
+    }
+   ],
+   "notify": [
+    {
+     "doc": "Show a message; `kind` is `\"info\"`, `\"success\"` or `\"error\"`.",
+     "signature": "ui.notify(message, kind)"
+    }
+   ],
+   "onChange": [
+    {
+     "doc": "Call a handler when a control changes.",
+     "signature": "ui.onChange(el, handler)"
+    }
+   ],
+   "onClick": [
+    {
+     "doc": "Call a handler on click.",
+     "signature": "ui.onClick(el, handler)"
+    }
+   ],
+   "onEnter": [
+    {
+     "doc": "Call a handler when Enter is pressed in a text field.",
+     "signature": "ui.onEnter(el, handler)"
+    }
+   ],
+   "onKey": [
+    {
+     "doc": "Call a handler for keys such as `[\"Escape\", \" \", \"ArrowUp\"]`. Keys typed into a text field are ignored, except Escape.",
+     "signature": "ui.onKey(handler, keys)"
+    }
+   ],
+   "onPoint": [
+    {
+     "doc": "Call a handler for clicks on the canvas, with `event[\"x\"]` and `event[\"y\"]`.",
+     "signature": "ui.onPoint(canvas, handler)"
+    }
+   ],
+   "opacity": [
+    {
+     "doc": "Opacity from `0` to `1`.",
+     "signature": "ui.opacity(shape, value)"
+    }
+   ],
+   "p": [
+    {
+     "doc": "Paragraph.",
+     "signature": "ui.p(text)"
+    }
+   ],
+   "page": [
+    {
+     "doc": "Centered page column. Use it as the root.",
+     "signature": "ui.page(kids)"
+    }
+   ],
+   "password": [
+    {
+     "doc": "Password field bound to `state[key]`.",
+     "signature": "ui.password(key, placeholder)"
+    }
+   ],
+   "path": [
+    {
+     "doc": "SVG path data, such as `\"M 0 0 L 50 50\"`.",
+     "signature": "ui.path(commands, color)"
+    }
+   ],
+   "polygon": [
+    {
+     "doc": "Filled shape through a list of `[x, y]` points.",
+     "signature": "ui.polygon(points, color)"
+    }
+   ],
+   "polyline": [
+    {
+     "doc": "Open line through a list of `[x, y]` points.",
+     "signature": "ui.polyline(points, color)"
+    }
+   ],
+   "primary": [
+    {
+     "doc": "Button styles.",
+     "signature": "ui.primary(el)"
+    }
+   ],
+   "progress": [
+    {
+     "doc": "Progress bar.",
+     "signature": "ui.progress(value, maximum)"
+    }
+   ],
+   "quit": [
+    {
+     "doc": "Close the window and return from `ui.app`.",
+     "signature": "ui.quit()"
+    }
+   ],
+   "rect": [
+    {
+     "doc": "Rectangle from its top-left corner.",
+     "signature": "ui.rect(x, y, width, height, color)"
+    }
+   ],
+   "rotate": [
+    {
+     "doc": "Rotate clockwise around a point.",
+     "signature": "ui.rotate(shape, degrees, x, y)"
+    }
+   ],
+   "rounded": [
+    {
+     "doc": "Round a rectangle's corners.",
+     "signature": "ui.rounded(rect, radius)"
+    }
+   ],
+   "row": [
+    {
+     "doc": "Horizontal, wrapping row with spacing.",
+     "signature": "ui.row(kids)"
+    }
+   ],
+   "select": [
+    {
+     "doc": "Drop-down menu bound to `state[key]`; `options` is a list.",
+     "signature": "ui.select(key, options)"
+    }
+   ],
+   "setTitle": [
+    {
+     "doc": "Change the window title.",
+     "signature": "ui.setTitle(text)"
+    }
+   ],
+   "size": [
+    {
+     "doc": "Initial app window size in pixels.",
+     "signature": "ui.size(width, height)"
+    }
+   ],
+   "slider": [
+    {
+     "doc": "Range slider bound to a number `state[key]`.",
+     "signature": "ui.slider(key, low, high)"
+    }
+   ],
+   "small": [
+    {
+     "doc": "Button styles.",
+     "signature": "ui.small(el)"
+    }
+   ],
+   "spacer": [
+    {
+     "doc": "Fills the free space in a row.",
+     "signature": "ui.spacer()"
+    }
+   ],
+   "stat": [
+    {
+     "doc": "Large number with a caption.",
+     "signature": "ui.stat(label, value)"
+    }
+   ],
+   "stroke": [
+    {
+     "doc": "Outline color and width.",
+     "signature": "ui.stroke(shape, color, width)"
+    }
+   ],
+   "style": [
+    {
+     "doc": "Add inline CSS, such as `\"color: red\"`.",
+     "signature": "ui.style(el, rules)"
+    }
+   ],
+   "stylesheet": [
+    {
+     "doc": "Load a CSS file. See Styling your app.",
+     "signature": "ui.stylesheet(path)"
+    }
+   ],
+   "table": [
+    {
+     "doc": "Table; `rows` is a list of lists.",
+     "signature": "ui.table(headers, rows)"
+    }
+   ],
+   "text": [
+    {
+     "doc": "Inline text.",
+     "signature": "ui.text(text)"
+    }
+   ],
+   "textarea": [
+    {
+     "doc": "Multi-line text field bound to `state[key]`.",
+     "signature": "ui.textarea(key, rows)"
+    }
+   ],
+   "theme": [
+    {
+     "doc": "`\"classic\"` (the default) or `\"none\"`. See Styling your app.",
+     "signature": "ui.theme(name)"
+    }
+   ],
+   "toast": [
+    {
+     "doc": "Show a short message.",
+     "signature": "ui.toast(message)"
+    }
+   ]
+  },
+  "web": {
+   "close": [
+    {
+     "doc": "Close the listening socket.",
+     "signature": "web.close(server)"
+    }
+   ],
+   "header": [
+    {
+     "doc": "Read a request header by name, or `null`.",
+     "signature": "web.header(request, name)"
+    }
+   ],
+   "html": [
+    {
+     "doc": "Send HTML or plain text with status 200.",
+     "signature": "web.html(request, body)"
+    }
+   ],
+   "json": [
+    {
+     "doc": "Send a value as JSON with status 200.",
+     "signature": "web.json(request, value)"
+    }
+   ],
+   "listen": [
+    {
+     "doc": "Open a listening socket and return its handle. Port `0` picks a free port.",
+     "signature": "web.listen(host, port)"
+    }
+   ],
+   "next": [
+    {
+     "doc": "Wait up to `timeout` seconds and return the next request, or `null`.",
+     "signature": "web.next(server, timeout)"
+    }
+   ],
+   "notFound": [
+    {
+     "doc": "Send a 404 response.",
+     "signature": "web.notFound(request)"
+    }
+   ],
+   "parseQuery": [
+    {
+     "doc": "Decode a query string into a dictionary.",
+     "signature": "web.parseQuery(text)"
+    }
+   ],
+   "port": [
+    {
+     "doc": "Return the bound port.",
+     "signature": "web.port(server)"
+    }
+   ],
+   "readRequest": [
+    {
+     "doc": "Read one request from a `net` connection handle; return a request, or `null` if the client closed the connection. Used by `web.next`.",
+     "signature": "web.readRequest(conn)"
+    }
+   ],
+   "redirect": [
+    {
+     "doc": "Send a 302 redirect.",
+     "signature": "web.redirect(request, location)"
+    }
+   ],
+   "reply": [
+    {
+     "doc": "Send a response. `headers` is a dictionary or `null`.",
+     "signature": "web.reply(request, status, contentType, body, headers)"
+    }
+   ],
+   "serve": [
+    {
+     "doc": "Call `handler(request)` for each request until `web.stop(server)`.",
+     "signature": "web.serve(server, handler)"
+    }
+   ],
+   "stop": [
+    {
+     "doc": "Make `web.serve` return after the current request.",
+     "signature": "web.stop(server)"
+    }
+   ],
+   "text": [
+    {
+     "doc": "Send HTML or plain text with status 200.",
+     "signature": "web.text(request, body)"
+    }
+   ],
+   "urlDecode": [
+    {
+     "doc": "Decode `%XX` escapes as UTF-8.",
+     "signature": "web.urlDecode(text)"
+    }
+   ]
+  }
+ }
+}
