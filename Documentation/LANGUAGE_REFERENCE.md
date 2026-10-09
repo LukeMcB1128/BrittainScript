@@ -1,6 +1,6 @@
 # BrittainScript language reference
 
-This guide covers the current `dev` source code, including changes that are not yet on PyPI. The package version is `0.6.4`. An installed PyPI release can have fewer features. The short examples can use variables created in an earlier example in the same section.
+This guide covers the current `dev` source code, including changes that are not yet on PyPI. The package version is `0.6.5`. An installed PyPI release can have fewer features. The short examples can use variables created in an earlier example in the same section.
 BrittainScript runs through a Python interpreter. It can use Python packages installed in the same environment.
 
 Function tables show all public built-ins and bundled library functions. In a signature, `parameter=default` means that the argument is optional. Pass arguments by position. The `=` in a signature does not mean that a call accepts keyword arguments.

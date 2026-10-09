@@ -1,4 +1,4 @@
-# Unreleased
+# 0.6.5
 
 `add name` now loads `name.bs` from beside the file that contains the `add`,
 before it looks in the bundled libraries. `add utils.strings` loads
